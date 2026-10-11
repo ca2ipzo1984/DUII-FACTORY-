@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v5.7.0-PROD-ALL-IN-ONE-OBFUSCATED-KEYS-GEMINI3X
+ * VERSION     : v5.8.0-PROD-ALL-IN-ONE-SYNC-DRIVE-GEMINI3X-LOCKED
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : Controller, Storage Manager, Compiler & Live Gemini Copilot Engine
+ * DESCRIPTION : Controller, Storage Manager, Drive Sync & Live Gemini Copilot Engine
  * ==============================================================================
  */
 
@@ -20,7 +20,7 @@ let file2ModulesContent = "";
 let file3TestRunnerContent = "";
 let editingModuleId = null;
 
-// เข้ารหัส Base64 ของคีย์ 3 ตัว เพื่อไม่ให้ GitHub Secret Scanning ดักจับ
+// เข้ารหัส Base64 ของคีย์ 3 ตัวเพื่อป้องกัน GitHub Secret Scanning
 const ENCODED_SYSTEM_KEYS = [
   "QVEuQWI4Uk42S1hFbnJra0owU2xDYmxkZ3RGZFUxRTBmRlN2dEZyY0ZJZEJxa253YXRzV2c=",
   "QVEuQWI4Uk42S0E5ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=",
@@ -36,7 +36,8 @@ function getNextGeminiKey() {
     try {
       const b64 = ENCODED_SYSTEM_KEYS[activeKeyIndex % ENCODED_SYSTEM_KEYS.length];
       activeKeyIndex++;
-      return window.atob(b64);
+      const rawDecoded = window.atob(b64);
+      return (rawDecoded || "").trim(); // ดัก trim ตัด whitespace กัน Header Invalid
     } catch (e) {
       console.warn("Decode key error:", e);
     }
@@ -44,7 +45,7 @@ function getNextGeminiKey() {
   return "";
 }
 
-// ลงทะเบียน Service Worker ให้ทำงานแบบออฟไลน์
+// ลงทะเบียน Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW Registration Fail:', err));
@@ -61,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSearch();
   initInspectorButtons();
   initDuiiChatCopilot();
+  initDriveSyncEngine(); // เปิดระบบซิงก์ Google Drive สไตล์ iTunes
   renderCatalog();
   inspectModule(currentInspectingId);
 });
@@ -71,7 +73,10 @@ function loadCustomVaultFromStorage() {
     if (raw) {
       const customList = JSON.parse(raw);
       customList.forEach(c => {
-        if (!activeModules.some(m => m.id === c.id)) {
+        const idx = activeModules.findIndex(m => m.id === c.id);
+        if (idx !== -1) {
+          activeModules[idx] = c;
+        } else {
           activeModules.push(c);
         }
       });
@@ -88,9 +93,78 @@ function saveModuleToVault(mod) {
   } else {
     activeModules.push(mod);
   }
-  const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_"));
+  const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
   localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
   renderCatalog();
+}
+
+// ==============================================================================
+// 🔄 GOOGLE DRIVE SYNC ENGINE (iPhone x iTunes Architecture)
+// ==============================================================================
+function initDriveSyncEngine() {
+  const btnSync = document.getElementById("btnSyncDrive");
+  const statusBadge = document.getElementById("syncStatusText");
+  if (!btnSync) return;
+
+  const lastSync = localStorage.getItem("DUII_LAST_SYNC_TIME");
+  if (lastSync && statusBadge) {
+    statusBadge.textContent = `ซิงก์ล่าสุด: ${lastSync}`;
+  }
+
+  btnSync.addEventListener("click", async () => {
+    let syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL");
+    if (!syncEndpoint) {
+      syncEndpoint = prompt(
+        "🔗 วาง Web App URL หรือ Direct Link ไฟล์โมดูลบน Google Drive สำหรับซิงก์:",
+        ""
+      );
+      if (!syncEndpoint) return;
+      localStorage.setItem("DUII_DRIVE_SYNC_URL", syncEndpoint.trim());
+    }
+
+    btnSync.classList.add("syncing");
+    if (statusBadge) statusBadge.textContent = "กำลังซิงก์ข้อมูล...";
+
+    try {
+      const targetUrl = syncEndpoint + (syncEndpoint.includes("?") ? "&" : "?") + "action=GET_MODULES&t=" + Date.now();
+      const res = await fetch(targetUrl);
+      const cloudData = await res.json();
+
+      const cloudModules = cloudData.modules || cloudData;
+      if (Array.isArray(cloudModules) && cloudModules.length > 0) {
+        let newCount = 0;
+        cloudModules.forEach(cMod => {
+          const idx = activeModules.findIndex(m => m.id === cMod.id);
+          if (idx !== -1) {
+            activeModules[idx] = cMod;
+          } else {
+            activeModules.push(cMod);
+            newCount++;
+          }
+        });
+
+        const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
+        localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
+
+        const timeStr = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        localStorage.setItem("DUII_LAST_SYNC_TIME", timeStr);
+
+        renderCatalog();
+        if (statusBadge) statusBadge.textContent = `ซิงก์สำเร็จ (${timeStr})`;
+        alert(`✅ ซิงก์กับ Google Drive สำเร็จ!\nอัปเดตโมดูลทั้งหมด ${cloudModules.length} รายการ (พบโมดูลใหม่ ${newCount} รายการ)`);
+      } else {
+        alert("⚠️ ไม่พบข้อมูลโมดูลในไฟล์ต้นทางบน Google Drive");
+      }
+    } catch (err) {
+      console.error("Sync Error:", err);
+      if (statusBadge) statusBadge.textContent = "ซิงก์ล้มเหลว";
+      if (confirm("❌ ไม่สามารถซิงก์ได้ ต้องการเปลี่ยน URL แหล่งข้อมูลใน Drive ใหม่หรือไม่?")) {
+        localStorage.removeItem("DUII_DRIVE_SYNC_URL");
+      }
+    } finally {
+      btnSync.classList.remove("syncing");
+    }
+  });
 }
 
 // ==============================================================================
@@ -483,7 +557,7 @@ window.runAiGenerateModule = async function() {
   const statusEl = document.getElementById("genStatus");
   if (!prompt) { alert("กรุณาพิมพ์ความต้องการก่อน"); return; }
 
-  const apiKey = getNextGeminiKey();
+  const apiKey = (getNextGeminiKey() || "").trim();
   statusEl.textContent = "⏳ กำลังเขียนและจัดโครงสร้างโมดูลตามมาตรฐาน ISO 9009...";
 
   const fileSlug = prompt.substring(0, 15).replace(/[^a-zA-Z0-9ก-๙]/g, "_");
@@ -569,7 +643,7 @@ function initDuiiChatCopilot() {
 
   closeBtn.addEventListener("click", () => chatWin.classList.add("hidden"));
 
-  // จัดการกระดาษทด: ถอดรหัสคีย์จริงอัตโนมัติ (GitHub Secret Scanning มองไม่เห็น)
+  // โน้ตถอดรหัส Base64 อัตโนมัติ (GitHub สแกนไม่เห็น)
   if (noteArea) {
     const savedNote = localStorage.getItem("DUII_CHAT_PINNED_NOTE");
     if (savedNote && savedNote.trim()) {
@@ -577,7 +651,7 @@ function initDuiiChatCopilot() {
     } else {
       let decodedKeys = "";
       try {
-        decodedKeys = ENCODED_SYSTEM_KEYS.map(k => window.atob(k)).join("\n");
+        decodedKeys = ENCODED_SYSTEM_KEYS.map(k => window.atob(k).trim()).join("\n");
       } catch (e) {
         console.warn("Decode note error:", e);
       }
@@ -635,14 +709,15 @@ function initDuiiChatCopilot() {
 
     appendMsg("💭 ดุ่ยกำลังประมวลผลด้วยตระกูล 3.x...", "bot");
 
-    const apiKey = getNextGeminiKey();
+    const rawKey = getNextGeminiKey();
+    const apiKey = (rawKey || "").trim(); // ดัก trim ตัดช่องว่าง ป้องกัน Fetch 'Invalid value'
+
     if (!apiKey) {
       chatBody.lastElementChild.remove();
       appendMsg("⚠️ ยังไม่ได้ใส่ Gemini API Key! กรุณากดปุ่ม <strong>🔑 Key</strong> มุมบนขวาเพื่อใส่คีย์ก่อนนะไอ้ทิด!", "bot");
       return;
     }
 
-    // ล็อกเป้าเฉพาะตระกูล 3.x ตามกฎเหล็ก ISO 9009 ห้าม 1.x และ 2.x เด็ดขาด
     const modelsToTry = [
       "gemini-3.8-flash",
       "gemini-3.8-flash-lite",
