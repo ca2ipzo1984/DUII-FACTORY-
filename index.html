@@ -6,11 +6,11 @@
   <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=570">
+  <link rel="stylesheet" href="style.css?v=590">
 </head>
 <body>
 
-  <!-- แถบบน 4 แท็บ + ปุ่ม Sync Drive สไตล์ iTunes -->
+  <!-- แถบบน 4 แท็บ + ปุ่ม Sync Drive -->
   <header class="factory-header">
     <div class="brand-title">
       ⚡ DUII FACTORY <span class="tag-iso">ISO 9009</span>
@@ -71,6 +71,8 @@
             <div class="compile-btn-group">
               <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
               <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
+              <!-- 🚀 ปุ่มยิงโค้ด OTA เข้าปลายทาง -->
+              <button class="btn-action warning" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
             </div>
           </div>
           <div class="workspace-tabs">
@@ -129,7 +131,7 @@
       <ul style="margin: 10px 0 14px 20px;">
         <li><strong>00_CoreSpine.gs:</strong> แกนกลางระบบ จัดการ Webhook และ Gemini Failover</li>
         <li><strong>01_Modules_And_Tools.gs:</strong> รวบรวม Tool Schemas, Dispatcher และโมดูลที่เลือก</li>
-        <li><strong>99_Test.gs:</strong> ระบบตรวจสอบความสมบูรณ์และทดสอบฟังก์ชันทั้งระบบ</li>
+        <li><strong>99_TestRunner.gs:</strong> ระบบตรวจสอบความสมบูรณ์และทดสอบฟังก์ชันทั้งระบบ</li>
       </ul>
     </div>
   </section>
@@ -193,7 +195,7 @@
       </div>
     </div>
 
-    <!-- แถบกระดาษทดโน้ต (ซ่อน/แสดงได้) บันทึกลงเครื่องอัตโนมัติ -->
+    <!-- Drawer กระดาษทดโน้ต -->
     <div id="chatNoteDrawer" class="chat-note-drawer hidden">
       <div class="note-drawer-header">
         <span>📝 โน้ตแปะด่วน / คลังคำสั่งลับ</span>
@@ -205,7 +207,7 @@
     <div class="chat-body" id="chatBody">
       <div class="chat-msg bot">
         <div class="msg-bubble">
-          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! หากยังไม่ได้ใส่คีย์กดปุ่ม <strong>🔑 Key</strong> ได้เลยไอ้ทิด!
+          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! หากยังไม่ได้ใส่คีย์กดปุ่ม <strong>🔑 Key</strong> ได้เลย
         </div>
       </div>
     </div>
