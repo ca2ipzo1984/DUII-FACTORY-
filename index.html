@@ -6,14 +6,18 @@
   <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=550">
+  <link rel="stylesheet" href="style.css?v=570">
 </head>
 <body>
 
-  <!-- แถบบน 4 แท็บ -->
+  <!-- แถบบน 4 แท็บ + ปุ่ม Sync Drive สไตล์ iTunes -->
   <header class="factory-header">
     <div class="brand-title">
       ⚡ DUII FACTORY <span class="tag-iso">ISO 9009</span>
+      <button class="btn-sync" id="btnSyncDrive" title="ซิงก์ดึงข้อมูลโมดูลล่าสุดจาก Google Drive">
+        <span class="sync-icon">🔄</span> ซิงก์คลัง Drive
+      </button>
+      <span class="sync-status-badge" id="syncStatusText">พร้อมซิงก์</span>
     </div>
     <nav class="nav-tabs">
       <button class="nav-btn active" data-tab="tab-assembler">📦 คลังประกอบบอท</button>
@@ -189,7 +193,7 @@
       </div>
     </div>
 
-    <!-- แถบกระดาษทดโน้ต (ซ่อน/แสดงได้) Auto-save -->
+    <!-- แถบกระดาษทดโน้ต (ซ่อน/แสดงได้) บันทึกลงเครื่องอัตโนมัติ -->
     <div id="chatNoteDrawer" class="chat-note-drawer hidden">
       <div class="note-drawer-header">
         <span>📝 โน้ตแปะด่วน / คลังคำสั่งลับ</span>
