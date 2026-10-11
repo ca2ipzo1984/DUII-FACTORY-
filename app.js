@@ -834,3 +834,41 @@ function initSearch() {
     searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
   }
 }
+async function deployDirectToTargetUrl() {
+  const targetUrl = prompt(
+    "🔗 ใส่ Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
+    localStorage.getItem("DUII_LAST_TARGET_DEPLOY_URL") || ""
+  );
+  if (!targetUrl) return;
+
+  localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", targetUrl.trim());
+
+  // ตรวจสอบว่าคอมไพล์โค้ดล่าสุดแล้วหรือยัง
+  if (!file1CoreContent || !file2ModulesContent) {
+    compileAutonomousBot();
+  }
+
+  const payload = {
+    secretKey: "DUII_DEPLOY_SECRET_9009",
+    coreSpine: file1CoreContent,
+    modules: file2ModulesContent,
+    testRunner: file3TestRunnerContent
+  };
+
+  try {
+    const res = await fetch(targetUrl.trim(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+
+    if (result.status === "success") {
+      alert("🚀 ยิงโค้ดผลผลิตเข้าสู่ระบบปลายทางสำเร็จ 100%!");
+    } else {
+      alert("⚠️ ปลายทางตอบกลับ: " + result.message);
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
+  }
+}
