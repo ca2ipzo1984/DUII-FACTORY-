@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v5.8.0-PROD-ALL-IN-ONE-SYNC-DRIVE-GEMINI3X-LOCKED
+ * VERSION     : v5.9.0-PROD-OTA-DEPLOY-DIRECT-ISO9009
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : Controller, Storage Manager, Drive Sync & Live Gemini Copilot Engine
+ * DESCRIPTION : Controller, Storage Manager, Drive Sync & Remote Deployment Engine
  * ==============================================================================
  */
 
@@ -20,7 +20,7 @@ let file2ModulesContent = "";
 let file3TestRunnerContent = "";
 let editingModuleId = null;
 
-// เข้ารหัส Base64 ของคีย์ 3 ตัวเพื่อป้องกัน GitHub Secret Scanning
+// เข้ารหัส Base64 ของชุดคีย์ระบบ
 const ENCODED_SYSTEM_KEYS = [
   "QVEuQWI4Uk42S1hFbnJra0owU2xDYmxkZ3RGZFUxRTBmRlN2dEZyY0ZJZEJxa253YXRzV2c=",
   "QVEuQWI4Uk42S0E5ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=",
@@ -37,7 +37,7 @@ function getNextGeminiKey() {
       const b64 = ENCODED_SYSTEM_KEYS[activeKeyIndex % ENCODED_SYSTEM_KEYS.length];
       activeKeyIndex++;
       const rawDecoded = window.atob(b64);
-      return (rawDecoded || "").trim(); // ดัก trim ตัด whitespace กัน Header Invalid
+      return (rawDecoded || "").trim();
     } catch (e) {
       console.warn("Decode key error:", e);
     }
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSearch();
   initInspectorButtons();
   initDuiiChatCopilot();
-  initDriveSyncEngine(); // เปิดระบบซิงก์ Google Drive สไตล์ iTunes
+  initDriveSyncEngine();
   renderCatalog();
   inspectModule(currentInspectingId);
 });
@@ -99,7 +99,7 @@ function saveModuleToVault(mod) {
 }
 
 // ==============================================================================
-// 🔄 GOOGLE DRIVE SYNC ENGINE (iPhone x iTunes Architecture)
+// 🔄 GOOGLE DRIVE SYNC ENGINE (Master Vault Sync)
 // ==============================================================================
 function initDriveSyncEngine() {
   const btnSync = document.getElementById("btnSyncDrive");
@@ -373,22 +373,16 @@ window.downloadAllIndividualGsFiles = function() {
   }
 
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  if (coreMod) {
-    downloadTextFile("00_CoreSpine.gs", coreMod.codeSnippet);
-  }
+  if (coreMod) downloadTextFile("00_CoreSpine.gs", coreMod.codeSnippet);
 
   const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  if (testMod) {
-    setTimeout(() => downloadTextFile("99_TestRunner.gs", testMod.codeSnippet), 250);
-  }
+  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", testMod.codeSnippet), 250);
 
   let delay = 500;
   selectedList.forEach(mod => {
     if (mod.id !== "00_CoreSpine" && mod.id !== "99_TestRunner") {
       const fileName = mod.id.endsWith(".gs") ? mod.id : `${mod.id}.gs`;
-      setTimeout(() => {
-        downloadTextFile(fileName, mod.codeSnippet);
-      }, delay);
+      setTimeout(() => downloadTextFile(fileName, mod.codeSnippet), delay);
       delay += 250;
     }
   });
@@ -412,6 +406,47 @@ window.copyCompiledCode = function() {
   navigator.clipboard.writeText(codeArea.value).then(() => {
     alert("📋 คัดลอกโค้ดทั้งหมดเรียบร้อย!");
   });
+};
+
+// ==============================================================================
+// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE สู่ TARGET DEPLOYMENT RECEIVER)
+// ==============================================================================
+window.deployDirectToTargetUrl = async function() {
+  const targetUrl = prompt(
+    "🔗 ใส่ Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
+    localStorage.getItem("DUII_LAST_TARGET_DEPLOY_URL") || ""
+  );
+  if (!targetUrl) return;
+
+  localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", targetUrl.trim());
+
+  if (!file1CoreContent || !file2ModulesContent) {
+    compileAutonomousBot();
+  }
+
+  const payload = {
+    secretKey: "DUII_DEPLOY_SECRET_9009",
+    coreSpine: file1CoreContent,
+    modules: file2ModulesContent,
+    testRunner: file3TestRunnerContent
+  };
+
+  try {
+    const res = await fetch(targetUrl.trim(), {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+
+    if (result.status === "success") {
+      alert("🚀 ยิงโค้ดผลผลิตเข้าสู่ระบบปลายทางสำเร็จ 100%!");
+    } else {
+      alert("⚠️ ปลายทางตอบกลับ: " + result.message);
+    }
+  } catch (e) {
+    alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
+  }
 };
 
 function updateLiveReadme() {
@@ -568,7 +603,7 @@ window.runAiGenerateModule = async function() {
 
   if (apiKey) {
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -628,7 +663,6 @@ function initDuiiChatCopilot() {
   const chatBody = document.getElementById("chatBody");
   const keyBtn = document.getElementById("btnSetApiKey");
   
-  // โน้ตแปะข้อความด่วน
   const btnToggleNote = document.getElementById("btnToggleNote");
   const noteDrawer = document.getElementById("chatNoteDrawer");
   const noteArea = document.getElementById("chatNoteArea");
@@ -643,7 +677,6 @@ function initDuiiChatCopilot() {
 
   closeBtn.addEventListener("click", () => chatWin.classList.add("hidden"));
 
-  // โน้ตถอดรหัส Base64 อัตโนมัติ (GitHub สแกนไม่เห็น)
   if (noteArea) {
     const savedNote = localStorage.getItem("DUII_CHAT_PINNED_NOTE");
     if (savedNote && savedNote.trim()) {
@@ -710,11 +743,11 @@ function initDuiiChatCopilot() {
     appendMsg("💭 ดุ่ยกำลังประมวลผลด้วยตระกูล 3.x...", "bot");
 
     const rawKey = getNextGeminiKey();
-    const apiKey = (rawKey || "").trim(); // ดัก trim ตัดช่องว่าง ป้องกัน Fetch 'Invalid value'
+    const apiKey = (rawKey || "").trim();
 
     if (!apiKey) {
       chatBody.lastElementChild.remove();
-      appendMsg("⚠️ ยังไม่ได้ใส่ Gemini API Key! กรุณากดปุ่ม <strong>🔑 Key</strong> มุมบนขวาเพื่อใส่คีย์ก่อนนะไอ้ทิด!", "bot");
+      appendMsg("⚠️ ยังไม่ได้ใส่ Gemini API Key! กรุณากดปุ่ม <strong>🔑 Key</strong> มุมบนขวาเพื่อใส่คีย์ก่อน", "bot");
       return;
     }
 
@@ -735,7 +768,7 @@ function initDuiiChatCopilot() {
 
     for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
       const model = modelsToTry[m];
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
       try {
         const res = await fetch(endpoint, {
@@ -832,43 +865,5 @@ function initSearch() {
   const searchInput = document.getElementById("moduleSearch");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
-  }
-}
-async function deployDirectToTargetUrl() {
-  const targetUrl = prompt(
-    "🔗 ใส่ Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
-    localStorage.getItem("DUII_LAST_TARGET_DEPLOY_URL") || ""
-  );
-  if (!targetUrl) return;
-
-  localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", targetUrl.trim());
-
-  // ตรวจสอบว่าคอมไพล์โค้ดล่าสุดแล้วหรือยัง
-  if (!file1CoreContent || !file2ModulesContent) {
-    compileAutonomousBot();
-  }
-
-  const payload = {
-    secretKey: "DUII_DEPLOY_SECRET_9009",
-    coreSpine: file1CoreContent,
-    modules: file2ModulesContent,
-    testRunner: file3TestRunnerContent
-  };
-
-  try {
-    const res = await fetch(targetUrl.trim(), {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-
-    if (result.status === "success") {
-      alert("🚀 ยิงโค้ดผลผลิตเข้าสู่ระบบปลายทางสำเร็จ 100%!");
-    } else {
-      alert("⚠️ ปลายทางตอบกลับ: " + result.message);
-    }
-  } catch (e) {
-    alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
   }
 }
