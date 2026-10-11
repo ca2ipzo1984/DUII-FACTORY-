@@ -26,7 +26,7 @@ body {
   overflow: hidden;
 }
 
-/* Header แถบบน 4 แท็บ */
+/* Header แถบบน 4 แท็บ + ปุ่ม Sync */
 .factory-header {
   min-height: 56px;
   background-color: var(--bg-card);
@@ -46,7 +46,7 @@ body {
   color: #fff;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   white-space: nowrap;
 }
 .tag-iso {
@@ -57,6 +57,40 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
+}
+
+/* ปุ่ม Sync สไตล์ iPhone x iTunes */
+.btn-sync {
+  background: linear-gradient(135deg, #1f6feb, #238636);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 0 10px rgba(31, 111, 235, 0.3);
+}
+.btn-sync:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(35, 134, 54, 0.5);
+}
+.btn-sync.syncing .sync-icon {
+  display: inline-block;
+  animation: spin 1s infinite linear;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.sync-status-badge {
+  font-size: 0.72rem;
+  color: #8b949e;
+  font-weight: normal;
 }
 
 .nav-tabs {
