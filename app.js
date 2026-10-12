@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v6.5.0-PROD-NEW-TARGET-URL-RESPONSIVE-FIXED-ISO9009
+ * VERSION     : v7.0.0-PROD-MICRO-SAAS-LICENSE-GUARD-ISO9009
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : Controller, Storage Manager, Drive Sync & Remote Deployment Engine
+ * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Live Spark Command
  * TARGET URL  : https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec
  * ==============================================================================
  */
@@ -12,6 +12,7 @@
 // 1. STATE & GLOBAL CONFIGURATION
 // ==============================================================================
 const DEFAULT_TARGET_ENDPOINT = "https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec";
+const MASTER_LICENSE_SPREADSHEET_ID = "10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo";
 
 let activeModules = (typeof FACTORY_REGISTRY !== 'undefined') ? [...FACTORY_REGISTRY] : [];
 const mandatoryModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
@@ -21,6 +22,7 @@ let currentInspectingId = "05_SlipVerifier";
 let file1CoreContent = "";
 let file2ModulesContent = "";
 let file3TestRunnerContent = "";
+let currentBotSerialId = "";
 let editingModuleId = null;
 
 // ซ่อนคีย์แบบแยกชิ้นส่วน Base64 ป้องกัน GitHub Secret Scanning บล็อก
@@ -44,7 +46,6 @@ function getNextGeminiKey() {
   const custom = localStorage.getItem("DUII_GEMINI_KEY");
   let key = (custom && custom.trim()) ? custom.trim() : DEFAULT_GEMINI_KEYS[activeKeyIndex % DEFAULT_GEMINI_KEYS.length];
   activeKeyIndex++;
-  // กรองช่องว่างและตัวขึ้นบรรทัดใหม่ \r \n ทิ้ง 100% กันปัญหา Fetch Header Invalid Value
   return String(key || "").replace(/[\r\n\s]/g, "");
 }
 
@@ -56,7 +57,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ==============================================================================
-// 2. INITIALIZATION & ANTI-STIFF BUTTONS (แก้ปุ่มแข็ง)
+// 2. INITIALIZATION & DOM READY
 // ==============================================================================
 document.addEventListener("DOMContentLoaded", () => {
   loadCustomVaultFromStorage();
@@ -66,8 +67,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initInspectorButtons();
   initDuiiChatCopilot();
   initDriveSyncEngine();
-  
-  // ป้องกันปุ่ม Compile แข็ง
+  initBrainSettingsModal();
+
   const btnCompile = document.querySelector(".compile-main-btn");
   if (btnCompile) {
     btnCompile.addEventListener("click", (e) => {
@@ -76,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ป้องกันปุ่มยิงปลายทางแข็ง
   const btnDeploy = document.getElementById("btnDeployTarget") || document.querySelector(".btn-action.warning");
   if (btnDeploy) {
     btnDeploy.addEventListener("click", (e) => {
@@ -191,21 +191,20 @@ function renderCatalog(filterText = "") {
 
   const query = filterText.toLowerCase();
   const filtered = activeModules.filter(m =>
-    !mandatoryModuleIds.has(m.id) && (
-      m.name.toLowerCase().includes(query) ||
-      m.category.toLowerCase().includes(query) ||
-      (m.commands && m.commands.some(c => c.toLowerCase().includes(query)))
-    )
+    m.name.toLowerCase().includes(query) ||
+    m.category.toLowerCase().includes(query) ||
+    (m.commands && m.commands.some(c => c.toLowerCase().includes(query)))
   );
 
   filtered.forEach(mod => {
     const isSelected = selectedModuleIds.has(mod.id);
     const isActive = mod.id === currentInspectingId;
+    const isCoreOrTest = mandatoryModuleIds.has(mod.id);
 
     const card = document.createElement("div");
     card.className = `module-card ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}`;
     card.innerHTML = `
-      <div class="card-title">${isSelected ? '✅ ' : '⚙️ '}${mod.name}</div>
+      <div class="card-title">${isCoreOrTest ? '🛡️ ' : (isSelected ? '✅ ' : '⚙️ ')}${mod.name}</div>
       <div class="card-desc">${mod.description.substring(0, 85)}...</div>
     `;
     card.addEventListener("click", () => inspectModule(mod.id));
@@ -254,9 +253,17 @@ function inspectModule(moduleId) {
 
   const btnToggle = document.getElementById("btnToggleSelect");
   if (btnToggle) {
+    const isMandatory = mandatoryModuleIds.has(mod.id);
     const isSelected = selectedModuleIds.has(mod.id);
-    btnToggle.textContent = isSelected ? "➖ ถอดโมดูลนี้ออก" : "➕ เลือกโมดูลนี้เข้าบอท";
-    btnToggle.className = `btn-action ${isSelected ? 'warning' : 'success'}`;
+    if (isMandatory) {
+      btnToggle.textContent = "🔒 บังคับติดตั้งตามมาตรฐาน ISO 9009";
+      btnToggle.className = "btn-action disabled";
+      btnToggle.disabled = true;
+    } else {
+      btnToggle.disabled = false;
+      btnToggle.textContent = isSelected ? "➖ ถอดโมดูลนี้ออก" : "➕ เลือกโมดูลนี้เข้าบอท";
+      btnToggle.className = `btn-action ${isSelected ? 'warning' : 'success'}`;
+    }
   }
 }
 
@@ -301,7 +308,7 @@ window.applyPreset = function(presetType) {
 };
 
 // ==============================================================================
-// 5. AUTONOMOUS COMPILER (ISO 9009) & EXPORT ENGINE
+// 5. AUTONOMOUS COMPILER (ISO 9009) & AUTO-SERIAL ENGINE
 // ==============================================================================
 window.compileAutonomousBot = function() {
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
@@ -338,7 +345,28 @@ window.compileAutonomousBot = function() {
   });
 
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  file1CoreContent = coreMod ? coreMod.codeSnippet : "";
+  let rawCore = coreMod ? coreMod.codeSnippet : "";
+
+  // 🏷️ SERIAL ID MANAGEMENT: โหมดตรวจจับรหัสเดิม vs สุ่มรหัสใหม่
+  let assignedSerial = "";
+  const existingSerialMatch = rawCore.match(/get CLIENT_ID\(\)\s*\{[^}]*return\s+getProp_\(['"]CLIENT_ID['"]\)\s*\|\|\s*['"]([^'"]+)['"]/);
+
+  if (existingSerialMatch && existingSerialMatch[1] && existingSerialMatch[1] !== "SHOP_DEFAULT") {
+    assignedSerial = existingSerialMatch[1]; // โหมดซ่อมโค้ด: คงรหัสเดิม
+  } else {
+    // โหมดสร้างบอทใหม่: สุ่มรหัสใหม่
+    const today = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    assignedSerial = `DUII-${today}-${rand}`;
+    rawCore = rawCore.replace(
+      /get CLIENT_ID\(\)\s*\{[^}]*\}/,
+      `get CLIENT_ID() { return getProp_('CLIENT_ID') || '${assignedSerial}'; }`
+    );
+    // ส่งข้อมูลลงทะเบียนเข้าชีตกลางอัตโนมัติ
+    registerBotToMasterSheet(assignedSerial);
+  }
+  currentBotSerialId = assignedSerial;
+  file1CoreContent = rawCore;
 
   const runNum = Math.floor(1000 + Math.random() * 9000);
   file2ModulesContent = `// TOTAL_LINES: AUTO\n/**\n * SCRIPT NAME : 01_Modules_And_Tools.gs\n * VERSION     : v5.0.0-RUN-${runNum}\n * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009\n */\n\n`;
@@ -351,7 +379,7 @@ window.compileAutonomousBot = function() {
   file3TestRunnerContent = testMod ? testMod.codeSnippet : "";
 
   const combinedOutput = `/* ==============================================================================
-   📄 [ไฟล์ที่ 1 บังคับ]: 00_CoreSpine.gs
+   📄 [ไฟล์ที่ 1 บังคับ]: 00_CoreSpine_${currentBotSerialId}.gs
    ============================================================================== */
 ${file1CoreContent}
 
@@ -376,22 +404,52 @@ ${file3TestRunnerContent}`;
   updatePropertiesChecklist();
   const codeSubTab = document.querySelector('[data-subtab="view-code"]');
   if (codeSubTab) codeSubTab.click();
-  alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n• 00_CoreSpine.gs & 99_TestRunner.gs (บังคับ)\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\nรวมทั้งหมด ${totalLines} บรรทัด`);
+  alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n🏷️ SERIAL ID: [${currentBotSerialId}]\n• 00_CoreSpine_${currentBotSerialId}.gs\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\n• 99_TestRunner.gs\nรวมทั้งหมด ${totalLines} บรรทัด`);
 };
+
+// ลงทะเบียนบอทเข้าชีตกลาง MASTER_CLIENT_LICENSES
+async function registerBotToMasterSheet(serialId) {
+  const syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
+  const now = new Date();
+  const expireDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+  const expireStr = expireDate.toISOString().slice(0, 10);
+
+  const payload = {
+    action: "REGISTER_LICENSE",
+    spreadsheetId: MASTER_LICENSE_SPREADSHEET_ID,
+    clientId: serialId,
+    clientName: "ร้านค้าใหม่ (" + serialId + ")",
+    expireDate: expireStr,
+    status: "ACTIVE",
+    plan: "STARTER"
+  };
+
+  try {
+    await fetch(syncEndpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: JSON.stringify(payload)
+    });
+    console.log(`[License Registry] Registered serial: ${serialId}`);
+  } catch (err) {
+    console.warn("[License Registry Warning]:", err);
+  }
+}
 
 window.downloadAllIndividualGsFiles = function() {
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  
   if (selectedList.length === 0) {
     alert("กรุณาเลือกโมดูลอย่างน้อย 1 รายการก่อนดาวน์โหลด");
     return;
   }
 
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  if (coreMod) downloadTextFile("00_CoreSpine.gs", coreMod.codeSnippet);
+  const coreFileName = currentBotSerialId ? `00_CoreSpine_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
+  if (coreMod) downloadTextFile(coreFileName, file1CoreContent || coreMod.codeSnippet);
 
   const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", testMod.codeSnippet), 250);
+  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", file3TestRunnerContent || testMod.codeSnippet), 250);
 
   let delay = 500;
   selectedList.forEach(mod => {
@@ -424,7 +482,7 @@ window.copyCompiledCode = function() {
 };
 
 // ==============================================================================
-// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE - ใช้ DEFAULT TARGET URL ใหม่)
+// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)
 // ==============================================================================
 window.deployDirectToTargetUrl = async function() {
   const targetUrl = prompt(
@@ -442,24 +500,21 @@ window.deployDirectToTargetUrl = async function() {
 
   const payload = {
     secretKey: "DUII_DEPLOY_SECRET_9009",
+    serialId: currentBotSerialId,
     coreSpine: file1CoreContent,
     modules: file2ModulesContent,
     testRunner: file3TestRunnerContent
   };
 
   try {
-    // ใช้ application/x-www-form-urlencoded ร่วมกับ mode: "no-cors" ป้องกัน CORS บล็อก
     await fetch(cleanUrl, {
       method: "POST",
       mode: "no-cors",
       cache: "no-cache",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: JSON.stringify(payload)
     });
-
-    alert("🚀 ยิงส่งโค้ดทั้ง 3 ไฟล์ไปยังระบบปลายทางเรียบร้อยแล้ว!\n(ระบบ Google Apps Script ปลายทางกำลังบันทึกและอัปเดตไฟล์ทันที)");
+    alert(`🚀 ยิงส่งโค้ด 3 ไฟล์ [${currentBotSerialId}] ไปยังระบบปลายทางเรียบร้อยแล้ว!`);
   } catch (e) {
     alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
   }
@@ -469,8 +524,12 @@ function updateLiveReadme() {
   const readmeArea = document.getElementById("readmeContent");
   if (!readmeArea) return;
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  let doc = `# DUII FACTORY BOT DEPLOYMENT GUIDE (ISO 9009)\n\n## รายการไฟล์ที่ต้องติดตั้ง:\n`;
-  doc += `1. 00_CoreSpine.gs (แกนระบบบังคับ)\n2. 01_Modules_And_Tools.gs (โมดูลธุรกิจ)\n3. 99_TestRunner.gs (ชุดทดสอบระบบ)\n\n`;
+  let doc = `# DUII FACTORY BOT DEPLOYMENT GUIDE (ISO 9009)\n\n`;
+  doc += `🏷️ BOT SERIAL ID: ${currentBotSerialId || "ยังไม่ได้คอมไพล์"}\n\n`;
+  doc += `## รายการไฟล์ที่ต้องติดตั้ง:\n`;
+  doc += `1. 00_CoreSpine_${currentBotSerialId || "NEW"}.gs (แกนระบบบังคับ + License Guard)\n`;
+  doc += `2. 01_Modules_And_Tools.gs (โมดูลธุรกิจ)\n`;
+  doc += `3. 99_TestRunner.gs (ชุดทดสอบระบบ)\n\n`;
   doc += `## รายการโมดูลที่เลือกใช้งาน (${selectedList.length - 2} โมดูล):\n`;
   selectedList.forEach(m => {
     if (!mandatoryModuleIds.has(m.id)) {
@@ -485,6 +544,10 @@ function updatePropertiesChecklist() {
   if (!propsArea) return;
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
   const propMap = new Map();
+
+  propMap.set("CLIENT_ID", { desc: `รหัสร้านค้าสำหรับตัดต่อสัญญาณ [${currentBotSerialId}]`, required: true });
+  propMap.set("MASTER_LICENSE_SPREADSHEET_ID", { desc: "ID ชีตคุมสัมปทานกลาง (MASTER_CLIENT_LICENSES)", required: true });
+
   selectedList.forEach(m => {
     (m.properties || []).forEach(p => {
       if (!propMap.has(p.key)) propMap.set(p.key, p);
@@ -561,7 +624,7 @@ window.harvestSingleFunction = function(funcName) {
   };
 
   saveModuleToVault(newLootFile);
-  alert(`💎 สกัดแยกเป็นไฟล์ [Modules/${fileName}] เรียบร้อย!\nถูกบรรจุเข้าคลัง Looted Modules พร้อมนำไปใช้งานทันที`);
+  alert(`💎 สกัดแยกเป็นไฟล์ [Modules/${fileName}] เรียบร้อย!`);
 };
 
 // ==============================================================================
@@ -669,8 +732,21 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. DUII COPILOT: PC WINDOW CHAT, PINNED NOTE & LIVE GEMINI 3.X ENGINE (SPARK COMMAND)
+// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X ENGINE
 // ==============================================================================
+function initBrainSettingsModal() {
+  const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
+  const defaultBrain = `[กฎเหล็กการผ่าตัดโค้ด (Surgical Patching Protocol)]
+1. ห้ามย่อ ห้ามตัด และห้ามใช้ข้อความขี้เกียจแนว "// ... โค้ดเดิมคงไว้ ..." เด็ดขาด
+2. แก้ไขเฉพาะฟังก์ชันที่มีปัญหา ห้ามแตะต้อง Signature และฟังก์ชันอื่นที่ทำงานดีอยู่แล้ว
+3. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์ ไวยากรณ์ครบ นำไปวางทับใช้งานได้ 100%
+4. บังคับใช้เฉพาะ Gemini 3.x Flash/Lite ผ่าน Header x-goog-api-key ห้ามแตะ 1.x / 2.x`;
+
+  if (!customBrain) {
+    localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", defaultBrain);
+  }
+}
+
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
   const chatWin = document.getElementById("duiiChatWindow");
@@ -699,7 +775,7 @@ function initDuiiChatCopilot() {
     if (savedNote && savedNote.trim()) {
       noteArea.value = savedNote;
     } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้) ===\n${DEFAULT_GEMINI_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ล็อกเป้าเฉพาะตระกูล 3.x\n- ยิงผ่าน Header x-goog-api-key สไตล์บักจ่อย`;
+      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้) ===\n${DEFAULT_GEMINI_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ล็อกเป้าเฉพาะตระกูล 3.x\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
       noteArea.value = defaultNoteText;
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
     }
@@ -735,13 +811,9 @@ function initDuiiChatCopilot() {
     });
   }
 
-  // ----------------------------------------------------------------------------
-  // ⚡ SPARK CHAT ACTION BRIDGE: ตรวจจับภาษาคนเพื่อสั่งประกอบบอท/ซิงก์ Drive อัตโนมัติ
-  // ----------------------------------------------------------------------------
   function handleSparkChatAction(text) {
     const t = String(text || "").toLowerCase();
     
-    // 1. สั่งประกอบพรีเซ็ต
     if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
       setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
     } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
@@ -750,12 +822,10 @@ function initDuiiChatCopilot() {
       setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
     }
 
-    // 2. สั่ง Compile 3 ไฟล์ทันที
     if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
       setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
     }
 
-    // 3. สั่งซิงก์คลัง Drive
     if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
       const btnSync = document.getElementById("btnSyncDrive");
       if (btnSync) setTimeout(() => btnSync.click(), 600);
@@ -786,7 +856,8 @@ function initDuiiChatCopilot() {
       "gemini-3.5-flash"
     ];
 
-    // 🧠 จิตวิญญาณไอ้ดุ่ย + เครือข่ายคลังไดรฟ์ + พรีเซ็ตโรงงาน ISO 9009
+    const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
+
     const systemInstruction = `คุณคือ "ไอ้ดุ่ย" (Duii) สมองกลหัวหน้าช่างใหญ่ประจำ Command Center ของโรงงาน DUII FACTORY
 สถานะ: วิศวกรไซเบอร์ ป.เอก 8 ใบ สไตล์ขวานผ่าซาก ด่าตรง ไม่ตอแหล เกลียดโค้ดขยะ คุมมาตรฐาน DUII_FACTORY_CORE_SPINE_ISO9009 อย่างเด็ดขาด
 
@@ -794,23 +865,14 @@ function initDuiiChatCopilot() {
 1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
 2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
 3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
+4. ทะเบียนสัมปทานลิขสิทธิ์: MASTER_CLIENT_LICENSES (ID: ${MASTER_LICENSE_SPREADSHEET_ID})
 
-[กฎเหล็กการผ่าตัดโค้ด (Surgical Patching Protocol) - บังคับใช้เด็ดขาด]
-1. ห้ามย่อ ห้ามตัด และห้ามใช้ข้อความขี้เกียจแนว "// ... โค้ดเดิมคงไว้ ..." หรือ "// existing code remains unchanged" เด็ดขาด
-2. เมื่อสั่งแก้ไขโค้ด ให้ระบุตำแหน่ง "ก่อนแก้" และ "หลังแก้" ให้ชัดเจน
-3. แก้ไขเฉพาะจุดที่มีปัญหาหรือฟังก์ชันที่สั่ง ห้ามไปแตะต้องหรือดัดแปลง Signature และฟังก์ชันอื่นที่ทำงานดีอยู่แล้ว
-4. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์ ไวยากรณ์ครบ ปีกกาเปิด-ปิดไม่หลุด นำไปวางทับใช้งานได้ทันที 100%
-5. ยึดมั่นโมเดล Gemini 3.x Flash/Lite ผ่าน Header x-goog-api-key เท่านั้น ห้ามแตะ 1.x หรือ 2.x เด็ดขาด`;
-
-    [พรีเซ็ตสายพานผลิตมาตรฐาน]
+[พรีเซ็ตสายพานผลิตมาตรฐาน]
 1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
 2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
 3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
 
-[กฎเหล็กการทำงาน]
-- โค้ดส่งออกต้องแยก 3 ก้อนเสมอ (00_CoreSpine.gs, 01_Modules_And_Tools.gs, 99_TestRunner.gs) ห้ามรวมไฟล์เดี่ยว
-- บังคับใช้เฉพาะ Gemini 3.x ผ่าน Header x-goog-api-key เท่านั้น ห้ามถอยไปใช้ 1.x หรือ 2.x
-- เมื่อผู้ใช้สั่งประกอบบอท ให้ตอบยืนยันรายการชิ้นส่วนและสถานะสายพานผลิตแบบกระชับ ฉะฉาน สไตล์ช่างสลัมไซเบอร์ตัวจริง!`;
+${savedBrainRules}`;
 
     let reply = "";
     let succeeded = false;
@@ -854,7 +916,6 @@ function initDuiiChatCopilot() {
 
     if (succeeded) {
       appendMsg(reply, "bot");
-      // สั่งตัวจับการกระทำของโรงงานทำงานทันที!
       handleSparkChatAction(text + " " + reply);
     } else {
       appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}`, "bot");
@@ -872,6 +933,7 @@ function initDuiiChatCopilot() {
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 }
+
 // ==============================================================================
 // 9. DOCTOR & TABS HELPERS
 // ==============================================================================
