@@ -3,220 +3,246 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
+  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=650">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#121820">
 </head>
 <body>
-
-  <!-- แถบบน 4 แท็บ + ปุ่ม Sync Drive -->
-  <header class="factory-header">
-    <div class="brand-title">
-      ⚡ DUII FACTORY <span class="tag-iso">ISO 9009</span>
-      <button class="btn-sync" id="btnSyncDrive" title="ซิงก์ดึงข้อมูลโมดูลล่าสุดจาก Google Drive">
-        <span class="sync-icon">🔄</span> ซิงก์คลัง Drive
-      </button>
-      <span class="sync-status-badge" id="syncStatusText">พร้อมซิงก์</span>
+  <!-- HEADER & TOP NAVIGATION -->
+  <header class="app-header">
+    <div class="brand-zone">
+      <h1>🏭 DUII FACTORY <span>ISO 9009</span></h1>
+      <span class="badge" id="lineCountBadge">LINES: 0</span>
     </div>
-    <nav class="nav-tabs">
-      <button class="nav-btn active" data-tab="tab-assembler">📦 คลังประกอบบอท</button>
-      <button class="nav-btn" data-tab="tab-harvester">💎 สกัดวิชา (Loot)</button>
-      <button class="nav-btn" data-tab="tab-doctor">🩺 ตรวจโรค (Doctor)</button>
-      <button class="nav-btn" data-tab="tab-manual">📖 คู่มือระบบ</button>
-    </nav>
+    <div class="header-actions">
+      <button class="btn-action primary" id="btnSyncDrive">🔄 ซิงก์คลัง Drive</button>
+      <span class="sync-status" id="syncStatusText">พร้อมทำงาน</span>
+    </div>
   </header>
 
-  <!-- แท็บ 1: ประกอบบอท -->
-  <main class="tab-content active" id="tab-assembler">
-    <div class="main-cockpit">
-      
-      <!-- คอลัมน์ 1: คลังโมดูลซ้าย -->
-      <section class="panel-col">
-        <div class="panel-header">
-          <span class="panel-title">โมดูลที่พร้อมใช้งาน</span>
-          <span class="badge-count" id="selectedCount">เลือก 0 รายการ</span>
-        </div>
-        <div class="preset-bar">
-          <button class="btn-preset btn-ecommerce" onclick="applyPreset('ecommerce')">🛒 ค้าขาย</button>
-          <button class="btn-preset btn-nightlife" onclick="applyPreset('nightlife')">🍻 ผับบาร์</button>
-          <button class="btn-preset btn-godmode" onclick="applyPreset('godmode')">👑 God Mode</button>
-        </div>
-        <div class="search-box">
-          <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล / คำสั่ง..." autocomplete="off">
-        </div>
-        <div class="module-list" id="moduleList"></div>
-      </section>
+  <nav class="top-nav">
+    <button class="nav-btn active" data-tab="tab-factory">📦 คลังโมดูล & ประกอบบอท</button>
+    <button class="nav-btn" data-tab="tab-harvest">💎 Harvest / แยกโค้ด</button>
+    <button class="nav-btn" data-tab="tab-doctor">🩺 Doctor / วินิจฉัย</button>
+  </nav>
 
-      <!-- คอลัมน์ 2: Inspector กลาง -->
-      <section class="panel-col">
-        <div class="panel-header">
-          <span class="panel-title">สเปกโมดูล (INSPECTOR)</span>
-        </div>
-        <div class="inspector-body" id="inspectorBody"></div>
-        <div class="inspector-footer">
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <button class="btn-action secondary" id="btnEditModuleCode">✏️ Edit Code</button>
-            <button class="btn-action primary" onclick="openGeneratorModal()">⚡ Gen Code</button>
+  <!-- MAIN CONTAINER -->
+  <main class="main-content">
+    
+    <!-- TAB 1: FACTORY & ASSEMBLER -->
+    <section id="tab-factory" class="tab-content active">
+      <div class="preset-bar">
+        <span>⚡ โหลดพรีเซ็ตธุรกิจ:</span>
+        <button class="btn-preset" onclick="applyPreset('ecommerce')">🛒 แม่ค้าออนไลน์</button>
+        <button class="btn-preset" onclick="applyPreset('nightlife')">🍸 ผับบาร์ & ร้านอาหาร</button>
+        <button class="btn-preset warning" onclick="applyPreset('godmode')">👑 ทะลวงจักรวาล (God Mode)</button>
+      </div>
+
+      <div class="factory-grid">
+        <!-- LEFT: CATALOG -->
+        <div class="catalog-panel">
+          <div class="search-bar">
+            <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล, คำสั่ง หรือฟังก์ชัน...">
+            <span class="badge" id="selectedCount">เลือก 0 โมดูล</span>
           </div>
-          <button class="btn-action success" id="btnToggleSelect">➕ เลือกโมดูลนี้เข้าบอท</button>
+          <div class="module-list" id="moduleList">
+            <!-- Render modules dynamically -->
+          </div>
         </div>
-      </section>
 
-      <!-- คอลัมน์ 3: Workspace ขวา -->
-      <section class="panel-col" style="border-right: none;">
-        <div class="workspace-container">
-          <div class="compile-control-bar">
-            <button class="btn-action success compile-main-btn" onclick="compileAutonomousBot()">⚡ เริ่มการผลิตบอท (Compile)</button>
-            <div class="compile-btn-group">
-              <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
-              <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-              <button class="btn-action warning" id="btnDeployTarget" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
+        <!-- RIGHT: INSPECTOR & WORKSPACE -->
+        <div class="inspector-panel">
+          <div class="inspector-header">
+            <div class="action-row">
+              <button class="btn-action success" id="btnToggleSelect">➕ เลือกโมดูลนี้เข้าบอท</button>
+              <button class="btn-action secondary" id="btnEditModuleCode">✏️ แก้ไขโค้ด</button>
             </div>
           </div>
-          <div class="workspace-tabs">
-            <div class="sub-tab-group">
-              <button class="sub-tab-btn active" data-subtab="view-code">💻 ผลลัพธ์โค้ด (.gs)</button>
-              <button class="sub-tab-btn" data-subtab="view-readme">📄 README.txt</button>
-              <button class="sub-tab-btn" data-subtab="view-props">🔑 Script Properties</button>
-            </div>
-            <span class="line-badge" id="lineCountBadge">LINES: 0</span>
-          </div>
-
-          <div class="sub-view active" id="view-code">
-            <textarea class="code-editor-area" id="compiledCode" readonly placeholder="กดปุ่ม '⚡ เริ่มการผลิตบอท' เพื่อรวมและสร้างไฟล์ระบบทั้งหมด..."></textarea>
-          </div>
-          <div class="sub-view" id="view-readme">
-            <textarea class="code-editor-area" id="readmeContent" readonly></textarea>
-          </div>
-          <div class="sub-view" id="view-props">
-            <textarea class="code-editor-area" id="propertiesChecklist" readonly></textarea>
+          <div class="inspector-body" id="inspectorBody">
+            <!-- Render inspecting module details -->
           </div>
         </div>
-      </section>
+      </div>
 
-    </div>
+      <!-- BOTTOM: COMPILER & SERIAL BANNER -->
+      <div class="compiler-control-bar">
+        <div class="serial-info-box">
+          <label>🏷️ BOT CLIENT SERIAL ID:</label>
+          <input type="text" id="botSerialDisplay" readonly value="รอการประกอบบอท..." style="font-family:monospace; font-weight:bold; color:var(--accent-cyan); background:#0b0f14; border:1px solid #2a3b4c; padding:4px 8px; border-radius:4px;">
+          <small style="color:var(--text-muted); display:block; margin-top:2px;">*ผูกติดกับชีตกลาง MASTER_CLIENT_LICENSES อัตโนมัติ</small>
+        </div>
+        <div class="compile-actions">
+          <button class="btn-action primary compile-main-btn" style="padding: 10px 24px; font-size: 1rem; font-weight: bold;">🚀 ประกอบบอท (ISO 9009 Compile)</button>
+          <button class="btn-action warning" id="btnDeployTarget">🚀 ยิงโค้ดไปปลายทาง (OTA)</button>
+        </div>
+      </div>
+
+      <!-- CODE VIEW & EXPORT TABS -->
+      <div class="output-wrapper">
+        <div class="sub-tabs">
+          <button class="sub-tab-btn active" data-subtab="view-code">📄 รวมโค้ด 3 ไฟล์ (Output)</button>
+          <button class="sub-tab-btn" data-subtab="view-readme">📖 คู่มือบอท (README)</button>
+          <button class="sub-tab-btn" data-subtab="view-props">🔑 Script Properties Checklist</button>
+        </div>
+        <div class="sub-content">
+          <div id="view-code" class="sub-view active">
+            <textarea id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท' เพื่อรวมโค้ด 3 ไฟล์ตามมาตรฐาน Trinity ISO 9009..."></textarea>
+            <div class="bottom-btns">
+              <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ดทั้งหมด</button>
+              <button class="btn-action secondary" onclick="downloadAllIndividualGsFiles()">💾 ดาวน์โหลดแยก 3 ไฟล์ (.gs)</button>
+            </div>
+          </div>
+          <div id="view-readme" class="sub-view">
+            <textarea id="readmeContent" spellcheck="false" readonly></textarea>
+          </div>
+          <div id="view-props" class="sub-view">
+            <textarea id="propertiesChecklist" spellcheck="false" readonly></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: HARVEST & SEPARATOR -->
+    <section id="tab-harvest" class="tab-content">
+      <div class="harvest-container">
+        <h3>💎 Loot & Harvest Code Separator</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem;">วางโค้ดไฟล์ดิบขนาดใหญ่ลงในช่องนี้ ระบบจะสแกนหา Function และตัดแยกเป็นไฟล์ .gs เดี่ยวให้คุณกดดูดเข้าคลังโมดูลทันที</p>
+        <textarea id="rawCodeInput" placeholder="วางโค้ด JavaScript / GAS ก้อนใหญ่ลงที่นี่..."></textarea>
+        <button class="btn-action primary" onclick="analyzeAndExtractCode()" style="margin: 10px 0;">🔍 สแกนและสกัดฟังก์ชัน</button>
+        <div id="harvestResultList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DOCTOR DIAGNOSTICS -->
+    <section id="tab-doctor" class="tab-content">
+      <div class="doctor-container">
+        <h3>🩺 ระบบตรวจวินิจฉัยและแปล Error Log อัตโนมัติ</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem;">วางข้อความ Error สีแดงจาก Apps Script หรือ LINE Executions เพื่อให้ระบบวิเคราะห์สาเหตุและวิธีแก้ทันที</p>
+        <textarea id="doctorLogInput" placeholder="วาง Error Log ที่นี่..."></textarea>
+        <button class="btn-action primary" onclick="runLogDiagnostics()" style="margin: 10px 0;">🧪 วินิจฉัยข้อผิดพลาด</button>
+        <div id="doctorResult" style="display:none; padding:12px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px;"></div>
+      </div>
+    </section>
+
   </main>
 
-  <!-- แท็บ 2: สกัดวิชา (Loot) -->
-  <section class="tab-content" id="tab-harvester" style="padding: 16px;">
-    <div style="max-width: 900px; margin: 0 auto; width: 100%;">
-      <h2 style="color: #fff; margin-bottom: 8px;">💎 สกัดวิชาและ Loot โค้ดภายนอก</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">วางโค้ด JavaScript / GAS จากภายนอก ระบบจะตรวจจับและสกัดฟังก์ชันแยกเป็นไฟล์ .gs ลงคลัง Vault ทันที</p>
-      <textarea id="rawCodeInput" class="code-editor-area" style="height: 250px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางโค้ดที่ต้องการ Loot ลงที่นี่..."></textarea>
-      <div style="margin-top: 10px; display: flex; gap: 10px;">
-        <button class="btn-action primary" style="width: auto;" onclick="analyzeAndExtractCode()">🔍 สแกนและสกัดแยกไฟล์</button>
-      </div>
-      <div id="harvestResultList" style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
-  </section>
-
-  <!-- แท็บ 3: ตรวจโรค (Doctor) -->
-  <section class="tab-content" id="tab-doctor" style="padding: 16px;">
-    <div style="max-width: 800px; margin: 0 auto; width: 100%;">
-      <h2 style="color: #fff; margin-bottom: 8px;">🩺 หมอตรวจโรคระบบ (Log Diagnostics)</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">วาง Error Log สีแดงจาก Apps Script เพื่อถอดรหัสสาเหตุและวิธีแก้อัตโนมัติ</p>
-      <textarea id="doctorLogInput" class="code-editor-area" style="height: 180px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางข้อความ Error สีแดง..."></textarea>
-      <button class="btn-action warning" style="margin-top: 10px; width: auto;" onclick="runLogDiagnostics()">🔬 วินิจฉัยข้อผิดพลาด</button>
-      <div id="doctorResult" style="margin-top: 14px; padding: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; display: none;"></div>
-    </div>
-  </section>
-
-  <!-- แท็บ 4: คู่มือระบบ -->
-  <section class="tab-content" id="tab-manual" style="padding: 20px; overflow-y: auto;">
-    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-size: 0.88rem;">
-      <h2 style="color: #fff; margin-bottom: 10px;">📖 คู่มือสถาปัตยกรรม DUII FACTORY ISO 9009</h2>
-      <ul style="margin: 10px 0 14px 20px;">
-        <li><strong>00_CoreSpine.gs:</strong> แกนกลางระบบ จัดการ Webhook และ Gemini Failover</li>
-        <li><strong>01_Modules_And_Tools.gs:</strong> รวม Tool Schemas, Dispatcher และโมดูลธุรกิจ</li>
-        <li><strong>99_TestRunner.gs:</strong> ชุดทดสอบความสมบูรณ์ทั้งระบบ</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- MODAL: EDIT CODE -->
-  <div class="duii-modal hidden" id="editorModal">
+  <!-- MODAL: CODE EDITOR -->
+  <div id="editorModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="editorTitle">✏️ แก้ไขโค้ดโมดูล</h3>
-        <button class="btn-close" onclick="closeEditorModal()">✖</button>
+        <button class="modal-close" onclick="closeEditorModal()">✖</button>
       </div>
       <div class="modal-body">
         <textarea id="editorTextarea" spellcheck="false"></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn-action secondary" style="width:auto;" onclick="closeEditorModal()">ยกเลิก</button>
-        <button class="btn-action success" style="width:auto;" onclick="saveEditorCode()">💾 บันทึกไฟล์นี้</button>
+        <button class="btn-action secondary" onclick="closeEditorModal()">ยกเลิก</button>
+        <button class="btn-action success" onclick="saveEditorCode()">💾 บันทึกการแก้ไข</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: AI CODE GENERATOR -->
-  <div class="duii-modal hidden" id="generatorModal">
+  <!-- MODAL: AI GENERATE MODULE -->
+  <div id="generatorModal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>⚡ AI Module Generator</h3>
-        <button class="btn-close" onclick="closeGeneratorModal()">✖</button>
+        <h3>✨ AI เจนโมดูลใหม่เข้าคลัง (Gemini 3.x)</h3>
+        <button class="modal-close" onclick="closeGeneratorModal()">✖</button>
       </div>
       <div class="modal-body">
-        <label style="font-size: 0.85rem; color: var(--accent-cyan); margin-bottom: 6px;">ระบุโจทย์ความต้องการ:</label>
-        <textarea id="genPromptInput" placeholder="พิมพ์ความต้องการ เช่น อยากได้โมดูลสะสมแต้ม..."></textarea>
-        <div id="genStatus" style="font-size:0.8rem; margin-top:8px; color:var(--accent-orange);"></div>
+        <label>ป้อนโจทย์หรือตรรกะธุรกิจที่ต้องการ:</label>
+        <textarea id="genPromptInput" placeholder="เช่น โมดูลคำนวณค่าส่งตามระยะทาง หรือระบบสุ่มจับรางวัลลูกค้า..."></textarea>
+        <div id="genStatus" style="color:var(--accent-orange); font-size:0.85rem; margin-top:8px;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-action secondary" style="width:auto;" onclick="closeGeneratorModal()">ปิด</button>
-        <button class="btn-action primary" style="width:auto;" onclick="runAiGenerateModule()">🚀 เจนเนอเรตโมดูลเดี๋ยวนี้</button>
+        <button class="btn-action secondary" onclick="closeGeneratorModal()">ยกเลิก</button>
+        <button class="btn-action primary" onclick="runAiGenerateModule()">🚀 สั่งเขียนโค้ดเข้าคลัง</button>
       </div>
     </div>
   </div>
 
-  <!-- FLOATING FAB (ใช้ avatar.png ล้วนๆ) -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
-    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar">
-    <span class="fab-badge">Duii</span>
+  <!-- MODAL: SPARK BRAIN & RULES MANAGER -->
+  <div id="brainModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🧠 สลักจิตวิญญาณ & กฎเหล็กไอ้ดุ่ย (Prompt Rules)</h3>
+        <button class="modal-close" onclick="closeBrainModal()">✖</button>
+      </div>
+      <div class="modal-body">
+        <label>กำหนดข้อห้าม, สกิลใหม่, หรือพฤติกรรมของดุ่ยใน Live Chat:</label>
+        <textarea id="brainPromptArea" style="height:220px;" spellcheck="false"></textarea>
+        <small style="color:var(--text-muted)">*บันทึกลง LocalStorage ทันที ดุ่ยจะฉลาดขึ้นโดยไม่ต้องแตะโค้ด app.js บน Git</small>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-action secondary" onclick="closeBrainModal()">ยกเลิก</button>
+        <button class="btn-action success" onclick="saveBrainRules()">💾 บันทึกจิตวิญญาณ</button>
+      </div>
+    </div>
   </div>
 
-  <!-- FLOATING PC WINDOW MODAL CHAT (ใช้ avatar.png ล้วนๆ) -->
+  <!-- FLOATING ACTION BUTTON (FAB) & LIVE CHAT COPILOT -->
+  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างสั่งการ ไอ้ดุ่ย (Spark Command)">🤖</div>
+
+  <!-- DUII LIVE CHAT WINDOW -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
-      <div class="chat-header-info">
-        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar">
-        <div>
-          <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
-          <div class="chat-status">🟢 PC Window Mode (Active)</div>
-        </div>
+      <div class="chat-title">
+        <span>⚡ ไอ้ดุ่ย Spark Command</span>
+        <small>Gemini 3.x Flash Engine</small>
       </div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <button class="btn-key" id="btnToggleNote" title="เปิด/ปิด กระดาษทดโน้ตด่วน">📌 โน้ต</button>
-        <button class="btn-key" id="btnSetApiKey" title="ดูหรือตั้งค่า Gemini API Key">🔑 Key</button>
-        <button class="chat-close-btn" id="btnChatClose">✖</button>
+      <div class="chat-header-actions">
+        <button id="btnOpenBrainModal" title="ตั้งค่าจิตวิญญาณ/กฎเหล็ก">🧠</button>
+        <button id="btnToggleNote" title="สมุดโน้ตลับ">📝</button>
+        <button id="btnSetApiKey" title="ตั้งค่า Gemini Key">🔑</button>
+        <button id="btnChatClose" title="ปิดหน้าต่าง">✖</button>
       </div>
     </div>
 
-    <!-- Drawer กระดาษทดโน้ต -->
-    <div id="chatNoteDrawer" class="chat-note-drawer hidden">
-      <div class="note-drawer-header">
-        <span>📝 โน้ตแปะด่วน / คลังคำสั่งลับ</span>
-        <button id="btnClearNote" class="btn-clear-note">ล้างโน้ต</button>
-      </div>
-      <textarea id="chatNoteArea" placeholder="แปะโค้ด, พรอมต์ หรือบันทึกข้อความไว้ตรงนี้..."></textarea>
+    <!-- PINNED NOTE DRAWER -->
+    <div class="chat-note-drawer hidden" id="chatNoteDrawer">
+      <textarea id="chatNoteArea" spellcheck="false" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
+      <button class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%;">ล้างโน้ต</button>
     </div>
 
+    <!-- CHAT BODY -->
     <div class="chat-body" id="chatBody">
       <div class="chat-msg bot">
-        <div class="msg-bubble">
-          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! เชื่อมต่อ 3.x ผ่าน Header พร้อมลุย
-        </div>
+        <div class="msg-bubble">กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY ISO 9009 มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลยไอ้สัส!</div>
       </div>
     </div>
 
+    <!-- CHAT INPUT -->
     <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="พิมพ์คุย หรือสั่ง 'เขียนโมดูล...' " autocomplete="off">
-      <button id="btnChatSend" class="btn-send">⚡ ส่ง</button>
+      <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน เช่น 'ประกอบบอทผับบาร์'..." autocomplete="off">
+      <button id="btnChatSend">ส่ง</button>
     </div>
   </div>
 
+  <!-- SCRIPTS -->
   <script src="modules.js"></script>
   <script src="app.js"></script>
+  <script>
+    // สคริปต์เสริมสำหรับควบคุมหน้าต่าง Brain Modal
+    function openBrainModal() {
+      const area = document.getElementById("brainPromptArea");
+      if (area) area.value = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
+      document.getElementById("brainModal").classList.remove("hidden");
+    }
+    function closeBrainModal() {
+      document.getElementById("brainModal").classList.add("hidden");
+    }
+    function saveBrainRules() {
+      const val = document.getElementById("brainPromptArea").value.trim();
+      localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", val);
+      closeBrainModal();
+      alert("✅ สลักจิตวิญญาณและกฎเหล็กใหม่ให้ไอ้ดุ่ยเรียบร้อย!");
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+      const btnBrain = document.getElementById("btnOpenBrainModal");
+      if (btnBrain) btnBrain.addEventListener("click", openBrainModal);
+    });
+  </script>
 </body>
 </html>
