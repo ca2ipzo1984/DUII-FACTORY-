@@ -2,13 +2,13 @@
  * ==============================================================================
  * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (ISO 9009)
  * Standard : DUII_FACTORY_CORE_SPINE_ISO9009
- * Version  : v5.5.0-ENTERPRISE-STABLE
+ * Version  : v5.9.0-PERFECT-UNTRUNCATED-PROD
  * ==============================================================================
  */
 
 const FACTORY_REGISTRY = [
   // ==============================================================================
-  // 1. MANDATORY CORE FILES (ไฟล์แกนกลางบังคับ - ซ่อนจากเมนูเลือก)
+  // 1. MANDATORY CORE FILES (แกนระบบบังคับ)
   // ==============================================================================
   {
     id: "00_CoreSpine",
@@ -16,7 +16,7 @@ const FACTORY_REGISTRY = [
     name: "00_CoreSpine (Lean Kernel Chassis)",
     category: "Core Chassis",
     commands: ["Webhook Entry", "Failover", "Security Guard"],
-    description: "แกนหลักของบอท รองรับ Webhook แบบ Synchronous, In-Memory Vision, Gemini Failover (x-goog-api-key) และ Memory Security",
+    description: "แกนหลักของบอท รองรับ Webhook แบบ Synchronous, In-Memory Vision, Gemini Failover (x-goog-api-key) และ Dual-Memory (/จำ และ /จารึก)",
     properties: [
       { key: "LINE_CHANNEL_ACCESS_TOKEN", required: true, desc: "LINE Messaging API Token" },
       { key: "TARGET_USER_ID", required: true, desc: "User ID ของเจ้าของบอท สำหรับสิทธิ์ /จารึก" },
@@ -50,7 +50,7 @@ function getBoolProp_(key, def) {
   return /^(1|true|yes|on)$/i.test(v);
 }
 
-// ลำดับโมเดลบังคับใช้ตามเกณฑ์ ISO (ห้าม 1.x และ 2.x เด็ดขาด)
+// ลำดับโมเดลบังคับใช้ตามเกณฑ์ ISO (ตัด 1.x และ 2.x ทิ้งเด็ดขาด)
 var DEFAULT_MODELS_ = [
   'gemini-3.8-flash-lite',
   'gemini-3.5-flash-lite',
@@ -231,7 +231,7 @@ function handleCommands_(text, event, ctx) {
     replyText_(token, resumed ? '▶️ ปลดล็อกพักบอทให้ ' + target + ' แล้ว' : 'ปลดล็อกไม่สำเร็จ');
     return true;
   }
-  // /จารึก ล็อกเฉพาะเจ้าของบอท
+  // /จารึก ล็อกสิทธิ์เฉพาะเจ้าของบอท
   if (/^\\/จารึก(\\s|$)/.test(t)) {
     if (!isOwner_(ctx.userId)) {
       replyText_(token, '⛔ คำสั่ง /จารึก สงวนสิทธิ์เฉพาะ TARGET_USER_ID เท่านั้น');
@@ -243,7 +243,7 @@ function handleCommands_(text, event, ctx) {
     replyText_(token, r1.success ? '📜 [จารึกสำเร็จ]: ' + directive : r1.message);
     return true;
   }
-  // /จำ ให้ใครพิมพ์สั่งจำก็ได้ ไม่ล็อกสิทธิ์
+  // /จำ ปลดสิทธิ์ ให้ทุกคนในห้องแชทพิมพ์บันทึกได้
   if (/^\\/จำ(\\s|$)/.test(t)) {
     var fact = t.replace(/^\\/จำ/, '').trim();
     if (!fact) { replyText_(token, 'ระบุสิ่งที่จะให้จำด้วย เช่น /จำ นัดวิ่งทริปเสาร์นี้'); return true; }
@@ -492,7 +492,6 @@ function extractModelContent_(json) {
   return { parts: parts, finishReason: cand.finishReason };
 }
 
-// ยิงผ่าน Header x-goog-api-key สไตล์บักจ่อย 100% ไม่หลุด 401
 function geminiRequest_(payload) {
   var keys = CONFIG.GEMINI_API_KEYS;
   if (!keys.length) throw new Error('NO_API_KEY');
@@ -525,7 +524,7 @@ function geminiRequest_(payload) {
         {
           method: 'post',
           contentType: 'application/json',
-          headers: { 'x-goog-api-key': c.key.replace(/[\\r\\n\\s]/g, '') },
+          headers: { 'x-goog-api-key': String(c.key).replace(/[\\r\\n\\s]/g, '') },
           payload: body,
           muteHttpExceptions: true
         }
@@ -744,7 +743,6 @@ function runDiagnostics_(ctx) {
 }`
   },
 
-  // 99_TestRunner (117 บรรทัดตัวจริง ครบทั้ง Unit Test + Live Sniper)
   {
     id: "99_TestRunner",
     type: "core",
@@ -896,7 +894,7 @@ function debugLiveWebhook() {
   },
 
   // ==============================================================================
-  // 2. BUSINESS & SALES MODULES (01-12)
+  // 2. BUSINESS & SALES MODULES (01-06)
   // ==============================================================================
   {
     id: "01_AsyncBuffer",
@@ -1131,6 +1129,7 @@ function debugLiveWebhook() {
   return { isPaused: isPaused, pause: pause, resume: resume, request: request };
 })();`
   },
+
   {
     id: "07_LeadScoring",
     type: "module",
@@ -1183,7 +1182,7 @@ function debugLiveWebhook() {
     name: "08_OrderCart (Order & Checkout)",
     category: "Business & Sales",
     commands: ["สั่งซื้อ", "สรุปยอด", "ที่อยู่จัดส่ง"],
-    description: "สกัดรายการสินค้า คำนวณยอดเงิน เบอร์โทร 10 หลัก ออกรหัส ORD-* บันทึกลงชีต Orders พร้อมสร้าง Flex สรุปออเดอร์ (แก้บั๊กส่ง token ถูกต้อง)",
+    description: "สกัดรายการสินค้า คำนวณยอดเงิน เบอร์โทร 10 หลัก ออกรหัส ORD-* บันทึกลงชีต Orders พร้อมสร้าง Flex สรุปออเดอร์",
     properties: [{ key: "ORDER_PAY_INFO", required: false, desc: "ข้อความแนะนำการชำระเงินท้ายบิล" }],
     setupGuide: "### 🛒 08_OrderCart.gs\nระบบสรุปบิลสั่งซื้อและบันทึกออเดอร์ลงชีต",
     functionDeclaration: {
@@ -1212,7 +1211,7 @@ function debugLiveWebhook() {
     sh.appendRow([Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), orderId, a.items, a.total_amount, a.phone || "-", a.address || "-", "รอชำระเงิน", CURRENT_USER_]);
     var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createOrderCard({ order_id: orderId, items: a.items, total: a.total_amount, phone: a.phone, address: a.address }) : null;
     if (card) {
-      sendReplyMessages(null, [card]); // แก้บั๊กส่ง token ถูกต้อง
+      sendReplyMessages(null, [card]);
       return { status: "success", delivered_via: "flex_message" };
     }
     return { status: "success", order_id: orderId, total: a.total_amount, message: "สรุปคำสั่งซื้อ [" + orderId + "] ยอดรวม " + a.total_amount + " บาท" };
@@ -1262,7 +1261,7 @@ function debugLiveWebhook() {
     name: "10_Reservation (Table & Slot Engine)",
     category: "Operations & Social",
     commands: ["จองโต๊ะ", "จองคิว", "เช็คเวลาว่าง"],
-    description: "ตรวจสอบช่วงเวลาว่าง ล็อกคิวด้วย ScriptLock ป้องกันคิวซ้อน ออกรหัส BK-* พร้อมแสดง Flex บัตรคิว QR Code (แก้บั๊กส่ง token ถูกต้อง)",
+    description: "ตรวจสอบช่วงเวลาว่าง ล็อกคิวด้วย ScriptLock ป้องกันคิวซ้อน ออกรหัส BK-* พร้อมแสดง Flex บัตรคิว QR Code",
     properties: [],
     setupGuide: "### 📅 10_Reservation.gs\nจัดการคิวและโต๊ะอาหารแบบ Atomic Lock",
     functionDeclaration: {
@@ -1294,7 +1293,7 @@ function debugLiveWebhook() {
       sh.appendRow([bkgId, a.date, a.time, a.customer_name, a.guests || 1, "ยืนยัน", Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), CURRENT_USER_]);
       var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createTicketCard({ kind: "reservation", booking_id: bkgId, customer_name: a.customer_name, date: a.date, time: a.time, guests: a.guests }) : null;
       if (card) {
-        sendReplyMessages(null, [card]); // แก้บั๊กส่ง token ถูกต้อง
+        sendReplyMessages(null, [card]);
         return { status: "success", delivered_via: "flex_message" };
       }
       return { status: "success", booking_id: bkgId, message: "จองโต๊ะสำเร็จ! รหัสจองของคุณคือ [" + bkgId + "]" };
@@ -1334,7 +1333,7 @@ function debugLiveWebhook() {
     name: "12_EventTicket (Event Reg & QR Ticket)",
     category: "Operations & Social",
     commands: ["ลงทะเบียนงาน", "ออกตั๋ว", "Check-in"],
-    description: "ลงทะเบียนร่วมกิจกรรม ตรวจสอบโควตาที่นั่งคงเหลือ ออก E-Ticket พร้อมรหัส Check-in QR Code (แก้บั๊กส่ง token ถูกต้อง)",
+    description: "ลงทะเบียนร่วมกิจกรรม ตรวจสอบโควตาที่นั่งคงเหลือ ออก E-Ticket พร้อมรหัส Check-in QR Code",
     properties: [],
     setupGuide: "### 🎟️ 12_EventTicket.gs\nออกตั๋วงานอีเวนต์พร้อม QR Code Check-in",
     functionDeclaration: {
@@ -1351,7 +1350,7 @@ function debugLiveWebhook() {
     var tId = "TCK-" + Math.floor(100000 + Math.random() * 900000);
     var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createTicketCard({ kind: "ticket", ticket_id: tId, event_name: args.event_name, attendee_name: args.attendee_name, checkin_code: tId.slice(-4) }) : null;
     if (card) {
-      sendReplyMessages(null, [card]); // แก้บั๊กส่ง token ถูกต้อง
+      sendReplyMessages(null, [card]);
       return { status: "success", delivered_via: "flex_message" };
     }
     return { status: "success", ticket_id: tId, message: "ออกตั๋วสำเร็จ รหัสตั๋วของคุณคือ [" + tId + "]" };
@@ -1361,7 +1360,7 @@ function debugLiveWebhook() {
   }
 ];
 
-// ยึดเข้า window scope ให้ app.js โหลดไปใช้ได้ทันที
+// ยึดเข้า window scope ให้ app.js โหลดไปใช้ได้ทันที ป้องกัน undefined
 if (typeof window !== 'undefined') {
   window.FACTORY_REGISTRY = FACTORY_REGISTRY;
 }
