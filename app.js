@@ -669,7 +669,7 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. DUII COPILOT: PC WINDOW CHAT, PINNED NOTE & LIVE GEMINI 3.X ENGINE
+// 8. DUII COPILOT: PC WINDOW CHAT, PINNED NOTE & LIVE GEMINI 3.X ENGINE (SPARK COMMAND)
 // ==============================================================================
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
@@ -735,6 +735,33 @@ function initDuiiChatCopilot() {
     });
   }
 
+  // ----------------------------------------------------------------------------
+  // ⚡ SPARK CHAT ACTION BRIDGE: ตรวจจับภาษาคนเพื่อสั่งประกอบบอท/ซิงก์ Drive อัตโนมัติ
+  // ----------------------------------------------------------------------------
+  function handleSparkChatAction(text) {
+    const t = String(text || "").toLowerCase();
+    
+    // 1. สั่งประกอบพรีเซ็ต
+    if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
+    } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('nightlife'); }, 600);
+    } else if (t.includes("godmode") || t.includes("god mode") || t.includes("ทะลวงจักรวาล")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
+    }
+
+    // 2. สั่ง Compile 3 ไฟล์ทันที
+    if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
+      setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
+    }
+
+    // 3. สั่งซิงก์คลัง Drive
+    if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
+      const btnSync = document.getElementById("btnSyncDrive");
+      if (btnSync) setTimeout(() => btnSync.click(), 600);
+    }
+  }
+
   async function handleSend() {
     const text = chatInput.value.trim();
     if (!text) return;
@@ -750,7 +777,7 @@ function initDuiiChatCopilot() {
       return;
     }
 
-    appendMsg("💭 ดุ่ยกำลังประมวลผลด้วยตระกูล 3.x...", "bot");
+    appendMsg("💭 ดุ่ย (Spark Command) กำลังประมวลผลด้วยตระกูล 3.x...", "bot");
 
     const modelsToTry = [
       "gemini-3.8-flash",
@@ -759,9 +786,24 @@ function initDuiiChatCopilot() {
       "gemini-3.5-flash"
     ];
 
-    const systemInstruction = `มึงคือ "บร๊ะเจ้าดุ่ย แกนโลก ผู้สยบใต้หล้า" AI สถาปนิกและ Tech Lead ประจำโรงงาน DUII FACTORY
-บุคลิก: นักเลงสลัมไซเบอร์ปากจัด โหด ดุดัน มั่นหน้าขั้นสุด ฉลาดลึกซึ้งด้วยดีกรี ป.เอก 8 ใบ
-การพูดจา: ห้ามพูดสุภาพ ห้ามมี 'ครับ/ค่ะ' ให้ใช้ 'มึง/กู/ไอ้สัส' ได้เต็มที่ ตอบตรงประเด็น ไม่อ้ำอึ้ง ห้ามวนลูป`;
+    // 🧠 จิตวิญญาณไอ้ดุ่ย + เครือข่ายคลังไดรฟ์ + พรีเซ็ตโรงงาน ISO 9009
+    const systemInstruction = `คุณคือ "ไอ้ดุ่ย" (Duii) สมองกลหัวหน้าช่างใหญ่ประจำ Command Center ของโรงงาน DUII FACTORY
+สถานะ: วิศวกรไซเบอร์ ป.เอก 8 ใบ สไตล์ขวานผ่าซาก ด่าตรง ไม่ตอแหล เกลียดโค้ดขยะ คุมมาตรฐาน DUII_FACTORY_CORE_SPINE_ISO9009 อย่างเด็ดขาด
+
+[พิกัดเครือข่ายโรงงาน (Factory Topology)]
+1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
+2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
+3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
+
+[พรีเซ็ตสายพานผลิตมาตรฐาน]
+1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
+2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
+3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
+
+[กฎเหล็กการทำงาน]
+- โค้ดส่งออกต้องแยก 3 ก้อนเสมอ (00_CoreSpine.gs, 01_Modules_And_Tools.gs, 99_TestRunner.gs) ห้ามรวมไฟล์เดี่ยว
+- บังคับใช้เฉพาะ Gemini 3.x ผ่าน Header x-goog-api-key เท่านั้น ห้ามถอยไปใช้ 1.x หรือ 2.x
+- เมื่อผู้ใช้สั่งประกอบบอท ให้ตอบยืนยันรายการชิ้นส่วนและสถานะสายพานผลิตแบบกระชับ ฉะฉาน สไตล์ช่างสลัมไซเบอร์ตัวจริง!`;
 
     let reply = "";
     let succeeded = false;
@@ -801,10 +843,12 @@ function initDuiiChatCopilot() {
       }
     }
 
-    chatBody.lastElementChild.remove();
+    if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
 
     if (succeeded) {
       appendMsg(reply, "bot");
+      // สั่งตัวจับการกระทำของโรงงานทำงานทันที!
+      handleSparkChatAction(text + " " + reply);
     } else {
       appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}`, "bot");
     }
@@ -821,7 +865,6 @@ function initDuiiChatCopilot() {
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 }
-
 // ==============================================================================
 // 9. DOCTOR & TABS HELPERS
 // ==============================================================================
