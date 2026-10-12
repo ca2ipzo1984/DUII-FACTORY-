@@ -6,7 +6,7 @@
   <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=999">
+  <link rel="stylesheet" href="style.css?v=650">
 </head>
 <body>
 
@@ -71,7 +71,8 @@
             <div class="compile-btn-group">
               <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
               <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-              <button class="btn-action warning" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
+              <!-- 🚀 ปุ่มยิงโค้ด OTA เข้า Web App ปลายทาง -->
+              <button class="btn-action warning" id="btnDeployTarget" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
             </div>
           </div>
           <div class="workspace-tabs">
@@ -129,7 +130,7 @@
       <p>ระบบสร้างและควบคุมบอทอัตโนมัติบน Google Apps Script แยกไฟล์มาตรฐานเพื่อความทนทาน:</p>
       <ul style="margin: 10px 0 14px 20px;">
         <li><strong>00_CoreSpine.gs:</strong> แกนกลางระบบ จัดการ Webhook และ Gemini Failover</li>
-        <li><strong>01_Modules_And_Tools.gs:</strong> รวบรวม Tool Schemas, Dispatcher และโมดูลที่เลือก</li>
+        <li><strong>01_Modules_And_Tools.gs:</strong> รวม Tool Schemas, Dispatcher และโมดูลที่เลือก</li>
         <li><strong>99_TestRunner.gs:</strong> ระบบตรวจสอบความสมบูรณ์และทดสอบฟังก์ชันทั้งระบบ</li>
       </ul>
     </div>
@@ -173,7 +174,7 @@
 
   <!-- FLOATING FAB (ปุ่มลอยคุยกับไอ้ดุ่ย) -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
-    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar">
+    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar" onerror="this.src='avatar.png'">
     <span class="fab-badge">Duii</span>
   </div>
 
@@ -181,7 +182,7 @@
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info">
-        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar">
+        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar" onerror="this.src='avatar.png'">
         <div>
           <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
           <div class="chat-status">🟢 PC Window Mode (Active)</div>
@@ -206,7 +207,7 @@
     <div class="chat-body" id="chatBody">
       <div class="chat-msg bot">
         <div class="msg-bubble">
-          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! หากยังไม่ได้ใส่คีย์กดปุ่ม <strong>🔑 Key</strong> ได้เลย
+          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! เชื่อมต่อ 3.x ผ่าน Header พร้อมลุย
         </div>
       </div>
     </div>
@@ -216,6 +217,8 @@
       <button id="btnChatSend" class="btn-send">⚡ ส่ง</button>
     </div>
   </div>
+
+  <script src="modules.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
