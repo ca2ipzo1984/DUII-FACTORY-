@@ -1,6 +1,9 @@
 /**
- * DUII FACTORY // MODULE & SKILL REGISTRY VAULT
- * Standard: DUII_FACTORY_CORE_SPINE_ISO9009
+ * ==============================================================================
+ * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT
+ * Standard : DUII_FACTORY_CORE_SPINE_ISO9009
+ * Version  : v5.0.0-PROD-STABLE
+ * ==============================================================================
  */
 
 const FACTORY_REGISTRY = [
@@ -46,10 +49,9 @@ function getBoolProp_(key, def) {
 }
 
 var DEFAULT_MODELS_ = [
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
-  'gemini-3.8-flash'
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-1.5-flash'
 ];
 
 var CONFIG = {
@@ -1255,3 +1257,8 @@ function runAllDuiiTests() {
 })();`
   }
 ];
+
+// รับประกันความพร้อมของ Scope ข้ามไฟล์ ป้องกัน undefined ใน PWA
+if (typeof window !== 'undefined') {
+  window.FACTORY_REGISTRY = FACTORY_REGISTRY;
+}
