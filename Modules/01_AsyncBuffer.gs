@@ -1,15 +1,7 @@
 /**
- * ==============================================================================
- * FILE        : 01_AsyncBuffer.gs
- * NAME        : 01_AsyncBuffer (Queue Guard)
- * TYPE        : module  |  CATEGORY: Core & Performance
- * DESCRIPTION : พักอีเวนต์ลง CacheService ตอบกลับ LINE 200 OK ทันทีภายใน 1 วินาที ป้องกัน Execution Timeout
- * COMMANDS    : Async Webhook Queue
- * SCRIPT PROPERTIES:
- *   - ASYNC_BUFFER (optional): ตั้งค่าเป็น on เพื่อเปิดระบบคิวเบื้องหลัง
- * ==============================================================================
+ * MODULE: 01_AsyncBuffer.gs
+ * STANDARD: DUII_FACTORY_CORE_SPINE_ISO9009
  */
-
 var AsyncBuffer = (function () {
   var INDEX_KEY = "ab_index";
   var TTL = 21600;
