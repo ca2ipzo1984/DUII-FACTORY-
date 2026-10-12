@@ -1,14 +1,14 @@
-[BACKUP]_sw.js
+sw.js
 100%
 // sw.js - Service Worker for Offline Caching (ISO 9009 Compliant)
-const CACHE_NAME = 'duii-factory-v4.0.0-PROD-UNBREAKABLE';
+const CACHE_NAME = 'duii-factory-v7.2.0-AUTONOMOUS-TOOLS-ISO9009';
 const ASSETS = [
   './index.html',
   './style.css',
   './modules.js',
   './app.js',
   './manifest.json',
-  './245059.png'
+  './avatar.png'
 ];
 
 self.addEventListener('install', (e) => {
