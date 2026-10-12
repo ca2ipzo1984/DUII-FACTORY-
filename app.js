@@ -795,7 +795,14 @@ function initDuiiChatCopilot() {
 2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
 3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
 
-[พรีเซ็ตสายพานผลิตมาตรฐาน]
+[กฎเหล็กการผ่าตัดโค้ด (Surgical Patching Protocol) - บังคับใช้เด็ดขาด]
+1. ห้ามย่อ ห้ามตัด และห้ามใช้ข้อความขี้เกียจแนว "// ... โค้ดเดิมคงไว้ ..." หรือ "// existing code remains unchanged" เด็ดขาด
+2. เมื่อสั่งแก้ไขโค้ด ให้ระบุตำแหน่ง "ก่อนแก้" และ "หลังแก้" ให้ชัดเจน
+3. แก้ไขเฉพาะจุดที่มีปัญหาหรือฟังก์ชันที่สั่ง ห้ามไปแตะต้องหรือดัดแปลง Signature และฟังก์ชันอื่นที่ทำงานดีอยู่แล้ว
+4. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์ ไวยากรณ์ครบ ปีกกาเปิด-ปิดไม่หลุด นำไปวางทับใช้งานได้ทันที 100%
+5. ยึดมั่นโมเดล Gemini 3.x Flash/Lite ผ่าน Header x-goog-api-key เท่านั้น ห้ามแตะ 1.x หรือ 2.x เด็ดขาด`;
+
+    [พรีเซ็ตสายพานผลิตมาตรฐาน]
 1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
 2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
 3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
