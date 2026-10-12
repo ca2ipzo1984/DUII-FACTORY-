@@ -3,31 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
+  <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=600">
+  <link rel="stylesheet" href="style.css?v=750">
 </head>
 <body>
 
-  <!-- แถบบน 4 แท็บ + ปุ่ม Sync Drive -->
+  <!-- แถบบน -->
   <header class="factory-header">
     <div class="brand-title">
       ⚡ DUII FACTORY <span class="tag-iso">ISO 9009</span>
-      <button class="btn-sync" id="btnSyncDrive" title="ซิงก์ดึงข้อมูลโมดูลล่าสุดจาก Google Drive">
-        <span class="sync-icon">🔄</span> ซิงก์คลัง Drive
-      </button>
-      <span class="sync-status-badge" id="syncStatusText">พร้อมซิงก์</span>
     </div>
     <nav class="nav-tabs">
       <button class="nav-btn active" data-tab="tab-assembler">📦 คลังประกอบบอท</button>
-      <button class="nav-btn" data-tab="tab-harvester">💎 สกัดวิชา (Loot)</button>
-      <button class="nav-btn" data-tab="tab-doctor">🩺 ตรวจโรค (Doctor)</button>
       <button class="nav-btn" data-tab="tab-manual">📖 คู่มือระบบ</button>
     </nav>
   </header>
 
-  <!-- แท็บ 1: ประกอบบอท -->
+  <!-- แท็บหลัก: ประกอบบอท -->
   <main class="tab-content active" id="tab-assembler">
     <div class="main-cockpit">
       
@@ -43,7 +37,7 @@
           <button class="btn-preset btn-godmode" onclick="applyPreset('godmode')">👑 God Mode</button>
         </div>
         <div class="search-box">
-          <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล / คำสั่ง..." autocomplete="off">
+          <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล..." autocomplete="off">
         </div>
         <div class="module-list" id="moduleList"></div>
       </section>
@@ -55,10 +49,6 @@
         </div>
         <div class="inspector-body" id="inspectorBody"></div>
         <div class="inspector-footer">
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <button class="btn-action secondary" id="btnEditModuleCode">✏️ Edit Code</button>
-            <button class="btn-action primary" onclick="openGeneratorModal()">⚡ Gen Code</button>
-          </div>
           <button class="btn-action success" id="btnToggleSelect">➕ เลือกโมดูลนี้เข้าบอท</button>
         </div>
       </section>
@@ -68,16 +58,11 @@
         <div class="workspace-container">
           <div class="compile-control-bar">
             <button class="btn-action success compile-main-btn" onclick="compileAutonomousBot()">⚡ เริ่มการผลิตบอท (Compile)</button>
-            <div class="compile-btn-group">
-              <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
-              <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-            </div>
+            <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
           </div>
           <div class="workspace-tabs">
             <div class="sub-tab-group">
               <button class="sub-tab-btn active" data-subtab="view-code">💻 ผลลัพธ์โค้ด (.gs)</button>
-              <button class="sub-tab-btn" data-subtab="view-readme">📄 README.txt</button>
-              <button class="sub-tab-btn" data-subtab="view-props">🔑 Script Properties</button>
             </div>
             <span class="line-badge" id="lineCountBadge">LINES: 0</span>
           </div>
@@ -85,137 +70,56 @@
           <div class="sub-view active" id="view-code">
             <textarea class="code-editor-area" id="compiledCode" readonly placeholder="กดปุ่ม '⚡ เริ่มการผลิตบอท' เพื่อรวมและสร้างไฟล์ระบบทั้งหมด..."></textarea>
           </div>
-          <div class="sub-view" id="view-readme">
-            <textarea class="code-editor-area" id="readmeContent" readonly></textarea>
-          </div>
-          <div class="sub-view" id="view-props">
-            <textarea class="code-editor-area" id="propertiesChecklist" readonly></textarea>
-          </div>
         </div>
       </section>
 
     </div>
   </main>
 
-  <!-- แท็บ 2: สกัดวิชา (Loot) -->
-  <section class="tab-content" id="tab-harvester" style="padding: 16px;">
-    <div style="max-width: 900px; margin: 0 auto; width: 100%;">
-      <h2 style="color: #fff; margin-bottom: 8px;">💎 สกัดวิชาและ Loot โค้ดภายนอก</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">วางโค้ด JavaScript / GAS จากภายนอก ระบบจะตรวจจับและสกัดฟังก์ชันแยกเป็นไฟล์ .gs ลงคลัง Vault ทันที</p>
-      <textarea id="rawCodeInput" class="code-editor-area" style="height: 250px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางโค้ดที่ต้องการ Loot ลงที่นี่..."></textarea>
-      <div style="margin-top: 10px; display: flex; gap: 10px;">
-        <button class="btn-action primary" style="width: auto;" onclick="analyzeAndExtractCode()">🔍 สแกนและสกัดแยกไฟล์</button>
-      </div>
-      <div id="harvestResultList" style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
+  <!-- แท็บ 2: คู่มือ -->
+  <section class="tab-content" id="tab-manual" style="padding: 20px;">
+    <h2>📖 คู่มือสถาปัตยกรรม DUII FACTORY ISO 9009</h2>
+    <p>ระบบสร้างและแพ็กเกจบอทอัตโนมัติบน Google Apps Script</p>
   </section>
 
-  <!-- แท็บ 3: ตรวจโรค (Doctor) -->
-  <section class="tab-content" id="tab-doctor" style="padding: 16px;">
-    <div style="max-width: 800px; margin: 0 auto; width: 100%;">
-      <h2 style="color: #fff; margin-bottom: 8px;">🩺 หมอตรวจโรคระบบ (Log Diagnostics)</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">วาง Error Log สีแดงจาก Apps Script เพื่อถอดรหัสสาเหตุและวิธีแก้อัตโนมัติ</p>
-      <textarea id="doctorLogInput" class="code-editor-area" style="height: 180px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางข้อความ Error สีแดง เช่น Exception: Service Spreadsheets failed..."></textarea>
-      <button class="btn-action warning" style="margin-top: 10px; width: auto;" onclick="runLogDiagnostics()">🔬 วินิจฉัยข้อผิดพลาด</button>
-      <div id="doctorResult" style="margin-top: 14px; padding: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; display: none;"></div>
-    </div>
-  </section>
-
-  <!-- แท็บ 4: คู่มือระบบ -->
-  <section class="tab-content" id="tab-manual" style="padding: 20px; overflow-y: auto;">
-    <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-size: 0.88rem;">
-      <h2 style="color: #fff; margin-bottom: 10px;">📖 คู่มือสถาปัตยกรรม DUII FACTORY ISO 9009</h2>
-      <p>ระบบสร้างและควบคุมบอทอัตโนมัติบน Google Apps Script แยกไฟล์มาตรฐานเพื่อความทนทาน:</p>
-      <ul style="margin: 10px 0 14px 20px;">
-        <li><strong>00_CoreSpine.gs:</strong> แกนกลางระบบ จัดการ Webhook และ Gemini Failover</li>
-        <li><strong>01_Modules_And_Tools.gs:</strong> รวบรวม Tool Schemas, Dispatcher และโมดูลที่เลือก</li>
-        <li><strong>99_TestRunner.gs:</strong> ระบบตรวจสอบความสมบูรณ์และทดสอบฟังก์ชันทั้งระบบ</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- MODAL: EDIT CODE -->
-  <div class="duii-modal hidden" id="editorModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="editorTitle">✏️ แก้ไขโค้ดโมดูล</h3>
-        <button class="btn-close" onclick="closeEditorModal()">✖</button>
-      </div>
-      <div class="modal-body">
-        <textarea id="editorTextarea" spellcheck="false"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-action secondary" style="width:auto;" onclick="closeEditorModal()">ยกเลิก</button>
-        <button class="btn-action success" style="width:auto;" onclick="saveEditorCode()">💾 บันทึกไฟล์นี้</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: AI CODE GENERATOR -->
-  <div class="duii-modal hidden" id="generatorModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>⚡ AI Module Generator (สร้างโมดูลตามสั่ง)</h3>
-        <button class="btn-close" onclick="closeGeneratorModal()">✖</button>
-      </div>
-      <div class="modal-body">
-        <label style="font-size: 0.85rem; color: var(--accent-cyan); margin-bottom: 6px;">ระบุโจทย์ความต้องการ (เช่น ระบบสะสมแต้ม, เรดาร์ตรวจจับ):</label>
-        <textarea id="genPromptInput" placeholder="พิมพ์ความต้องการ เช่น อยากได้โมดูลสะสมแต้ม เช็คยอดแต้ม ตัดแต้มแลกของรางวัล..."></textarea>
-        <div id="genStatus" style="font-size:0.8rem; margin-top:8px; color:var(--accent-orange);"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-action secondary" style="width:auto;" onclick="closeGeneratorModal()">ปิด</button>
-        <button class="btn-action primary" style="width:auto;" onclick="runAiGenerateModule()">🚀 เจนเนอเรตโมดูลเดี๋ยวนี้</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FLOATING FAB (ปุ่มลอยคุยกับบร๊ะเจ้าดุ่ย) -->
+  <!-- ======================================================== -->
+  <!-- FLOATING FAB & PC CHAT WINDOW -->
+  <!-- ======================================================== -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
-    <span style="font-size: 26px;">🤖</span>
+    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>'">
     <span class="fab-badge">Duii</span>
   </div>
 
-  <!-- FLOATING PC WINDOW MODAL CHAT (หน้าต่างแชท PC) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info">
         <span style="font-size: 20px;">🤖</span>
         <div>
           <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
-          <div class="chat-status">🟢 PC Window Mode (Active)</div>
+          <div class="chat-status">🟢 ป.เอก 8 ใบ (Online)</div>
         </div>
       </div>
       <div style="display:flex; gap:6px; align-items:center;">
-        <button class="btn-key" id="btnToggleNote" title="เปิด/ปิด กระดาษทดโน้ตด่วน">📌 โน้ต</button>
-        <button class="btn-key" id="btnSetApiKey" title="ดูหรือตั้งค่า Gemini API Key">🔑 Key</button>
+        <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า Gemini API Key">🔑 Key</button>
         <button class="chat-close-btn" id="btnChatClose">✖</button>
       </div>
-    </div>
-
-    <!-- Drawer กระดาษทดโน้ต -->
-    <div id="chatNoteDrawer" class="chat-note-drawer hidden">
-      <div class="note-drawer-header">
-        <span>📝 โน้ตแปะด่วน / คลังคำสั่งลับ</span>
-        <button id="btnClearNote" class="btn-clear-note">ล้างโน้ต</button>
-      </div>
-      <textarea id="chatNoteArea" placeholder="แปะโค้ด, พรอมต์ หรือบันทึกข้อความไว้ตรงนี้... (บันทึกออโต้)"></textarea>
     </div>
 
     <div class="chat-body" id="chatBody">
       <div class="chat-msg bot">
         <div class="msg-bubble">
-          หน้าต่าง PC มาแล้ว! สั่ง <strong>"เขียนโมดูล..."</strong> หรือถามแก้โค้ด พิมพ์มาได้เลย! หากยังไม่ได้ใส่คีย์กดปุ่ม <strong>🔑 Key</strong> ได้เลย
+          มีปัญหาอะไรเกี่ยวกับบอท? หรือจะให้กูแก้สคริปต์ตัวไหน พิมพ์มาได้เลย!
         </div>
       </div>
     </div>
 
     <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="พิมพ์คุย หรือสั่ง 'เขียนโมดูล...' " autocomplete="off">
+      <input type="text" id="chatInput" placeholder="พิมพ์คุยกับบร๊ะเจ้าดุ่ย..." autocomplete="off">
       <button id="btnChatSend" class="btn-send">⚡ ส่ง</button>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- โหลดสคริปต์ควบคุมตัวเดียวจบ -->
+  <script src="app.js?v=750"></script>
 </body>
 </html>
