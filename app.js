@@ -1,384 +1,30 @@
 /**
  * ==============================================================================
- * DUII FACTORY // MASTER CONTROLLER & REGISTRY VAULT
- * Version  : v6.5.0-PROD-STABLE
+ * DUII FACTORY // MASTER CONTROLLER & ARCHITECT ENGINE
+ * Version  : v6.9.0-FULL-ECOSYSTEM-ISO9009
  * Standard : DUII_FACTORY_CORE_SPINE_ISO9009
+ * Features : Modules/ Folder Bridge, Auto-Loot Separator, Drive Vault Sync,
+ *            Note Drawer Key Vault, Full Multi-File Compiler, Gemini 3.x Copilot
  * ==============================================================================
  */
 
-// 1. MASTER REGISTRY VAULT
-const FACTORY_REGISTRY = [
-  {
-    id: "00_CoreSpine",
-    type: "core",
-    name: "00_CoreSpine (Lean Kernel Chassis)",
-    category: "Core Chassis",
-    commands: ["Webhook Entry", "Failover", "Security Guard"],
-    description: "แกนหลักของบอท รองรับ Webhook แบบ Synchronous, In-Memory Vision, Gemini Failover และ Memory Security",
-    properties: [
-      { key: "LINE_CHANNEL_ACCESS_TOKEN", required: true, desc: "LINE Messaging API Token" },
-      { key: "TARGET_USER_ID", required: true, desc: "User ID เจ้าของบอทสำหรับสิทธิ์ /จำ และ /จารึก" },
-      { key: "SPREADSHEET_ID", required: false, desc: "ID กูเกิลชีตสำหรับ AI_Memory" },
-      { key: "GEMINI_API_KEY_1", required: true, desc: "Google AI Studio API Key" }
-    ],
-    setupGuide: "### 🚀 00_CoreSpine.gs (Chassis แม่)\nไฟล์แรกที่ต้องนำไปวางใน Apps Script",
-    functionDeclaration: null,
-    codeSnippet: `// TOTAL_LINES: AUTO
-/**
- * SCRIPT NAME : 00_CoreSpine.gs
- * VERSION     : v5.0.0-NEVER-SILENT
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- */
-var CORE_VERSION = 'v5.0.0-NEVER-SILENT';
-function getProp_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
-function getNumProp_(k, d) { var v = parseFloat(getProp_(k)); return isNaN(v) ? d : v; }
-function getBoolProp_(k, d) { var v = getProp_(k); return v === '' ? !!d : /^(1|true|yes|on)$/i.test(v); }
+// ==============================================================================
+// 1. STATE & GLOBAL CONFIGURATION
+// ==============================================================================
+let activeModules = (typeof FACTORY_REGISTRY !== 'undefined' && Array.isArray(FACTORY_REGISTRY))
+  ? [...FACTORY_REGISTRY]
+  : [];
 
-var DEFAULT_MODELS_ = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash'];
-var CONFIG = {
-  get LINE_CHANNEL_ACCESS_TOKEN() { return getProp_('LINE_CHANNEL_ACCESS_TOKEN'); },
-  get TARGET_USER_ID() { return getProp_('TARGET_USER_ID'); },
-  get SPREADSHEET_ID() { return getProp_('SPREADSHEET_ID'); },
-  get ADMIN_GROUP_ID() { return getProp_('ADMIN_GROUP_ID'); },
-  get GEMINI_API_KEYS() {
-    var raw = getProp_('GEMINI_API_KEYS');
-    var list = raw ? raw.split(',') : [getProp_('GEMINI_API_KEY_1'), getProp_('GEMINI_API_KEY_2'), getProp_('GEMINI_API_KEY_3')];
-    return list.map(function(k){ return String(k||'').trim(); }).filter(Boolean);
-  },
-  get GEMINI_MODELS() {
-    var raw = getProp_('GEMINI_MODELS');
-    var list = raw ? raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [];
-    return list.length ? list : DEFAULT_MODELS_;
-  },
-  get SYSTEM_INSTRUCTION() {
-    return getProp_('SYSTEM_INSTRUCTION') || 'มึงคือผู้ช่วย AI อัจฉริยะขาลุย ประจำการใน DUII FACTORY ป.เอก 8 ใบ ตอบกระชับ ฉลาด ตรงไปตรงมา';
-  },
-  get GROUP_REPLY_MODE() { return getProp_('GROUP_REPLY_MODE').toLowerCase() === 'mention' ? 'mention' : 'all'; },
-  get GROUP_IMAGE_REPLY() { return getBoolProp_('GROUP_IMAGE_REPLY', false); },
-  get HANDOFF_IN_GROUP() { return getBoolProp_('HANDOFF_IN_GROUP', false); },
-  get MAX_TOOL_ROUNDS() { return Math.max(1, Math.min(5, getNumProp_('MAX_TOOL_ROUNDS', 3))); }
-};
-
-var LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
-var LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
-var LINE_DATA_URL = 'https://api-data.line.me/v2/bot/message';
-var CURRENT_TARGET_ = '';
-var CURRENT_USER_ = '';
-var LAST_MODEL_ = '';
-var CARDS_SENT_ = 0;
-
-function okOut_() { return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT); }
-function isOwner_(uid) { var o = (CONFIG.TARGET_USER_ID||'').trim(); return !!(o && uid && uid === o); }
-function doGet(e) { return ContentService.createTextOutput('DUII FACTORY CORE ' + CORE_VERSION + ' ACTIVE').setMimeType(ContentService.MimeType.TEXT); }
-
-function doPost(e) {
-  try {
-    if (!e || !e.postData || !e.postData.contents) return okOut_();
-    var data = JSON.parse(e.postData.contents);
-    var events = data.events || [];
-    for (var i = 0; i < events.length; i++) {
-      if (isDuplicateEvent_(events[i])) continue;
-      processEventSafe(events[i]);
-    }
-  } catch(err) { console.error('[Webhook Error] ' + err); }
-  return okOut_();
-}
-
-function isDuplicateEvent_(evt) {
-  var id = evt && evt.webhookEventId;
-  if (!id) return false;
-  var cache = CacheService.getScriptCache();
-  if (cache.get('evt_' + id)) return true;
-  cache.put('evt_' + id, '1', 3600);
-  return false;
-}
-
-function processEventSafe(evt) {
-  try {
-    var src = evt.source || {};
-    var uid = String(src.userId || '').trim();
-    var isGrp = (src.type === 'group' || src.type === 'room');
-    var chatKey = isGrp ? (src.groupId || src.roomId || '') : uid;
-    CURRENT_USER_ = uid;
-    CURRENT_TARGET_ = isGrp ? chatKey : uid;
-    var ctx = { userId: uid, isGroup: isGrp, chatKey: chatKey };
-    if (evt.type !== 'message' || !evt.message) return;
-    if (evt.message.type === 'text') handleTextMessage_(evt, ctx);
-    else if (evt.message.type === 'image') handleImageMessage_(evt, ctx);
-  } catch(err) { console.error('[Process Error] ' + err); }
-}
-
-function handleTextMessage_(evt, ctx) {
-  var text = String(evt.message.text || '').trim();
-  if (!text) return;
-  if (handleCommands_(text, evt, ctx)) return;
-  if (ctx.isGroup) pushGroupBuffer_(ctx.chatKey, 'U' + ctx.userId.slice(-4), text);
-  if (isHandoffPaused_(ctx)) return;
-  answer_(text, evt, ctx);
-}
-
-function handleImageMessage_(evt, ctx) {
-  if (ctx.isGroup && !CONFIG.GROUP_IMAGE_REPLY) return;
-  if (isHandoffPaused_(ctx)) return;
-  var token = evt.replyToken;
-  if (typeof SlipVerifier !== 'undefined' && typeof SlipVerifier.handle === 'function') {
-    if (SlipVerifier.handle(evt, token)) return;
-  }
-}
-
-function handleCommands_(text, evt, ctx) {
-  var t = text.trim();
-  var token = evt.replyToken;
-  if (t === '/myid' || t === '/เช็คไอดี') { replyText_(token, '🆔 User ID: ' + ctx.userId); return true; }
-  if (t === '/resume' && isOwner_(ctx.userId)) {
-    if (typeof HumanHandoff !== 'undefined') HumanHandoff.resume(ctx.userId);
-    replyText_(token, '▶️ ปลดล็อกบอทแล้ว');
-    return true;
-  }
-  return false;
-}
-
-function isHandoffPaused_(ctx) {
-  if (!ctx.userId || isOwner_(ctx.userId)) return false;
-  return (typeof HumanHandoff !== 'undefined' && typeof HumanHandoff.isPaused === 'function') ? !!HumanHandoff.isPaused(ctx.userId) : false;
-}
-
-function pushGroupBuffer_(gk, u, t) {
-  if (!gk) return;
-  try {
-    var c = CacheService.getScriptCache();
-    var b = JSON.parse(c.get('gbuf_' + gk) || '[]');
-    b.push({ u: u, t: t.substring(0, 200) });
-    if (b.length > 20) b = b.slice(-20);
-    c.put('gbuf_' + gk, JSON.stringify(b), 21600);
-  } catch(e){}
-}
-
-function answer_(text, evt, ctx) {
-  var token = evt.replyToken;
-  if (!CONFIG.GEMINI_API_KEYS.length) { replyText_(token, '⚠️ ยังไม่ได้ตั้ง GEMINI_API_KEY_1'); return; }
-  try {
-    var res = geminiRequest_({
-      contents: [{ role: 'user', parts: [{ text: text }] }],
-      systemInstruction: { parts: [{ text: CONFIG.SYSTEM_INSTRUCTION }] },
-      generationConfig: { maxOutputTokens: 4096 }
-    });
-    var cand = res && res.candidates && res.candidates[0];
-    var out = cand && cand.content && cand.content.parts && cand.content.parts[0] && cand.content.parts[0].text;
-    if (out) replyText_(token, out);
-  } catch(err) { console.error(err); }
-}
-
-function geminiRequest_(payload) {
-  var keys = CONFIG.GEMINI_API_KEYS;
-  var models = CONFIG.GEMINI_MODELS;
-  for (var k = 0; k < keys.length; k++) {
-    for (var m = 0; m < models.length; m++) {
-      try {
-        var r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[m] + ':generateContent', {
-          method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': keys[k] },
-          payload: JSON.stringify(payload), muteHttpExceptions: true
-        });
-        if (r.getResponseCode() === 200) return JSON.parse(r.getContentText());
-      } catch(e){}
-    }
-  }
-  throw new Error('GEMINI_FAILED');
-}
-
-function replyText_(token, text) {
-  UrlFetchApp.fetch(LINE_REPLY_URL, {
-    method: 'post', contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + CONFIG.LINE_CHANNEL_ACCESS_TOKEN },
-    payload: JSON.stringify({ replyToken: token, messages: [{ type: 'text', text: text }] }),
-    muteHttpExceptions: true
-  });
-}`
-  },
-  {
-    id: "99_TestRunner",
-    type: "core",
-    name: "99_TestRunner (Verification Suite)",
-    category: "Core Chassis",
-    commands: ["runAllDuiiTests"],
-    description: "แท่นทดสอบอัตโนมัติประจำระบบ: ตรวจสอบความพร้อมของ Core Chassis และโมดูลก่อนขึ้นโปรดักชัน",
-    properties: [],
-    setupGuide: "### 99_TestRunner.gs\nแท่นทดสอบความพร้อมของระบบ",
-    functionDeclaration: null,
-    codeSnippet: `function runAllDuiiTests() {\n  console.log("🚀 DUII VERIFICATION OK");\n}`
-  },
-  {
-    id: "01_AsyncBuffer",
-    type: "module",
-    name: "01_AsyncBuffer (Queue Guard)",
-    category: "Core & Performance",
-    commands: ["Async Webhook Queue"],
-    description: "พักอีเวนต์ลง CacheService ตอบกลับ LINE 200 OK ทันที ป้องกัน Execution Timeout",
-    properties: [{ key: "ASYNC_BUFFER", required: false, desc: "ตั้ง on เพื่อเปิดคิวเบื้องหลัง" }],
-    setupGuide: "### ⏱️ 01_AsyncBuffer.gs",
-    functionDeclaration: null,
-    codeSnippet: `var AsyncBuffer = (function(){ return { enqueue: function(){ return true; } }; })();`
-  },
-  {
-    id: "02_FlexEngine",
-    type: "module",
-    name: "02_FlexEngine (Card Generator)",
-    category: "UI & Presentation",
-    commands: ["Flex Cards", "Receipt", "Ticket", "Order Card"],
-    description: "สร้าง LINE Flex Message อัตโนมัติ: บิล, บัตรคิว, ตั๋ว QR Code",
-    properties: [],
-    setupGuide: "### 🎨 02_FlexEngine.gs",
-    functionDeclaration: null,
-    codeSnippet: `var FlexEngine = (function(){
-  function createReceiptCard(s) { return { type: "flex", altText: "ใบเสร็จ", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: "ยอดเงิน: " + s.amount }] } } }; }
-  function createOrderCard(o) { return { type: "flex", altText: "ออเดอร์", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: "ยอด: " + o.total }] } } }; }
-  function createTicketCard(t) { return { type: "flex", altText: "ตั๋ว", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: "รหัส: " + (t.booking_id||t.ticket_id) }] } } }; }
-  return { createReceiptCard: createReceiptCard, createOrderCard: createOrderCard, createTicketCard: createTicketCard };
-})();`
-  },
-  {
-    id: "05_SlipVerifier",
-    type: "module",
-    name: "05_SlipVerifier (Vision + Fraud Guard)",
-    category: "Business & Sales",
-    commands: ["ส่งรูปสลิป", "ตรวจสลิป"],
-    description: "อ่านรูปสลิปด้วย Gemini Vision ตรวจยอด วันที่ บัญชี และดักสลิปซ้ำลง Google Sheets",
-    properties: [{ key: "SLIP_RECEIVER_ACCOUNT", required: false, desc: "เลขบัญชีปลายทางของร้าน" }],
-    setupGuide: "### 💳 05_SlipVerifier.gs",
-    functionDeclaration: {
-      name: "verify_transfer_slip",
-      description: "ตรวจสอบความถูกต้องของสลิปโอนเงิน",
-      parameters: { type: "OBJECT", properties: { ref_number: { type: "STRING" }, amount: { type: "NUMBER" } } }
-    },
-    codeSnippet: `var SlipVerifier = (function(){ return { verify: function(a){ return { status: "success", args: a }; } }; })();`
-  },
-  {
-    id: "06_HumanHandoff",
-    type: "module",
-    name: "06_HumanHandoff (Escalation Guard)",
-    category: "Operations & Social",
-    commands: ["ติดต่อเจ้าหน้าที่", "ขอคุยกับคน", "พักบอท"],
-    description: "พักบอทอัตโนมัติเมื่อต้องการคุยกับเจ้าหน้าที่ พร้อมส่งแจ้งเตือนหากลุ่มแอดมิน",
-    properties: [{ key: "ADMIN_GROUP_ID", required: false, desc: "ID ห้องแชทกลุ่มแอดมิน" }],
-    setupGuide: "### 🚨 06_HumanHandoff.gs",
-    functionDeclaration: {
-      name: "request_human_agent",
-      description: "ส่งต่อแอดมินคน พักบอทชั่วคราว",
-      parameters: { type: "OBJECT", properties: { reason: { type: "STRING" } } }
-    },
-    codeSnippet: `var HumanHandoff = (function(){
-  function isPaused(uid) { return !!CacheService.getScriptCache().get("hh_" + uid); }
-  function pause(uid, m) { CacheService.getScriptCache().put("hh_" + uid, "1", (m||30)*60); }
-  function resume(uid) { CacheService.getScriptCache().remove("hh_" + uid); }
-  function request(a) { pause(CURRENT_USER_, 30); return { status: "success", message: "แจ้งแอดมินเรียบร้อย" }; }
-  return { isPaused: isPaused, pause: pause, resume: resume, request: request };
-})();`
-  },
-  {
-    id: "07_LeadScoring",
-    type: "module",
-    name: "07_LeadScoring (BANT Qualifier)",
-    category: "Business & Sales",
-    commands: ["วิเคราะห์ความสนใจลูกค้า", "บันทึก Lead"],
-    description: "ประเมินคะแนน BANT Score 0-100 จัดกลุ่ม Hot/Warm/Cold",
-    properties: [],
-    setupGuide: "### 🎯 07_LeadScoring.gs",
-    functionDeclaration: {
-      name: "assess_lead_quality",
-      description: "ประเมินคะแนน BANT Score ลูกค้า",
-      parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, phone: { type: "STRING" } } }
-    },
-    codeSnippet: `var LeadScoring = (function(){ return { score: function(a){ return { status: "success", tier: "Hot" }; } }; })();`
-  },
-  {
-    id: "08_OrderCart",
-    type: "module",
-    name: "08_OrderCart (Order & Checkout)",
-    category: "Business & Sales",
-    commands: ["สั่งซื้อ", "สรุปยอด", "ที่อยู่จัดส่ง"],
-    description: "คำนวณยอดเงิน เบอร์โทร สรุปออเดอร์พร้อมสร้าง Flex Message",
-    properties: [],
-    setupGuide: "### 🛒 08_OrderCart.gs",
-    functionDeclaration: {
-      name: "create_order_summary",
-      description: "สรุปคำสั่งซื้อสินค้าและยอดรวม",
-      parameters: { type: "OBJECT", properties: { items: { type: "STRING" }, total_amount: { type: "NUMBER" } }, required: ["items", "total_amount"] }
-    },
-    codeSnippet: `var OrderCart = (function(){ return { createSummary: function(a){ return { status: "success", total: a.total_amount }; } }; })();`
-  },
-  {
-    id: "09_StrictFAQ",
-    type: "module",
-    name: "09_StrictFAQ (Bi-gram AI Guard)",
-    category: "Business & Sales",
-    commands: ["ถามคำถามทั่วไป", "นโยบายร้าน"],
-    description: "ค้นหาข้อมูลสินค้าจาก Google Sheets ห้ามแต่งคำตอบเองเด็ดขาด",
-    properties: [],
-    setupGuide: "### 📚 09_StrictFAQ.gs",
-    functionDeclaration: {
-      name: "query_strict_faq",
-      description: "ค้นหาข้อมูลจริงจาก FAQ",
-      parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
-    },
-    codeSnippet: `var StrictFAQ = (function(){ return { query: function(a){ return { status: "found", answer: "คำตอบตัวอย่าง" }; } }; })();`
-  },
-  {
-    id: "10_Reservation",
-    type: "module",
-    name: "10_Reservation (Table & Slot Engine)",
-    category: "Operations & Social",
-    commands: ["จองโต๊ะ", "จองคิว", "เช็คเวลาว่าง"],
-    description: "ตรวจสอบช่วงเวลาว่าง ล็อกคิวด้วย ScriptLock ป้องกันคิวซ้อน พร้อมออกบัตร QR",
-    properties: [],
-    setupGuide: "### 📅 10_Reservation.gs",
-    functionDeclaration: {
-      name: "check_and_book_table",
-      description: "ล็อกสิทธิ์การจองคิวหรือโต๊ะ",
-      parameters: { type: "OBJECT", properties: { date: { type: "STRING" }, time: { type: "STRING" }, customer_name: { type: "STRING" } }, required: ["date", "time", "customer_name"] }
-    },
-    codeSnippet: `var Reservation = (function(){ return { book: function(a){ return { status: "success", booking_id: "BK-999" }; } }; })();`
-  },
-  {
-    id: "11_GiftCard",
-    type: "module",
-    name: "11_GiftCard (Voucher & Code Ledger)",
-    category: "Business & Sales",
-    commands: ["/voucher", "ใช้โค้ดส่วนลด"],
-    description: "ตรวจสอบสถานะคูปอง ตัดยอดใช้งานจริง ป้องกันใช้ซ้ำ",
-    properties: [],
-    setupGuide: "### 🎁 11_GiftCard.gs",
-    functionDeclaration: {
-      name: "manage_gift_card",
-      description: "ตรวจสอบและตัดยอดคูปอง",
-      parameters: { type: "OBJECT", properties: { code: { type: "STRING" } }, required: ["code"] }
-    },
-    codeSnippet: `var GiftCard = (function(){ return { execute: function(a){ return { status: "success", code: a.code }; } }; })();`
-  },
-  {
-    id: "12_EventTicket",
-    type: "module",
-    name: "12_EventTicket (Event Reg & QR Ticket)",
-    category: "Operations & Social",
-    commands: ["ลงทะเบียนงาน", "ออกตั๋ว", "Check-in"],
-    description: "ลงทะเบียน ออก E-Ticket พร้อมรหัส Check-in QR Code",
-    properties: [],
-    setupGuide: "### 🎟️ 12_EventTicket.gs",
-    functionDeclaration: {
-      name: "event_ticket_service",
-      description: "ออกตั๋วงานอีเวนต์และรหัส Check-in",
-      parameters: { type: "OBJECT", properties: { event_name: { type: "STRING" }, attendee_name: { type: "STRING" } }, required: ["event_name", "attendee_name"] }
-    },
-    codeSnippet: `var EventTicket = (function(){ return { process: function(a){ return { status: "success", ticket_id: "TCK-100" }; } }; })();`
-  }
-];
-
-// 2. STATE & CONFIG
-let activeModules = [...FACTORY_REGISTRY];
 const mandatoryModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
 let selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
 let currentInspectingId = "05_SlipVerifier";
+
+let file1CoreContent = "";
+let file2ModulesContent = "";
+let file3TestRunnerContent = "";
 let editingModuleId = null;
 
+// ชุดคีย์ระบบสำรอง 3 ชุด (Base64)
 const ENCODED_SYSTEM_KEYS = [
   "QVEuQWI4Uk42S1hFbnJra0owU2xDYmxkZ3RGZFUxRTBmRlN2dEZyY0ZJZEJxa253YXRzV2c=",
   "QVEuQWI4Uk42S0E5ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=",
@@ -386,31 +32,210 @@ const ENCODED_SYSTEM_KEYS = [
 ];
 let activeKeyIndex = 0;
 
+/**
+ * ดึง Gemini API Key:
+ * 1. ตรวจสอบใน Note Drawer หรือ Local Storage ก่อน
+ * 2. หมุนเวียนคีย์ระบบสำรอง Failover
+ */
 function getNextGeminiKey() {
+  const noteContent = localStorage.getItem("DUII_PINNED_NOTES") || "";
+  const noteKeyMatch = noteContent.match(/AIzaSy[A-Za-z0-9_-]{33}/);
+  if (noteKeyMatch) return noteKeyMatch[0].trim();
+
   const custom = localStorage.getItem("DUII_GEMINI_KEY");
   if (custom && custom.trim()) return custom.trim();
+
   if (ENCODED_SYSTEM_KEYS.length > 0) {
     try {
       const b64 = ENCODED_SYSTEM_KEYS[activeKeyIndex % ENCODED_SYSTEM_KEYS.length];
       activeKeyIndex++;
       return (window.atob(b64) || "").trim();
-    } catch(e) {}
+    } catch (e) {
+      console.warn("Decode system key error:", e);
+    }
   }
   return "";
 }
 
-// 3. INITIALIZATION
+// ลงทะเบียน Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW Registration Fail:', err));
+  });
+}
+
+// ==============================================================================
+// 2. INITIALIZATION
+// ==============================================================================
 document.addEventListener("DOMContentLoaded", () => {
+  if (activeModules.length === 0 && typeof FACTORY_REGISTRY !== 'undefined' && Array.isArray(FACTORY_REGISTRY)) {
+    activeModules = [...FACTORY_REGISTRY];
+  }
+
+  loadCustomVaultFromStorage();
   initTopNavTabs();
   initSubTabs();
   initSearch();
   initInspectorButtons();
   initDuiiChatCopilot();
+  initDriveSyncEngine();
+  initNoteDrawerEngine();
+
+  if (activeModules.length > 0) {
+    const hasDefault = activeModules.some(m => m.id === currentInspectingId);
+    if (!hasDefault) {
+      const firstOpt = activeModules.find(m => !mandatoryModuleIds.has(m.id));
+      currentInspectingId = firstOpt ? firstOpt.id : activeModules[0].id;
+    }
+  }
+
   renderCatalog();
-  if (currentInspectingId) inspectModule(currentInspectingId);
+  if (currentInspectingId) {
+    inspectModule(currentInspectingId);
+  }
 });
 
-// 4. CATALOG & INSPECTOR
+// ==============================================================================
+// 3. STORAGE & CUSTOM VAULT LOADER
+// ==============================================================================
+function loadCustomVaultFromStorage() {
+  try {
+    const raw = localStorage.getItem("DUII_CUSTOM_VAULT");
+    if (raw) {
+      const customList = JSON.parse(raw);
+      customList.forEach(c => {
+        const idx = activeModules.findIndex(m => m.id === c.id);
+        if (idx !== -1) {
+          activeModules[idx] = c;
+        } else {
+          activeModules.push(c);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Cannot load custom vault:", e);
+  }
+}
+
+function saveModuleToVault(mod) {
+  const idx = activeModules.findIndex(m => m.id === mod.id);
+  if (idx !== -1) {
+    activeModules[idx] = mod;
+  } else {
+    activeModules.push(mod);
+  }
+  const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
+  localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
+  renderCatalog();
+}
+
+// ==============================================================================
+// 4. GOOGLE DRIVE SYNC ENGINE (Personal Drive Vault)
+// ==============================================================================
+function initDriveSyncEngine() {
+  const btnSync = document.getElementById("btnSyncDrive");
+  const statusBadge = document.getElementById("syncStatusText");
+  if (!btnSync) return;
+
+  const lastSync = localStorage.getItem("DUII_LAST_SYNC_TIME");
+  if (lastSync && statusBadge) {
+    statusBadge.textContent = `ซิงก์ล่าสุด: ${lastSync}`;
+  }
+
+  btnSync.addEventListener("click", async () => {
+    let syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL");
+    if (!syncEndpoint) {
+      syncEndpoint = prompt(
+        "🔗 วาง Web App URL สำหรับซิงก์โฟลเดอร์ Duii_Factory_Vault บน Google Drive:",
+        ""
+      );
+      if (!syncEndpoint) return;
+      localStorage.setItem("DUII_DRIVE_SYNC_URL", syncEndpoint.trim());
+    }
+
+    btnSync.classList.add("syncing");
+    if (statusBadge) statusBadge.textContent = "กำลังซิงก์กับ Drive...";
+
+    try {
+      const targetUrl = syncEndpoint + (syncEndpoint.includes("?") ? "&" : "?") + "action=GET_VAULT&t=" + Date.now();
+      const res = await fetch(targetUrl);
+      const cloudData = await res.json();
+
+      const cloudModules = cloudData.modules || cloudData;
+      if (Array.isArray(cloudModules) && cloudModules.length > 0) {
+        let newCount = 0;
+        cloudModules.forEach(cMod => {
+          const idx = activeModules.findIndex(m => m.id === cMod.id);
+          if (idx !== -1) {
+            activeModules[idx] = cMod;
+          } else {
+            activeModules.push(cMod);
+            newCount++;
+          }
+        });
+
+        const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
+        localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
+
+        const timeStr = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+        localStorage.setItem("DUII_LAST_SYNC_TIME", timeStr);
+
+        renderCatalog();
+        if (statusBadge) statusBadge.textContent = `ซิงก์สำเร็จ (${timeStr})`;
+        alert(`✅ ซิงก์คลังกับ Google Drive สำเร็จ!\nพบโมดูลทั้งหมด ${cloudModules.length} รายการ (โมดูลใหม่ ${newCount} รายการ)`);
+      } else {
+        alert("⚠️ ไม่พบข้อมูลโมดูลในโฟลเดอร์ปลายทางบน Drive");
+      }
+    } catch (err) {
+      console.error("Drive Sync Error:", err);
+      if (statusBadge) statusBadge.textContent = "ซิงก์ล้มเหลว";
+      if (confirm("❌ การเชื่อมต่อ Drive มีปัญหา ต้องการเปลี่ยน Web App URL หรือไม่?")) {
+        localStorage.removeItem("DUII_DRIVE_SYNC_URL");
+      }
+    } finally {
+      btnSync.classList.remove("syncing");
+    }
+  });
+}
+
+// ==============================================================================
+// 5. PINNED NOTE DRAWER (กระดาษโน้ตซ่อนคีย์และคำสั่งลับ)
+// ==============================================================================
+function initNoteDrawerEngine() {
+  const btnToggle = document.getElementById("btnToggleNote");
+  const drawer = document.getElementById("chatNoteDrawer");
+  const noteArea = document.getElementById("chatNoteArea");
+  const btnClear = document.getElementById("btnClearNote");
+
+  if (!btnToggle || !drawer || !noteArea) return;
+
+  const savedNote = localStorage.getItem("DUII_PINNED_NOTES") || "";
+  noteArea.value = savedNote;
+
+  btnToggle.addEventListener("click", () => {
+    drawer.classList.toggle("hidden");
+    if (!drawer.classList.contains("hidden")) {
+      noteArea.focus();
+    }
+  });
+
+  noteArea.addEventListener("input", (e) => {
+    localStorage.setItem("DUII_PINNED_NOTES", e.target.value);
+  });
+
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      if (confirm("ต้องการล้างข้อความในกระดาษโน้ตด่วนทั้งหมดหรือไม่?")) {
+        noteArea.value = "";
+        localStorage.removeItem("DUII_PINNED_NOTES");
+      }
+    });
+  }
+}
+
+// ==============================================================================
+// 6. CATALOG & INSPECTOR RENDERING
+// ==============================================================================
 function renderCatalog(filterText = "") {
   const listEl = document.getElementById("moduleList");
   if (!listEl) return;
@@ -425,14 +250,22 @@ function renderCatalog(filterText = "") {
     )
   );
 
+  if (filtered.length === 0) {
+    listEl.innerHTML = `
+      <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+        ${activeModules.length === 0 ? "⚠️ ยังไม่มีโมดูลในคลัง (ตรวจเช็ค modules.js)" : "🔍 ไม่พบโมดูลที่ค้นหา"}
+      </div>`;
+  }
+
   filtered.forEach(mod => {
     const isSelected = selectedModuleIds.has(mod.id);
     const isActive = mod.id === currentInspectingId;
+
     const card = document.createElement("div");
     card.className = `module-card ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}`;
     card.innerHTML = `
-      <div class="card-title">${isSelected ? '✅ ' : '⚙️ '}${mod.name}</div>
-      <div class="card-desc">${(mod.description || '').substring(0, 80)}...</div>
+      <div class="card-title">${isSelected ? '✅ ' : '⚙️ '}${mod.name || 'Unnamed Module'}</div>
+      <div class="card-desc">${(mod.description || '').substring(0, 85)}...</div>
     `;
     card.addEventListener("click", () => inspectModule(mod.id));
     listEl.appendChild(card);
@@ -440,7 +273,7 @@ function renderCatalog(filterText = "") {
 
   const countBadge = document.getElementById("selectedCount");
   const optionalCount = selectedModuleIds.size - mandatoryModuleIds.size;
-  if (countBadge) countBadge.textContent = `เลือก ${Math.max(0, optionalCount)} โมดูล (+Core & Test)`;
+  if (countBadge) countBadge.textContent = `เลือกเสริม ${Math.max(0, optionalCount)} โมดูล (+Core & Test)`;
 }
 
 function inspectModule(moduleId) {
@@ -451,27 +284,32 @@ function inspectModule(moduleId) {
   renderCatalog(document.getElementById("moduleSearch") ? document.getElementById("moduleSearch").value : "");
 
   const bodyEl = document.getElementById("inspectorBody");
-  if (bodyEl) {
-    let propsHtml = "";
-    if (mod.properties && mod.properties.length > 0) {
-      propsHtml = "<h4>🔑 Script Properties:</h4><ul>";
-      mod.properties.forEach(p => {
-        propsHtml += `<li><code>${p.key}</code> - ${p.desc}</li>`;
-      });
-      propsHtml += "</ul>";
-    }
+  if (!bodyEl) return;
 
-    bodyEl.innerHTML = `
-      <h2>${mod.name}</h2>
-      <div style="font-size:0.75rem; color:#f59e0b; margin-bottom:8px;">หมวดหมู่: ${mod.category}</div>
-      <p style="color:#e6edf3;">${mod.description}</p>
-      ${propsHtml}
-      <h4>🛠️ คำสั่งที่รองรับ:</h4>
-      <p style="color:#8b949e; font-size:0.8rem;">${(mod.commands || []).join(", ") || "-"}</p>
-      <h4>📖 คู่มือ:</h4>
-      <pre>${mod.setupGuide || "-"}</pre>
-    `;
+  let propsHtml = "";
+  if (mod.properties && mod.properties.length > 0) {
+    propsHtml = "<h4>🔑 Script Properties ที่ต้องตั้งค่า:</h4><ul>";
+    mod.properties.forEach(p => {
+      propsHtml += `<li><code>${p.key}</code> - ${p.desc}${p.required ? '<b style="color:var(--accent-red);">(จำเป็น)</b>' : '(ทางเลือก)'}</li>`;
+    });
+    propsHtml += "</ul>";
   }
+
+  let funcHtml = "";
+  if (mod.functionDeclaration) {
+    funcHtml = `<h4>🧠 Gemini Tool Schema:</h4><pre>${JSON.stringify(mod.functionDeclaration, null, 2)}</pre>`;
+  }
+
+  bodyEl.innerHTML = `
+    <h2>${mod.name || '-'}</h2>
+    <div style="font-size:0.75rem; color:var(--accent-orange); margin-bottom:8px;">หมวดหมู่: ${mod.category || '-'}</div>
+    <p style="color:var(--text-main);">${mod.description \vert{}\vert{} '-'}</p>${propsHtml}
+    <h4>🛠️ คำสั่งที่รองรับ:</h4>
+    <p style="color:var(--text-muted); font-size:0.8rem;">${(mod.commands || []).join(", ") || "-"}</p>
+    ${funcHtml}
+    <h4>📖 คำแนะนำการติดตั้ง (โฟลเดอร์ Modules/):</h4>
+    <pre>${mod.setupGuide || "-"}</pre>
+  `;
 
   const btnToggle = document.getElementById("btnToggleSelect");
   if (btnToggle) {
@@ -492,11 +330,20 @@ function initInspectorButtons() {
         selectedModuleIds.add(currentInspectingId);
       }
       inspectModule(currentInspectingId);
+      updateLiveReadme();
+      updatePropertiesChecklist();
     });
+  }
+
+  const btnEdit = document.getElementById("btnEditModuleCode");
+  if (btnEdit) {
+    btnEdit.addEventListener("click", () => openModuleEditor(currentInspectingId));
   }
 }
 
-// 5. PRESETS & COMPILER
+// ==============================================================================
+// 7. PRESETS
+// ==============================================================================
 window.applyPreset = function(presetType) {
   selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
   if (presetType === "ecommerce") {
@@ -507,168 +354,223 @@ window.applyPreset = function(presetType) {
     activeModules.forEach(m => selectedModuleIds.add(m.id));
   }
   renderCatalog();
-  alert(`👑 โหลดเทมเพลต [${presetType.toUpperCase()}] เรียบร้อย!`);
+  updateLiveReadme();
+  updatePropertiesChecklist();
+  alert(`👑 โหลดชุดเทมเพลต [${presetType.toUpperCase()}] ครบถ้วน!`);
 };
 
+// ==============================================================================
+// 8. AUTONOMOUS COMPILER (ISO 9009) & EXPORT ENGINE
+// ==============================================================================
 window.compileAutonomousBot = function() {
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
+
   const tools = [];
-  selectedList.forEach(m => { if (m.functionDeclaration) tools.push(m.functionDeclaration); });
+  selectedList.forEach(m => {
+    if (m.functionDeclaration) tools.push(m.functionDeclaration);
+  });
 
   let dispatcherCode = `function executeAutonomousTool(name, args, replyToken, userId) {\n  var a = args || {};\n  switch (name) {\n`;
   selectedList.forEach(m => {
     if (m.functionDeclaration) {
-      dispatcherCode += `    case '${m.functionDeclaration.name}':\n      return { status: "success", executed: "${m.functionDeclaration.name}" };\n`;
+      const fName = m.functionDeclaration.name;
+      dispatcherCode += `    case '${fName}':\n`;
+      if (m.id === "05_SlipVerifier") dispatcherCode += `      return SlipVerifier.verify(a);\n`;
+      else if (m.id === "06_HumanHandoff") dispatcherCode += `      return HumanHandoff.request(a);\n`;
+      else if (m.id === "07_LeadScoring") dispatcherCode += `      return LeadScoring.score(a);\n`;
+      else if (m.id === "08_OrderCart") dispatcherCode += `      return OrderCart.createSummary(a);\n`;
+      else if (m.id === "09_StrictFAQ") dispatcherCode += `      return StrictFAQ.query(a);\n`;
+      else if (m.id === "10_Reservation") dispatcherCode += `      return Reservation.book(a);\n`;
+      else if (m.id === "11_GiftCard") dispatcherCode += `      return GiftCard.execute(a);\n`;
+      else if (m.id === "12_EventTicket") dispatcherCode += `      return EventTicket.process(a);\n`;
+      else dispatcherCode += `      return { status: "success", result: "Executed ${fName}" };\n`;
     }
   });
-  dispatcherCode += `    default:\n      return { status: "not_found" };\n  }\n}`;
+  dispatcherCode += `    default:\n      return { status: "not_found", message: "Unknown tool" };\n  }\n}`;
 
-  let logicCode = "";
-  selectedList.forEach(m => { logicCode += `\n// MODULE: ${m.name}\n${m.codeSnippet || ''}\n`; });
+  let logicCode = ``;
+  selectedList.forEach(m => {
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `// 📦 MODULE: ${m.name}\n`;
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `${m.codeSnippet || '// No code available'}\n\n`;
+  });
 
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
+  file1CoreContent = coreMod ? coreMod.codeSnippet : "// Core Spine Not Found";
+
+  const runNum = Math.floor(1000 + Math.random() * 9000);
+  file2ModulesContent = `// TOTAL_LINES: AUTO\n/**\n * SCRIPT NAME : 01_Modules_And_Tools.gs\n * VERSION     : v5.0.0-RUN-${runNum}\n * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009\n */\n\n`;
+  file2ModulesContent += `// 1. GEMINI TOOLS SCHEMA (NATIVE FUNCTION CALLING)\nvar GEMINI_TOOLS_SCHEMA = ${JSON.stringify(tools, null, 2)};\n\n`;
+  file2ModulesContent += `// 2. AUTONOMOUS TOOL DISPATCHER ROUTER\n${dispatcherCode}\n\n`;
+  file2ModulesContent += `// 3. BUSINESS LOGIC IMPLEMENTATIONS (Modules/)\n${logicCode}`;
+  file2ModulesContent += `// END OF FILE : 01_Modules_And_Tools.gs`;
+
   const testMod = activeModules.find(m => m.id === "99_TestRunner");
+  file3TestRunnerContent = testMod ? testMod.codeSnippet : "// Test Runner Not Found";
 
-  const combined = `/* ==============================================================================
-   📄 [ไฟล์ที่ 1]: 00_CoreSpine.gs
+  const combinedOutput = `/* ==============================================================================
+   📄 [ไฟล์ที่ 1 บังคับ]: 00_CoreSpine.gs
    ============================================================================== */
-${coreMod ? coreMod.codeSnippet : ''}
-
-/* ==============================================================================
-   📄 [ไฟล์ที่ 2]: 01_Modules_And_Tools.gs
-   ============================================================================== */
-var GEMINI_TOOLS_SCHEMA = ${JSON.stringify(tools, null, 2)};
-${dispatcherCode}
-${logicCode}
+${file1CoreContent}
 
 /* ==============================================================================
-   📄 [ไฟล์ที่ 3]: 99_TestRunner.gs
+   📄 [ไฟล์ที่ 2]: 01_Modules_And_Tools.gs (รวม ${selectedList.length} โมดูลจาก Modules/)
    ============================================================================== */
-${testMod ? testMod.codeSnippet : ''}`;
+${file2ModulesContent}
+
+/* ==============================================================================
+   📄 [ไฟล์ที่ 3 บังคับ]: 99_TestRunner.gs (แท่นตรวจสอบสุขภาพระบบ)
+   ============================================================================== */
+${file3TestRunnerContent}`;
 
   const codeArea = document.getElementById("compiledCode");
-  if (codeArea) codeArea.value = combined;
+  if (codeArea) codeArea.value = combinedOutput;
+
+  const totalLines = combinedOutput.split("\n").length;
   const lineBadge = document.getElementById("lineCountBadge");
-  if (lineBadge) lineBadge.textContent = `LINES: ${combined.split("\n").length}`;
+  if (lineBadge) lineBadge.textContent = `LINES: ${totalLines} (ISO 9009)`;
+
+  updateLiveReadme();
+  updatePropertiesChecklist();
 
   const viewCodeTab = document.querySelector('[data-subtab="view-code"]');
   if (viewCodeTab) viewCodeTab.click();
-  alert(`🚀 ประกอบบอทสำเร็จ! รวม ${combined.split("\n").length} บรรทัด`);
+
+  alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n• 00_CoreSpine.gs & 99_TestRunner.gs (บังคับ)\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\nรวมเนื้อหาเต็มทั้งหมด ${totalLines} บรรทัด`);
 };
+
+window.downloadAllIndividualGsFiles = function() {
+  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
+
+  if (selectedList.length === 0) {
+    alert("กรุณาเลือกโมดูลอย่างน้อย 1 รายการก่อนดาวน์โหลด");
+    return;
+  }
+
+  const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
+  if (coreMod) downloadTextFile("00_CoreSpine.gs", coreMod.codeSnippet);
+
+  const testMod = activeModules.find(m => m.id === "99_TestRunner");
+  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", testMod.codeSnippet), 250);
+
+  let delay = 500;
+  selectedList.forEach(mod => {
+    if (mod.id !== "00_CoreSpine" && mod.id !== "99_TestRunner") {
+      const fileName = mod.id.endsWith(".gs") ? mod.id : `${mod.id}.gs`;
+      setTimeout(() => downloadTextFile(fileName, mod.codeSnippet), delay);
+      delay += 250;
+    }
+  });
+
+  alert(`กำลังดาวน์โหลดไฟล์ .gs แยกทั้งหมด ${selectedList.length} ไฟล์ สำหรับนำไปจัดใส่โฟลเดอร์ Modules/ ...`);
+};
+
+function downloadTextFile(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 window.copyCompiledCode = function() {
   const codeArea = document.getElementById("compiledCode");
   if (!codeArea || !codeArea.value) return;
-  navigator.clipboard.writeText(codeArea.value).then(() => alert("📋 คัดลอกโค้ดเรียบร้อย!"));
+  navigator.clipboard.writeText(codeArea.value).then(() => {
+    alert("📋 คัดลอกโค้ดเต็มทั้งหมดเรียบร้อย!");
+  });
 };
 
-// 6. CHAT COPILOT
-function initDuiiChatCopilot() {
-  const fab = document.getElementById("duiiFab");
-  const chatWin = document.getElementById("duiiChatWindow");
-  const closeBtn = document.getElementById("btnChatClose");
-  const sendBtn = document.getElementById("btnChatSend");
-  const chatInput = document.getElementById("chatInput");
-  const chatBody = document.getElementById("chatBody");
-  const keyBtn = document.getElementById("btnSetApiKey");
-
-  if (!fab || !chatWin) return;
-
-  fab.onclick = (e) => {
-    e.stopPropagation();
-    chatWin.classList.toggle("hidden");
-    if (!chatWin.classList.contains("hidden") && chatInput) chatInput.focus();
-  };
-
-  if (closeBtn) closeBtn.onclick = () => chatWin.classList.add("hidden");
-
-  if (keyBtn) {
-    keyBtn.onclick = () => {
-      const current = localStorage.getItem("DUII_GEMINI_KEY") || "";
-      const k = prompt("🔑 นำ Gemini API Key มาวางที่นี่:", current);
-      if (k !== null) {
-        localStorage.setItem("DUII_GEMINI_KEY", k.trim());
-        alert("✅ บันทึกคีย์เรียบร้อย!");
-      }
-    };
-  }
-
-  async function handleSend() {
-    if (!chatInput) return;
-    const text = chatInput.value.trim();
-    if (!text) return;
-    appendMsg(text, "user");
-    chatInput.value = "";
-
-    appendMsg("💭 กำลังคิด...", "bot");
-    const apiKey = getNextGeminiKey();
-
-    if (!apiKey) {
-      if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      appendMsg("⚠️ ยังไม่ได้ใส่ API Key กรุณากดปุ่ม 🔑 มุมบน", "bot");
-      return;
+function updateLiveReadme() {
+  const readmeArea = document.getElementById("readmeContent");
+  if (!readmeArea) return;
+  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
+  let doc = `# DUII FACTORY BOT DEPLOYMENT GUIDE (ISO 9009)\n\n## รายการไฟล์ที่ต้องติดตั้ง:\n`;
+  doc += `1. 00_CoreSpine.gs (แกนระบบบังคับ)\n2. 01_Modules_And_Tools.gs (โมดูลธุรกิจ)\n3. 99_TestRunner.gs (ชุดทดสอบระบบ)\n\n`;
+  doc += `## รายการโมดูลที่เลือกใช้งาน (${Math.max(0, selectedList.length - 2)} โมดูล):\n`;
+  selectedList.forEach(m => {
+    if (!mandatoryModuleIds.has(m.id)) {
+      doc += `### 📦 ${m.name}\n- หมวดหมู่: ${m.category}\n- คำอธิบาย: ${m.description}\n\n`;
     }
-
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: text }] }] })
-      });
-      const data = await res.json();
-      if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      if (res.ok && data.candidates && data.candidates[0].content.parts[0].text) {
-        appendMsg(data.candidates[0].content.parts[0].text, "bot");
-      } else {
-        appendMsg(`⚠️ ขัดข้อง: ${(data.error && data.error.message) || 'Error'}`, "bot");
-      }
-    } catch(e) {
-      if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      appendMsg(`⚠️ เชื่อมต่อล้มเหลว: ${e.message}`, "bot");
-    }
-  }
-
-  if (sendBtn) sendBtn.onclick = handleSend;
-  if (chatInput) chatInput.onkeypress = (e) => { if (e.key === "Enter") handleSend(); };
-
-  function appendMsg(text, sender) {
-    if (!chatBody) return;
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `chat-msg ${sender}`;
-    msgDiv.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g, "<br>")}</div>`;
-    chatBody.appendChild(msgDiv);
-    chatBody.scrollTop = chatBody.scrollHeight;
-  }
+  });
+  readmeArea.value = doc;
 }
 
-// 7. TABS
-function initTopNavTabs() {
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-      btn.classList.add("active");
-      const target = document.getElementById(btn.getAttribute("data-tab"));
-      if (target) target.classList.add("active");
+function updatePropertiesChecklist() {
+  const propsArea = document.getElementById("propertiesChecklist");
+  if (!propsArea) return;
+  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
+  const propMap = new Map();
+  selectedList.forEach(m => {
+    (m.properties || []).forEach(p => {
+      if (!propMap.has(p.key)) propMap.set(p.key, p);
     });
   });
-}
 
-function initSubTabs() {
-  document.querySelectorAll(".sub-tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".sub-tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".sub-view").forEach(v => v.classList.remove("active"));
-      btn.classList.add("active");
-      const target = document.getElementById(btn.getAttribute("data-subtab"));
-      if (target) target.classList.add("active");
-    });
+  let checklist = `=== SCRIPT PROPERTIES CHECKLIST ===\nนำค่าเหล่านี้ไปกรอกใน Google Apps Script (Project Settings > Script Properties):\n\n`;
+  propMap.forEach((p, k) => {
+    checklist += `[ ] ${k}\n    - คำอธิบาย: ${p.desc}\n    - ความจำเป็น: ${p.required ? 'จำเป็น' : 'ทางเลือก'}\n\n`;
   });
+  propsArea.value = checklist;
 }
 
-function initSearch() {
-  const searchInput = document.getElementById("moduleSearch");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
+// ==============================================================================
+// 9. HARVEST & AUTO-LOOT SEPARATOR (สกัดแยกเป็นไฟล์ ๆ ลง Modules/)
+// ==============================================================================
+window.analyzeAndExtractCode = function() {
+  const raw = document.getElementById("rawCodeInput").value.trim();
+  const listEl = document.getElementById("harvestResultList");
+  if (!raw) { alert("กรุณาวางโค้ดก่อนทำการสแกน"); return; }
+  listEl.innerHTML = "";
+
+  const funcRegex = /function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{/g;
+  let match;
+  const foundFuncs = [];
+
+  while ((match = funcRegex.exec(raw)) !== null) {
+    foundFuncs.push({ name: match[1], params: match[2] });
   }
-}
+
+  if (foundFuncs.length === 0) {
+    listEl.innerHTML = `<div style="color:var(--accent-red); font-size:0.85rem;">ไม่พบฟังก์ชันที่สกัดได้</div>`;
+    return;
+  }
+
+  foundFuncs.forEach(fn => {
+    const item = document.createElement("div");
+    item.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px 12px; border:1px solid var(--border-color); border-radius:6px;";
+    item.innerHTML = `
+      <div>
+        <strong style="color:var(--accent-cyan); font-family:monospace;">📁 ${fn.name}.gs</strong>
+        <span style="font-size:0.75rem; color:var(--text-muted); margin-left:8px;">(${fn.params || "no args"})</span>
+      </div>
+      <button class="btn-action primary" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="harvestSingleFunction('${fn.name}')">💎 สกัดเป็นไฟล์ Modules/${fn.name}.gs</button>
+    `;
+    listEl.appendChild(item);
+  });
+};
+
+window.harvestSingleFunction = function(funcName) {
+  const rawText = document.getElementById("rawCodeInput").value;
+  const fileName = funcName + ".gs";
+  const safeId = "mod_" + funcName.toLowerCase();
+
+  const regex = new RegExp("function\\s+" + funcName + "\\s*\\([\\s\\S]*?\\}\\s*\\n", "m");
+  const match = rawText.match(regex);
+  const snippet = match ? match[0] : `function ${funcName}() {\n  // Looted snippet\n}`;
+
+  const newLootFile = {
+    id: safeId,
+    type: "module",
+    name: "📁 " + fileName,
+    category: "Looted Modules",
+    commands: ["/" + funcName],
+    description: `โมดูลที่สกัดมาเป็นไฟล์ ${fileName} จากการ Loot โค้ดภายนอก`,
+    properties: [],
+    setupGuide: `### 📁 Modules/${fileName}\nวางไฟล์นี้ในโฟลเดอร์ Modules/ เพื่อเรียกใช้งาน`,
+    functionDeclaration: {
+      name: "run_" + funcName,
+      description: `เรียกใช้งานฟังก์ชัน ${func
