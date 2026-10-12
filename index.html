@@ -6,7 +6,7 @@
   <title>DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="style.css?v=590">
+  <link rel="stylesheet" href="style.css?v=600">
 </head>
 <body>
 
@@ -71,8 +71,6 @@
             <div class="compile-btn-group">
               <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
               <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-              <!-- 🚀 ปุ่มยิงโค้ด OTA เข้าปลายทาง -->
-              <button class="btn-action warning" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
             </div>
           </div>
           <div class="workspace-tabs">
@@ -172,46 +170,28 @@
     </div>
   </div>
 
- <!-- ======================================================== -->
-  <!-- FLOATING FAB & CHAT WINDOW (บร๊ะเจ้าดุ่ย) -->
-  <!-- ======================================================== -->
-  <!-- ปุ่มไอคอนลอยมุมขวาล่าง -->
+  <!-- FLOATING FAB (ปุ่มลอยคุยกับบร๊ะเจ้าดุ่ย) -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
     <span style="font-size: 26px;">🤖</span>
     <span class="fab-badge">Duii</span>
   </div>
 
-  <!-- หน้าต่างแชท PC Window -->
+  <!-- FLOATING PC WINDOW MODAL CHAT (หน้าต่างแชท PC) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info">
         <span style="font-size: 20px;">🤖</span>
         <div>
           <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
-          <div class="chat-status">🟢 ป.เอก 8 ใบ (Online)</div>
+          <div class="chat-status">🟢 PC Window Mode (Active)</div>
         </div>
       </div>
-      <div style="display: flex; gap: 6px; align-items: center;">
-        <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า Gemini Key">🔑 Key</button>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="btn-key" id="btnToggleNote" title="เปิด/ปิด กระดาษทดโน้ตด่วน">📌 โน้ต</button>
+        <button class="btn-key" id="btnSetApiKey" title="ดูหรือตั้งค่า Gemini API Key">🔑 Key</button>
         <button class="chat-close-btn" id="btnChatClose">✖</button>
       </div>
     </div>
-
-    <!-- กล่องข้อความแชท -->
-    <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">
-        <div class="msg-bubble">
-          มีปัญหาอะไรเกี่ยวกับบอท? จะประกอบตัวไหน สคริปต์พังตรงไหน พิมพ์มาได้เลย!
-        </div>
-      </div>
-    </div>
-
-    <!-- แถบพิมพ์ข้อความ -->
-    <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="พิมพ์คุยกับบร๊ะเจ้าดุ่ย... (Enter เพื่อส่ง)" autocomplete="off">
-      <button id="btnChatSend" class="btn-send">⚡ ส่ง</button>
-    </div>
-  </div>
 
     <!-- Drawer กระดาษทดโน้ต -->
     <div id="chatNoteDrawer" class="chat-note-drawer hidden">
