@@ -697,3 +697,155 @@ body {
   cursor: pointer;
   font-size: 0.8rem;
 }
+/* ======================================================== */
+/* FLOATING PC-STYLE WINDOW: บร๊ะเจ้าดุ่ย แกนโลก            */
+/* ======================================================== */
+.hidden {
+  display: none !important;
+}
+
+.duii-fab {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 20px !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 50% !important;
+  background: #161b22 !important;
+  border: 2px solid #f59e0b !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 999999 !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.6) !important;
+}
+
+.fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1.5px solid #000;
+}
+
+.duii-chat-window {
+  position: fixed !important;
+  bottom: 92px !important;
+  right: 20px !important;
+  width: 360px !important;
+  height: 520px !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 120px) !important;
+  background: #11161f !important;
+  border: 2px solid #f59e0b !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+  z-index: 1000000 !important;
+  overflow: hidden !important;
+}
+.duii-chat-window.hidden {
+  display: none !important;
+}
+
+.chat-header {
+  padding: 10px 14px;
+  background: #090d14;
+  border-bottom: 1px solid #30363d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.chat-header-info { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 0.85rem; font-weight: bold; }
+.chat-status { font-size: 0.68rem; color: #10b981; }
+.chat-close-btn { background: transparent; border: none; color: #8b949e; cursor: pointer; font-size: 18px; }
+.btn-key { background: #d29922; color: #000; border: none; font-weight: bold; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+
+.chat-note-drawer {
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.note-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #8b949e;
+  font-weight: 600;
+}
+.btn-clear-note {
+  background: transparent;
+  border: none;
+  color: #f85149;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+#chatNoteArea {
+  width: 100%;
+  height: 80px;
+  background: #161c26;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.chat-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #090d14;
+}
+.chat-msg { display: flex; max-width: 88%; }
+.chat-msg.bot { align-self: flex-start; }
+.chat-msg.user { align-self: flex-end; }
+.msg-bubble { padding: 9px 13px; border-radius: 8px; font-size: 0.8rem; line-height: 1.45; }
+.chat-msg.bot .msg-bubble { background: #161c26; color: #e2e8f0; border: 1px solid #30363d; border-left: 3px solid #f59e0b; }
+.chat-msg.user .msg-bubble { background: #f59e0b; color: #000; font-weight: 700; }
+
+.chat-footer {
+  padding: 10px;
+  background: #090d14;
+  border-top: 1px solid #30363d;
+  display: flex;
+  gap: 6px;
+}
+.chat-footer input {
+  flex: 1;
+  background: #161c26;
+  border: 1px solid #30363d;
+  color: #fff;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  outline: none;
+}
+.btn-send {
+  background: #f59e0b;
+  border: none;
+  color: #000;
+  font-weight: 800;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
