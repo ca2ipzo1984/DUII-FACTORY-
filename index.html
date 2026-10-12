@@ -71,7 +71,6 @@
             <div class="compile-btn-group">
               <button class="btn-action primary" onclick="downloadAllIndividualGsFiles()">📥 ดาวน์โหลด .gs แยกไฟล์</button>
               <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-              <!-- 🚀 ปุ่มยิงโค้ด OTA เข้า Web App ปลายทาง -->
               <button class="btn-action warning" id="btnDeployTarget" onclick="deployDirectToTargetUrl()">🚀 ยิงโค้ดไปปลายทาง</button>
             </div>
           </div>
@@ -117,7 +116,7 @@
     <div style="max-width: 800px; margin: 0 auto; width: 100%;">
       <h2 style="color: #fff; margin-bottom: 8px;">🩺 หมอตรวจโรคระบบ (Log Diagnostics)</h2>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">วาง Error Log สีแดงจาก Apps Script เพื่อถอดรหัสสาเหตุและวิธีแก้อัตโนมัติ</p>
-      <textarea id="doctorLogInput" class="code-editor-area" style="height: 180px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางข้อความ Error สีแดง เช่น Exception: Service Spreadsheets failed..."></textarea>
+      <textarea id="doctorLogInput" class="code-editor-area" style="height: 180px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="วางข้อความ Error สีแดง..."></textarea>
       <button class="btn-action warning" style="margin-top: 10px; width: auto;" onclick="runLogDiagnostics()">🔬 วินิจฉัยข้อผิดพลาด</button>
       <div id="doctorResult" style="margin-top: 14px; padding: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; display: none;"></div>
     </div>
@@ -127,11 +126,10 @@
   <section class="tab-content" id="tab-manual" style="padding: 20px; overflow-y: auto;">
     <div style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-size: 0.88rem;">
       <h2 style="color: #fff; margin-bottom: 10px;">📖 คู่มือสถาปัตยกรรม DUII FACTORY ISO 9009</h2>
-      <p>ระบบสร้างและควบคุมบอทอัตโนมัติบน Google Apps Script แยกไฟล์มาตรฐานเพื่อความทนทาน:</p>
       <ul style="margin: 10px 0 14px 20px;">
         <li><strong>00_CoreSpine.gs:</strong> แกนกลางระบบ จัดการ Webhook และ Gemini Failover</li>
-        <li><strong>01_Modules_And_Tools.gs:</strong> รวม Tool Schemas, Dispatcher และโมดูลที่เลือก</li>
-        <li><strong>99_TestRunner.gs:</strong> ระบบตรวจสอบความสมบูรณ์และทดสอบฟังก์ชันทั้งระบบ</li>
+        <li><strong>01_Modules_And_Tools.gs:</strong> รวม Tool Schemas, Dispatcher และโมดูลธุรกิจ</li>
+        <li><strong>99_TestRunner.gs:</strong> ชุดทดสอบความสมบูรณ์ทั้งระบบ</li>
       </ul>
     </div>
   </section>
@@ -157,12 +155,12 @@
   <div class="duii-modal hidden" id="generatorModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>⚡ AI Module Generator (สร้างโมดูลตามสั่ง)</h3>
+        <h3>⚡ AI Module Generator</h3>
         <button class="btn-close" onclick="closeGeneratorModal()">✖</button>
       </div>
       <div class="modal-body">
-        <label style="font-size: 0.85rem; color: var(--accent-cyan); margin-bottom: 6px;">ระบุโจทย์ความต้องการ (เช่น ระบบสะสมแต้ม, เรดาร์ตรวจจับ):</label>
-        <textarea id="genPromptInput" placeholder="พิมพ์ความต้องการ เช่น อยากได้โมดูลสะสมแต้ม เช็คยอดแต้ม ตัดแต้มแลกของรางวัล..."></textarea>
+        <label style="font-size: 0.85rem; color: var(--accent-cyan); margin-bottom: 6px;">ระบุโจทย์ความต้องการ:</label>
+        <textarea id="genPromptInput" placeholder="พิมพ์ความต้องการ เช่น อยากได้โมดูลสะสมแต้ม..."></textarea>
         <div id="genStatus" style="font-size:0.8rem; margin-top:8px; color:var(--accent-orange);"></div>
       </div>
       <div class="modal-footer">
@@ -172,17 +170,17 @@
     </div>
   </div>
 
-  <!-- FLOATING FAB (ปุ่มลอยคุยกับไอ้ดุ่ย) -->
+  <!-- FLOATING FAB (ใช้ avatar.png ล้วนๆ) -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
-    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar" onerror="this.src='avatar.png'">
+    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar">
     <span class="fab-badge">Duii</span>
   </div>
 
-  <!-- FLOATING PC WINDOW MODAL CHAT -->
+  <!-- FLOATING PC WINDOW MODAL CHAT (ใช้ avatar.png ล้วนๆ) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info">
-        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar" onerror="this.src='avatar.png'">
+        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar">
         <div>
           <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
           <div class="chat-status">🟢 PC Window Mode (Active)</div>
@@ -201,7 +199,7 @@
         <span>📝 โน้ตแปะด่วน / คลังคำสั่งลับ</span>
         <button id="btnClearNote" class="btn-clear-note">ล้างโน้ต</button>
       </div>
-      <textarea id="chatNoteArea" placeholder="แปะโค้ด, พรอมต์ หรือบันทึกข้อความไว้ตรงนี้... (บันทึกออโต้)"></textarea>
+      <textarea id="chatNoteArea" placeholder="แปะโค้ด, พรอมต์ หรือบันทึกข้อความไว้ตรงนี้..."></textarea>
     </div>
 
     <div class="chat-body" id="chatBody">
