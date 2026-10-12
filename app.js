@@ -338,12 +338,21 @@ window.compileAutonomousBot = function() {
 
   let logicCode = ``;
   selectedList.forEach(m => {
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `// 📦 MODULE: ${m.name}\n`;
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `${m.codeSnippet}\n\n`;
-  });
+    // 🛡️ กรองขยะและตัดหัวท้ายที่ซ้ำซ้อนทิ้งก่อนเชื่อมสายพาน
+    let cleanSnippet = (m.codeSnippet || "")
+      .replace(/^\s*\/\/\s*TOTAL_LINES.*$/gm, "")         // ตัดหัว TOTAL_LINES ซ้ำ
+      .replace(/\b100%\b/g, "")                           // ฆ่าขยะ 100% หลุดทิ้ง
+      .replace(/\/\/\s*END OF FILE.*$/gm, "")             // ตัดท้ายไฟล์เดิมทิ้ง ป้องกันเบิ้ล
+      .replace(/\/\*[\s\S]*?SCRIPT NAME[\s\S]*?\*\//gi, "") // ตัด Header ซ้ำ
+      .trim();
 
+    if (cleanSnippet) {
+      logicCode += `// ==============================================================================\n`;
+      logicCode += `// 📦 MODULE: ${m.name}\n`;
+      logicCode += `// ==============================================================================\n`;
+      logicCode += `${cleanSnippet}\n\n`;
+    }
+  });
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
   let rawCore = coreMod ? coreMod.codeSnippet : "";
 
