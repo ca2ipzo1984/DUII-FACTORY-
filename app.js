@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v7.0.0-PROD-MICRO-SAAS-LICENSE-GUARD-ISO9009
+ * VERSION     : v7.1.0-PROD-FAST-SPARK-TIMEOUT-ISO9009
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Live Spark Command
+ * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Fast Spark Command
  * TARGET URL  : https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec
  * ==============================================================================
  */
@@ -682,7 +682,7 @@ window.runAiGenerateModule = async function() {
 
   if (apiKey) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -732,7 +732,7 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X ENGINE
+// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X FAST ENGINE
 // ==============================================================================
 function initBrainSettingsModal() {
   const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
@@ -847,12 +847,13 @@ function initDuiiChatCopilot() {
       return;
     }
 
-    appendMsg("💭 ดุ่ย (Spark Command) กำลังประมวลผลด้วยตระกูล 3.x...", "bot");
+    appendMsg("💭 ดุ่ย (Spark Command) กำลังประมวลผลด่วน...", "bot");
 
+    // ⚡ Fast-Path Ranking: ดึงโมดูล Lite ความเร็วสูงขึ้นก่อน
     const modelsToTry = [
-      "gemini-3.8-flash",
-      "gemini-3.8-flash-lite",
       "gemini-3.5-flash-lite",
+      "gemini-3.8-flash-lite",
+      "gemini-3.8-flash",
       "gemini-3.5-flash"
     ];
 
@@ -885,9 +886,14 @@ ${savedBrainRules}`;
         const model = modelsToTry[m];
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
+        // ⏱️ AbortController ตัดสายคำขอค้างเกิน 6 วินาที
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
         try {
           const res = await fetch(endpoint, {
             method: "POST",
+            signal: controller.signal,
             headers: {
               "Content-Type": "application/json",
               "x-goog-api-key": apiKey
@@ -895,9 +901,11 @@ ${savedBrainRules}`;
             body: JSON.stringify({
               contents: [{ role: "user", parts: [{ text: text }] }],
               systemInstruction: { parts: [{ text: systemInstruction }] },
-              generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+              generationConfig: { temperature: 0.5, maxOutputTokens: 1024 }
             })
           });
+
+          clearTimeout(timeoutId);
 
           const data = await res.json();
           if (res.ok && data && data.candidates && data.candidates[0].content.parts[0].text) {
@@ -907,7 +915,8 @@ ${savedBrainRules}`;
             lastErrorDetail = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
           }
         } catch (err) {
-          lastErrorDetail = `[${model}] Network: ${err.message}`;
+          clearTimeout(timeoutId);
+          lastErrorDetail = (err.name === 'AbortError') ? `[${model}] Timeout (6s)` : `[${model}] Network: ${err.message}`;
         }
       }
     }
