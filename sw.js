@@ -1,5 +1,5 @@
 // sw.js - Service Worker for Offline Caching (ISO 9009 Compliant)
-const CACHE_NAME = 'duii-factory-v6.5.0-PROD-UNBREAKABLE';
+const CACHE_NAME = 'duii-factory-v6.6.0-AVATAR-PURGE';
 const ASSETS = [
   './index.html',
   './style.css',
