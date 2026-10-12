@@ -172,28 +172,46 @@
     </div>
   </div>
 
-  <!-- FLOATING FAB (ปุ่มลอยคุยกับไอ้ดุ่ย) -->
+ <!-- ======================================================== -->
+  <!-- FLOATING FAB & CHAT WINDOW (บร๊ะเจ้าดุ่ย) -->
+  <!-- ======================================================== -->
+  <!-- ปุ่มไอคอนลอยมุมขวาล่าง -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างคุยกับบร๊ะเจ้าดุ่ย">
-    <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="fab-avatar">
+    <span style="font-size: 26px;">🤖</span>
     <span class="fab-badge">Duii</span>
   </div>
 
-  <!-- FLOATING PC WINDOW MODAL CHAT -->
+  <!-- หน้าต่างแชท PC Window -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info">
-        <img src="avatar.png" alt="บร๊ะเจ้าดุ่ย" class="chat-header-avatar">
+        <span style="font-size: 20px;">🤖</span>
         <div>
           <div class="chat-name">บร๊ะเจ้าดุ่ย แกนโลก</div>
-          <div class="chat-status">🟢 PC Window Mode (Active)</div>
+          <div class="chat-status">🟢 ป.เอก 8 ใบ (Online)</div>
         </div>
       </div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <button class="btn-key" id="btnToggleNote" title="เปิด/ปิด กระดาษทดโน้ตด่วน">📌 โน้ต</button>
-        <button class="btn-key" id="btnSetApiKey" title="ดูหรือตั้งค่า Gemini API Key">🔑 Key</button>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า Gemini Key">🔑 Key</button>
         <button class="chat-close-btn" id="btnChatClose">✖</button>
       </div>
     </div>
+
+    <!-- กล่องข้อความแชท -->
+    <div class="chat-body" id="chatBody">
+      <div class="chat-msg bot">
+        <div class="msg-bubble">
+          มีปัญหาอะไรเกี่ยวกับบอท? จะประกอบตัวไหน สคริปต์พังตรงไหน พิมพ์มาได้เลย!
+        </div>
+      </div>
+    </div>
+
+    <!-- แถบพิมพ์ข้อความ -->
+    <div class="chat-footer">
+      <input type="text" id="chatInput" placeholder="พิมพ์คุยกับบร๊ะเจ้าดุ่ย... (Enter เพื่อส่ง)" autocomplete="off">
+      <button id="btnChatSend" class="btn-send">⚡ ส่ง</button>
+    </div>
+  </div>
 
     <!-- Drawer กระดาษทดโน้ต -->
     <div id="chatNoteDrawer" class="chat-note-drawer hidden">
