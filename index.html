@@ -7,6 +7,22 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#0d1117">
+  <style>
+    /* บังคับซ่อน Modal และจัดลำดับ Layer ให้ถูกต้องเด็ดขาด */
+    #editorModal.hidden,
+    #editorModal[style*="display: none"] {
+      display: none !important;
+    }
+    #duiiChatWindow.hidden {
+      display: none !important;
+    }
+    .fab-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  </style>
 </head>
 <body>
 
@@ -61,7 +77,7 @@
       <section class="panel-col">
         <div class="panel-header">
           <span class="panel-title">รายละเอียดชิ้นส่วน</span>
-          <button class="btn-preset" id="btnEditModuleCode" style="background:#21262d; border:1px solid #30363d;">✏️ แก้ไขโค้ด</button>
+          <button class="btn-preset" id="btnEditModuleCode" style="background:#21262d; border:1px solid #30363d;" onclick="openModuleEditor(currentInspectingId)">✏️ แก้ไขโค้ด</button>
         </div>
 
         <div class="inspector-body" id="inspectorBody">
@@ -76,7 +92,6 @@
       <!-- COLUMN 3: WORKSPACE & COMPILER OUTPUT -->
       <section class="panel-col workspace-container" style="border-right:none;">
         <div class="compile-control-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <!-- SERIAL ID BADGE -->
           <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-size:0.75rem; color:var(--text-muted);">🏷️ SERIAL:</span>
             <input type="text" id="botSerialDisplay" readonly value="DUII-PROD-AUTO" style="background:#010409; border:1px solid #30363d; color:var(--accent-cyan); font-family:monospace; font-size:0.75rem; padding:4px 8px; border-radius:4px; width:150px; font-weight:bold;">
@@ -137,11 +152,11 @@
     </div>
   </main>
 
-  <!-- MODAL: CODE EDITOR (ซ่อนเป็น display:none ค่าเริ่มต้นเด็ดขาด) -->
-  <div id="editorModal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
+  <!-- MODAL: CODE EDITOR (ซ่อนเป็น display: none ตั้งต้นเด็ดขาด) -->
+  <div id="editorModal" class="hidden" style="display: none !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:9999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
       <span id="editorTitle" style="color:#fff; font-weight:bold; font-size:0.85rem;">✏️ แก้ไขโค้ดโมดูล</span>
-      <button class="chat-close-btn" onclick="closeEditorModal()">✖</button>
+      <button class="chat-close-btn" onclick="closeEditorModal()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px;">✖</button>
     </div>
     <div style="flex:1; padding:8px;">
       <textarea id="editorTextarea" class="code-editor-area" style="border:1px solid var(--border-color); border-radius:6px; height:100%; width:100%;"></textarea>
@@ -152,14 +167,15 @@
     </div>
   </div>
 
-  <!-- FLOATING CHAT BUTTON (FAB) มีรูปไอคอนดุ่ยครบ -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
-    <span style="font-size:24px;">🤖</span>
+  <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png หรือไอคอน -->
+  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย" onclick="toggleDuiiChat(event)">
+    <img src="avatar.png" class="fab-avatar-img" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
+    <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
   <!-- DUII LIVE CHAT WINDOW -->
-  <div class="duii-chat-window hidden" id="duiiChatWindow" style="display:none;">
+  <div class="duii-chat-window hidden" id="duiiChatWindow" style="display: none !important;">
     <div class="chat-header">
       <div class="chat-header-info">
         <span style="font-size:18px;">⚡</span>
@@ -169,15 +185,16 @@
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <button class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" style="background:#21262d; color:#fff; border:1px solid #30363d;">📝</button>
+        <button class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
         <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
-        <button class="chat-close-btn" id="btnChatClose" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:0 4px;">✖</button>
+        <!-- ปุ่มปิด ✖ บังคับเรียกฟังก์ชันปิดหน้าต่างโดยตรง -->
+        <button class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:20px; padding:0 6px;">✖</button>
       </div>
     </div>
 
-    <!-- PINNED NOTE DRAWER -->
-    <div class="chat-note-drawer hidden" id="chatNoteDrawer" style="display:none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
-      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid var(--border-color); border-radius:4px; font-size:0.75rem; padding:6px;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
+    <!-- PINNED NOTE DRAWER (สมุดโน้ต) -->
+    <div class="chat-note-drawer" id="chatNoteDrawer" style="display: none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
+      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid var(--border-color); border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
       <button class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
     </div>
 
@@ -197,52 +214,66 @@
   <script src="modules.js"></script>
   <script src="app.js"></script>
 
-  <!-- INLINE CONTROLLER OVERRIDE (บังคับปิด/เปิดตามสั่ง 100% ไม่ติดบั๊ก) -->
+  <!-- NATIVE WINDOW CONTROLLERS (จัดการปุ่มปิด/เปิดโดยตรง ไม่พึ่งพาคลาส CSS) -->
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // คุมปุ่มเปิด/ปิดหน้าต่างแชท
-      const fab = document.getElementById("duiiFab");
-      const chatWin = document.getElementById("duiiChatWindow");
-      const btnClose = document.getElementById("btnChatClose");
-      const btnToggleNote = document.getElementById("btnToggleNote");
-      const noteDrawer = document.getElementById("chatNoteDrawer");
-
-      if (fab && chatWin) {
-        fab.onclick = (e) => {
-          e.stopPropagation();
-          const isHidden = chatWin.style.display === "none";
-          chatWin.style.display = isHidden ? "flex" : "none";
-        };
+    // สลับเปิด-ปิดแชท
+    function toggleDuiiChat(e) {
+      if (e) e.stopPropagation();
+      const win = document.getElementById("duiiChatWindow");
+      if (!win) return;
+      const isHidden = (win.style.display === "none" || win.classList.contains("hidden"));
+      if (isHidden) {
+        win.style.setProperty("display", "flex", "important");
+        win.classList.remove("hidden");
+      } else {
+        win.style.setProperty("display", "none", "important");
+        win.classList.add("hidden");
       }
+    }
 
-      if (btnClose && chatWin) {
-        btnClose.onclick = (e) => {
-          e.stopPropagation();
-          chatWin.style.display = "none";
-        };
+    // ปิดหน้าต่างแชทด้วยปุ่ม ✖
+    function closeDuiiChat(e) {
+      if (e) e.stopPropagation();
+      const win = document.getElementById("duiiChatWindow");
+      if (win) {
+        win.style.setProperty("display", "none", "important");
+        win.classList.add("hidden");
       }
+    }
 
-      if (btnToggleNote && noteDrawer) {
-        btnToggleNote.onclick = (e) => {
-          e.stopPropagation();
-          const isHidden = noteDrawer.style.display === "none";
-          noteDrawer.style.display = isHidden ? "block" : "none";
-        };
+    // เปิด-ปิดสมุดโน้ต 📝
+    function toggleNoteDrawer(e) {
+      if (e) e.stopPropagation();
+      const drawer = document.getElementById("chatNoteDrawer");
+      if (drawer) {
+        drawer.style.display = (drawer.style.display === "none" || !drawer.style.display) ? "block" : "none";
       }
-    });
+    }
 
-    // คุมหน้าต่าง Editor Modal
-    window.closeEditorModal = function() {
+    // ควบคุมหน้าต่างแก้ไขโมดูล (Editor Modal)
+    function closeEditorModal() {
       const modal = document.getElementById("editorModal");
-      if (modal) modal.style.display = "none";
-    };
+      if (modal) {
+        modal.style.setProperty("display", "none", "important");
+        modal.classList.add("hidden");
+      }
+    }
 
-    const _origOpenModuleEditor = window.openModuleEditor;
-    window.openModuleEditor = function(id) {
-      if (typeof _origOpenModuleEditor === "function") _origOpenModuleEditor(id);
+    function openModuleEditor(moduleId) {
       const modal = document.getElementById("editorModal");
-      if (modal) modal.style.display = "flex";
-    };
+      const textarea = document.getElementById("editorTextarea");
+      const title = document.getElementById("editorTitle");
+      
+      const mod = (typeof activeModules !== "undefined") ? activeModules.find(m => m.id === moduleId) : null;
+      if (mod && textarea && title) {
+        title.textContent = `✏️ แก้ไขโค้ด: ${mod.name}`;
+        textarea.value = mod.codeSnippet || "";
+      }
+      if (modal) {
+        modal.style.setProperty("display", "flex", "important");
+        modal.classList.remove("hidden");
+      }
+    }
   </script>
 </body>
 </html>
