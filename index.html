@@ -8,12 +8,13 @@
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#0d1117">
   <style>
-    /* บังคับซ่อน Modal และจัดลำดับ Layer ให้ถูกต้องเด็ดขาด */
+    /* บังคับซ่อน Modal ป้องกันปัญหาเลเยอร์ลอยค้างบังหน้าจอ */
     #editorModal.hidden,
     #editorModal[style*="display: none"] {
       display: none !important;
     }
-    #duiiChatWindow.hidden {
+    #duiiChatWindow.hidden,
+    #duiiChatWindow[style*="display: none"] {
       display: none !important;
     }
     .fab-avatar-img {
@@ -21,6 +22,7 @@
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
+      display: block;
     }
   </style>
 </head>
@@ -35,15 +37,15 @@
 
     <!-- TOP NAVIGATION -->
     <nav class="nav-tabs">
-      <button class="nav-btn active" data-tab="tab-factory">📦 คลังโมดูล & ประกอบบอท</button>
-      <button class="nav-btn" data-tab="tab-harvest">💎 Harvest / แยกโค้ด</button>
-      <button class="nav-btn" data-tab="tab-doctor">🩺 Doctor / วินิจฉัย</button>
+      <button type="button" class="nav-btn active" data-tab="tab-factory">📦 คลังโมดูล & ประกอบบอท</button>
+      <button type="button" class="nav-btn" data-tab="tab-harvest">💎 Harvest / แยกโค้ด</button>
+      <button type="button" class="nav-btn" data-tab="tab-doctor">🩺 Doctor / วินิจฉัย</button>
     </nav>
 
     <!-- HEADER RIGHT ACTIONS -->
     <div style="display:flex; align-items:center; gap:8px;">
       <span class="badge-count" id="syncStatusText" style="font-size:0.75rem;">พร้อมทำงาน</span>
-      <button class="btn-preset btn-ecommerce" id="btnSyncDrive">🔄 ซิงก์คลัง Drive</button>
+      <button type="button" class="btn-preset btn-ecommerce" id="btnSyncDrive">🔄 ซิงก์คลัง Drive</button>
     </div>
   </header>
 
@@ -54,9 +56,9 @@
       <!-- COLUMN 1: CATALOG & PRESETS (320px) -->
       <section class="panel-col">
         <div class="preset-bar">
-          <button class="btn-preset btn-ecommerce" onclick="applyPreset('ecommerce')">🛒 E-Com</button>
-          <button class="btn-preset btn-nightlife" onclick="applyPreset('nightlife')">🍸 ผับบาร์</button>
-          <button class="btn-preset btn-godmode" onclick="applyPreset('godmode')">👑 God Mode</button>
+          <button type="button" class="btn-preset btn-ecommerce" onclick="applyPreset('ecommerce')">🛒 E-Com</button>
+          <button type="button" class="btn-preset btn-nightlife" onclick="applyPreset('nightlife')">🍸 ผับบาร์</button>
+          <button type="button" class="btn-preset btn-godmode" onclick="applyPreset('godmode')">👑 God Mode</button>
         </div>
 
         <div class="search-box">
@@ -77,7 +79,7 @@
       <section class="panel-col">
         <div class="panel-header">
           <span class="panel-title">รายละเอียดชิ้นส่วน</span>
-          <button class="btn-preset" id="btnEditModuleCode" style="background:#21262d; border:1px solid #30363d;" onclick="openModuleEditor(currentInspectingId)">✏️ แก้ไขโค้ด</button>
+          <button type="button" class="btn-preset" id="btnEditModuleCode" style="background:#21262d; border:1px solid #30363d;" onclick="openModuleEditor(currentInspectingId)">✏️ แก้ไขโค้ด</button>
         </div>
 
         <div class="inspector-body" id="inspectorBody">
@@ -85,29 +87,30 @@
         </div>
 
         <div class="inspector-footer">
-          <button class="btn-action success" id="btnToggleSelect">➕ เลือกโมดูลนี้เข้าบอท</button>
+          <button type="button" class="btn-action success" id="btnToggleSelect">➕ เลือกโมดูลนี้เข้าบอท</button>
         </div>
       </section>
 
       <!-- COLUMN 3: WORKSPACE & COMPILER OUTPUT -->
       <section class="panel-col workspace-container" style="border-right:none;">
         <div class="compile-control-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <!-- SERIAL ID BADGE -->
           <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-size:0.75rem; color:var(--text-muted);">🏷️ SERIAL:</span>
             <input type="text" id="botSerialDisplay" readonly value="DUII-PROD-AUTO" style="background:#010409; border:1px solid #30363d; color:var(--accent-cyan); font-family:monospace; font-size:0.75rem; padding:4px 8px; border-radius:4px; width:150px; font-weight:bold;">
           </div>
 
           <div style="display:flex; gap:6px;">
-            <button class="btn-preset btn-ecommerce compile-main-btn" style="padding:6px 14px; font-size:0.8rem;">🚀 ประกอบบอท 3 ไฟล์</button>
-            <button class="btn-preset btn-nightlife" id="btnDeployTarget" style="padding:6px 14px; font-size:0.8rem;">📡 ยิงไปปลายทาง (OTA)</button>
+            <button type="button" class="btn-preset btn-ecommerce compile-main-btn" style="padding:6px 14px; font-size:0.8rem;">🚀 ประกอบบอท 3 ไฟล์</button>
+            <button type="button" class="btn-preset btn-nightlife" id="btnDeployTarget" style="padding:6px 14px; font-size:0.8rem;">📡 ยิงไปปลายทาง (OTA)</button>
           </div>
         </div>
 
         <div class="workspace-tabs">
           <div style="display:flex; gap:6px;">
-            <button class="sub-tab-btn active" data-subtab="view-code">📄 รวมโค้ด 3 ไฟล์</button>
-            <button class="sub-tab-btn" data-subtab="view-readme">📖 คู่มือ (README)</button>
-            <button class="sub-tab-btn" data-subtab="view-props">🔑 Properties</button>
+            <button type="button" class="sub-tab-btn active" data-subtab="view-code">📄 รวมโค้ด 3 ไฟล์</button>
+            <button type="button" class="sub-tab-btn" data-subtab="view-readme">📖 คู่มือ (README)</button>
+            <button type="button" class="sub-tab-btn" data-subtab="view-props">🔑 Properties</button>
           </div>
           <span class="line-badge" id="lineCountBadge">LINES: 0 (ISO 9009)</span>
         </div>
@@ -115,8 +118,8 @@
         <div class="sub-view active" id="view-code" style="flex-direction:column; height:100%;">
           <textarea class="code-editor-area" id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท 3 ไฟล์' เพื่อผลิตโค้ดมาตรฐาน Trinity ISO 9009..."></textarea>
           <div style="display:flex; gap:8px; padding:8px 12px; background:#161b22; border-top:1px solid var(--border-color);">
-            <button class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
-            <button class="btn-action secondary" onclick="downloadAllIndividualGsFiles()">💾 ดาวน์โหลดแยก 3 ไฟล์ (.gs)</button>
+            <button type="button" class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
+            <button type="button" class="btn-action secondary" onclick="downloadAllIndividualGsFiles()">💾 ดาวน์โหลดแยก 3 ไฟล์ (.gs)</button>
           </div>
         </div>
 
@@ -137,7 +140,7 @@
     <div style="padding:20px; width:100%; height:100%; overflow-y:auto;">
       <h3>💎 Loot & Harvest Code Separator</h3>
       <textarea id="rawCodeInput" class="code-editor-area" style="height:250px; margin:10px 0; border:1px solid var(--border-color); border-radius:6px;" placeholder="วางโค้ด JavaScript / GAS ก้อนใหญ่ลงที่นี่..."></textarea>
-      <button class="btn-action success" style="width:200px;" onclick="analyzeAndExtractCode()">🔍 สแกนและสกัดฟังก์ชัน</button>
+      <button type="button" class="btn-action success" style="width:200px;" onclick="analyzeAndExtractCode()">🔍 สแกนและสกัดฟังก์ชัน</button>
       <div id="harvestResultList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
     </div>
   </main>
@@ -147,55 +150,56 @@
     <div style="padding:20px; width:100%; height:100%; overflow-y:auto;">
       <h3>🩺 ระบบตรวจวินิจฉัย Error Log อัตโนมัติ</h3>
       <textarea id="doctorLogInput" class="code-editor-area" style="height:200px; margin:10px 0; border:1px solid var(--border-color); border-radius:6px;" placeholder="วาง Error Log สีแดงลงที่นี่..."></textarea>
-      <button class="btn-action warning" style="width:200px;" onclick="runLogDiagnostics()">🧪 วินิจฉัยทันที</button>
+      <button type="button" class="btn-action warning" style="width:200px;" onclick="runLogDiagnostics()">🧪 วินิจฉัยทันที</button>
       <div id="doctorResult" style="display:none; margin-top:14px; padding:12px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px;"></div>
     </div>
   </main>
 
-  <!-- MODAL: CODE EDITOR (ซ่อนเป็น display: none ตั้งต้นเด็ดขาด) -->
+  <!-- MODAL: CODE EDITOR (ซ่อนตั้งต้นเด็ดขาด ไม่เกะกะบังหน้าจอ) -->
   <div id="editorModal" class="hidden" style="display: none !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:9999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
       <span id="editorTitle" style="color:#fff; font-weight:bold; font-size:0.85rem;">✏️ แก้ไขโค้ดโมดูล</span>
-      <button class="chat-close-btn" onclick="closeEditorModal()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px;">✖</button>
+      <button type="button" class="chat-close-btn" onclick="closeEditorModal()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px;">✖</button>
     </div>
     <div style="flex:1; padding:8px;">
       <textarea id="editorTextarea" class="code-editor-area" style="border:1px solid var(--border-color); border-radius:6px; height:100%; width:100%;"></textarea>
     </div>
     <div style="padding:10px; display:flex; gap:8px; justify-content:flex-end; background:#090d14; border-top:1px solid var(--border-color);">
-      <button class="btn-action secondary" onclick="closeEditorModal()" style="width:auto; padding:6px 14px;">ยกเลิก</button>
-      <button class="btn-action success" style="width:auto; padding:6px 16px;" onclick="saveEditorCode()">💾 บันทึก</button>
+      <button type="button" class="btn-action secondary" onclick="closeEditorModal()" style="width:auto; padding:6px 14px;">ยกเลิก</button>
+      <button type="button" class="btn-action success" style="width:auto; padding:6px 16px;" onclick="saveEditorCode()">💾 บันทึก</button>
     </div>
   </div>
 
-  <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png หรือไอคอน -->
+  <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย" onclick="toggleDuiiChat(event)">
-    <img src="avatar.png" class="fab-avatar-img" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
+    <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
     <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
-  <!-- DUII LIVE CHAT WINDOW -->
+  <!-- DUII LIVE CHAT WINDOW (ซ่อนตั้งต้นเด็ดขาด) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow" style="display: none !important;">
     <div class="chat-header">
-      <div class="chat-header-info">
-        <span style="font-size:18px;">⚡</span>
+      <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
+        <img src="avatar.png" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'">
         <div>
-          <div>ไอ้ดุ่ย Spark Command</div>
-          <div class="chat-status">● Gemini 3.x Flash Engine</div>
+          <div style="color:#fff; font-size:0.85rem; font-weight:bold;">ไอ้ดุ่ย Spark Command</div>
+          <div class="chat-status" style="font-size:0.68rem; color:#10b981;">● Gemini 3.x Flash Engine</div>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <button class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
-        <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
-        <!-- ปุ่มปิด ✖ บังคับเรียกฟังก์ชันปิดหน้าต่างโดยตรง -->
-        <button class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:20px; padding:0 6px;">✖</button>
+        <!-- ปุ่มเปิด/ปิดกระดาษโน้ต 📝 -->
+        <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
+        <button type="button" class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
+        <!-- ปุ่มปิด ✖ พร้อม Direct Event Handler ปิดหน้าต่างทันที -->
+        <button type="button" class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
       </div>
     </div>
 
     <!-- PINNED NOTE DRAWER (สมุดโน้ต) -->
     <div class="chat-note-drawer" id="chatNoteDrawer" style="display: none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
-      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid var(--border-color); border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
-      <button class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
+      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid #30363d; border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
+      <button type="button" class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
     </div>
 
     <div class="chat-body" id="chatBody">
@@ -206,7 +210,7 @@
 
     <div class="chat-footer">
       <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน เช่น 'ประกอบบอทผับบาร์'..." autocomplete="off">
-      <button class="btn-send" id="btnChatSend">ส่ง</button>
+      <button type="button" class="btn-send" id="btnChatSend">ส่ง</button>
     </div>
   </div>
 
@@ -214,11 +218,10 @@
   <script src="modules.js"></script>
   <script src="app.js"></script>
 
-  <!-- NATIVE WINDOW CONTROLLERS (จัดการปุ่มปิด/เปิดโดยตรง ไม่พึ่งพาคลาส CSS) -->
+  <!-- DIRECT ACTION HANDLERS (รับประกันปุ่มปิด ✖ และปุ่มเปิดใช้งานได้แน่นอน 100%) -->
   <script>
-    // สลับเปิด-ปิดแชท
     function toggleDuiiChat(e) {
-      if (e) e.stopPropagation();
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const win = document.getElementById("duiiChatWindow");
       if (!win) return;
       const isHidden = (win.style.display === "none" || win.classList.contains("hidden"));
@@ -231,9 +234,8 @@
       }
     }
 
-    // ปิดหน้าต่างแชทด้วยปุ่ม ✖
     function closeDuiiChat(e) {
-      if (e) e.stopPropagation();
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const win = document.getElementById("duiiChatWindow");
       if (win) {
         win.style.setProperty("display", "none", "important");
@@ -241,17 +243,16 @@
       }
     }
 
-    // เปิด-ปิดสมุดโน้ต 📝
     function toggleNoteDrawer(e) {
-      if (e) e.stopPropagation();
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const drawer = document.getElementById("chatNoteDrawer");
       if (drawer) {
         drawer.style.display = (drawer.style.display === "none" || !drawer.style.display) ? "block" : "none";
       }
     }
 
-    // ควบคุมหน้าต่างแก้ไขโมดูล (Editor Modal)
-    function closeEditorModal() {
+    function closeEditorModal(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const modal = document.getElementById("editorModal");
       if (modal) {
         modal.style.setProperty("display", "none", "important");
