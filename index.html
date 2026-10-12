@@ -73,7 +73,7 @@
         </div>
       </section>
 
-      <!-- COLUMN 3: WORKSPACE & COMPILER OUTPUT (Rest of width) -->
+      <!-- COLUMN 3: WORKSPACE & COMPILER OUTPUT -->
       <section class="panel-col workspace-container" style="border-right:none;">
         <div class="compile-control-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <!-- SERIAL ID BADGE -->
@@ -137,33 +137,48 @@
     </div>
   </main>
 
-  <!-- MODAL: CODE EDITOR -->
-  <div id="editorModal" class="duii-chat-window hidden" style="top:50%; left:50%; transform:translate(-50%, -50%); width:650px; height:500px; z-index:9999999;">
+  <!-- MODAL: CODE EDITOR (ซ่อนเป็น display:none ค่าเริ่มต้นเด็ดขาด) -->
+  <div id="editorModal" class="hidden" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
       <span id="editorTitle" style="color:#fff; font-weight:bold; font-size:0.85rem;">✏️ แก้ไขโค้ดโมดูล</span>
       <button class="chat-close-btn" onclick="closeEditorModal()">✖</button>
     </div>
     <div style="flex:1; padding:8px;">
-      <textarea id="editorTextarea" class="code-editor-area" style="border:1px solid var(--border-color); border-radius:6px;"></textarea>
+      <textarea id="editorTextarea" class="code-editor-area" style="border:1px solid var(--border-color); border-radius:6px; height:100%; width:100%;"></textarea>
     </div>
-    <div style="padding:10px; display:flex; gap:8px; justify-content:flex-end; background:#090d14;">
-      <button class="btn-action secondary" onclick="closeEditorModal()">ยกเลิก</button>
+    <div style="padding:10px; display:flex; gap:8px; justify-content:flex-end; background:#090d14; border-top:1px solid var(--border-color);">
+      <button class="btn-action secondary" onclick="closeEditorModal()" style="width:auto; padding:6px 14px;">ยกเลิก</button>
       <button class="btn-action success" style="width:auto; padding:6px 16px;" onclick="saveEditorCode()">💾 บันทึก</button>
     </div>
   </div>
 
-  <!-- FLOATING CHAT: DUII COPILOT -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">🤖</div>
+  <!-- FLOATING CHAT BUTTON (FAB) มีรูปไอคอนดุ่ยครบ -->
+  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
+    <span style="font-size:24px;">🤖</span>
+    <span class="fab-badge">LIVE</span>
+  </div>
 
-  <div class="duii-chat-window hidden" id="duiiChatWindow">
+  <!-- DUII LIVE CHAT WINDOW -->
+  <div class="duii-chat-window hidden" id="duiiChatWindow" style="display:none;">
     <div class="chat-header">
       <div class="chat-header-info">
-        <span>⚡ ไอ้ดุ่ย Spark Command</span>
+        <span style="font-size:18px;">⚡</span>
+        <div>
+          <div>ไอ้ดุ่ย Spark Command</div>
+          <div class="chat-status">● Gemini 3.x Flash Engine</div>
+        </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
+        <button class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" style="background:#21262d; color:#fff; border:1px solid #30363d;">📝</button>
         <button class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
-        <button class="chat-close-btn" id="btnChatClose">✖</button>
+        <button class="chat-close-btn" id="btnChatClose" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:0 4px;">✖</button>
       </div>
+    </div>
+
+    <!-- PINNED NOTE DRAWER -->
+    <div class="chat-note-drawer hidden" id="chatNoteDrawer" style="display:none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
+      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid var(--border-color); border-radius:4px; font-size:0.75rem; padding:6px;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
+      <button class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
     </div>
 
     <div class="chat-body" id="chatBody">
@@ -181,5 +196,53 @@
   <!-- SCRIPTS -->
   <script src="modules.js"></script>
   <script src="app.js"></script>
+
+  <!-- INLINE CONTROLLER OVERRIDE (บังคับปิด/เปิดตามสั่ง 100% ไม่ติดบั๊ก) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // คุมปุ่มเปิด/ปิดหน้าต่างแชท
+      const fab = document.getElementById("duiiFab");
+      const chatWin = document.getElementById("duiiChatWindow");
+      const btnClose = document.getElementById("btnChatClose");
+      const btnToggleNote = document.getElementById("btnToggleNote");
+      const noteDrawer = document.getElementById("chatNoteDrawer");
+
+      if (fab && chatWin) {
+        fab.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = chatWin.style.display === "none";
+          chatWin.style.display = isHidden ? "flex" : "none";
+        };
+      }
+
+      if (btnClose && chatWin) {
+        btnClose.onclick = (e) => {
+          e.stopPropagation();
+          chatWin.style.display = "none";
+        };
+      }
+
+      if (btnToggleNote && noteDrawer) {
+        btnToggleNote.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = noteDrawer.style.display === "none";
+          noteDrawer.style.display = isHidden ? "block" : "none";
+        };
+      }
+    });
+
+    // คุมหน้าต่าง Editor Modal
+    window.closeEditorModal = function() {
+      const modal = document.getElementById("editorModal");
+      if (modal) modal.style.display = "none";
+    };
+
+    const _origOpenModuleEditor = window.openModuleEditor;
+    window.openModuleEditor = function(id) {
+      if (typeof _origOpenModuleEditor === "function") _origOpenModuleEditor(id);
+      const modal = document.getElementById("editorModal");
+      if (modal) modal.style.display = "flex";
+    };
+  </script>
 </body>
 </html>
