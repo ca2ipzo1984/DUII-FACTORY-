@@ -1,5 +1,5 @@
 // sw.js - Service Worker for Offline Caching (ISO 9009 Compliant)
-const CACHE_NAME = 'duii-factory-v5.5.0-PROD';
+onst CACHE_NAME = 'duii-factory-v5.9.1-HOTFIX-REGISTRY';
 const ASSETS = [
   './index.html',
   './style.css',
