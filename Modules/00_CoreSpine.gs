@@ -1,14 +1,19 @@
-// TOTAL_LINES: AUTO
 /**
+ * ==============================================================================
  * SCRIPT NAME : 00_CoreSpine.gs
- * VERSION     : v5.5.0-PROD-GITHUB-SKILLS-CLOUD-ISO9009
- * DESCRIPTION : Central Webhook Ingestion, Vision Buffer, Failover, License Guard & Direct GitHub Skills Sync
+ * VERSION     : v5.0.0-NEVER-SILENT
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * PILLARS     : 1 (Zero-Leak), 2 (Trinity Separation), 3 (Gemini 3.x), 4 (Dual Memory), 5 (Self-Healing)
+ * ARCHITECTURE: Synchronous webhook -> reply (ไม่มีคิว) + Failover + Tool loop
+ * ใช้คู่กับ: 01_Modules_And_Tools.gs และโมดูล 01-12 เดิมได้เลย
+ * วิธีลง: เลือกทั้งไฟล์ 00_CoreSpine.gs เดิม -> ลบ -> วางไฟล์นี้ -> เซฟ -> Deploy เวอร์ชันใหม่
+ * ==============================================================================
  */
 
-var CORE_VERSION = 'v5.5.0-PROD-GITHUB-SKILLS-CLOUD-ISO9009';
+var CORE_VERSION = 'v5.0.0-NEVER-SILENT';
 
+// ==============================================================================
+// 1. CONFIG (ตั้งค่าใน Script Properties ทั้งหมด)
+// ==============================================================================
 function getProp_(key) {
   var v = PropertiesService.getScriptProperties().getProperty(key);
   return v ? String(v).trim() : '';
@@ -25,19 +30,16 @@ function getBoolProp_(key, def) {
   return /^(1|true|yes|on)$/i.test(v);
 }
 
-// Pillar 3: ลำดับโมเดล Gemini 3.x Flash/Lite บังคับใช้ (ห้าม 1.x และ 2.x เด็ดขาด)
+// โมเดลเริ่มต้น (ตัวไหนล่ม/ไม่มี จะข้ามไปตัวถัดไปเอง) ตั้งทับได้ด้วย property GEMINI_MODELS (คั่นจุลภาค)
 var DEFAULT_MODELS_ = [
-  'gemini-3.8-flash-lite',
+  'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash'
+  'gemini-3.1-flash-lite',
+  'gemini-3.8-flash'
 ];
 
 var CONFIG = {
   get LINE_CHANNEL_ACCESS_TOKEN() { return getProp_('LINE_CHANNEL_ACCESS_TOKEN'); },
-  get LINE_CHANNEL_SECRET() { return getProp_('LINE_CHANNEL_SECRET'); },
   get TARGET_USER_ID() { return getProp_('TARGET_USER_ID'); },
   get SPREADSHEET_ID() { return getProp_('SPREADSHEET_ID') || getProp_('ERROR_LOG_SPREADSHEET_ID'); },
   get ADMIN_GROUP_ID() { return getProp_('ADMIN_GROUP_ID'); },
@@ -55,47 +57,26 @@ var CONFIG = {
     return getProp_('SYSTEM_INSTRUCTION') || getProp_('BOT_CHARACTER') ||
       'มึงคือผู้ช่วย AI อัจฉริยะขาลุย ประจำการในระบบ DUII FACTORY มีไหวพริบระดับ ป.เอก 8 ใบ ตอบกระชับ ฉลาด ตรงไปตรงมา และพร้อมช่วยเหลือเสมอ';
   },
+  // all = ตอบทุกข้อความในกลุ่ม | mention = ตอบเฉพาะตอนโดนแท็ก/ตอบกลับบอท/เรียกชื่อ
   get GROUP_REPLY_MODE() { return getProp_('GROUP_REPLY_MODE').toLowerCase() === 'mention' ? 'mention' : 'all'; },
   get GROUP_IMAGE_REPLY() { return getBoolProp_('GROUP_IMAGE_REPLY', false); },
+  // true = ให้ระบบพักบอท (HumanHandoff) มีผลในกลุ่มด้วย ค่าเริ่มต้น: มีผลเฉพาะแชทส่วนตัว
   get HANDOFF_IN_GROUP() { return getBoolProp_('HANDOFF_IN_GROUP', false); },
   get BOT_NAMES() {
     var raw = getProp_('BOT_NAMES');
     return raw ? raw.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean) : [];
   },
-  get MAX_TOOL_ROUNDS() { return Math.max(1, Math.min(5, getNumProp_('MAX_TOOL_ROUNDS', 3))); },
-
-  // 🛡️ LICENSE GUARD CONFIGURATION
-  get CLIENT_ID() {
-    return getProp_('CLIENT_ID') || 'SHOP_DEFAULT';
-  },
-  get MASTER_LICENSE_SPREADSHEET_ID() {
-    return getProp_('MASTER_LICENSE_SPREADSHEET_ID') || '10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo';
-  },
-
-  // ☁️ GITHUB CLOUD-TO-CLOUD AUTO-SYNC CONFIGURATION
-  get GITHUB_SKILLS_REPO() {
-    return getProp_('GITHUB_SKILLS_REPO') || 'ca2ipzo1984/ai-skills-hub';
-  }
+  get MAX_TOOL_ROUNDS() { return Math.max(1, Math.min(5, getNumProp_('MAX_TOOL_ROUNDS', 3))); }
 };
 
 var LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
-var LINE_PUSH_URL  = 'https://api.line.me/v2/bot/message/push';
-var LINE_DATA_URL  = 'https://api-data.line.me/v2/bot/message';
-var CACHE_TTL_SECONDS = 21600;
+var LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
+var LINE_DATA_URL = 'https://api-data.line.me/v2/bot/message';
 
 var CURRENT_TARGET_ = '';
 var CURRENT_USER_ = '';
 var LAST_MODEL_ = '';
-var CARDS_SENT_ = 0;
-
-// Pillar 1: Secret-Stripping Sanitizer ก่อนบันทึกลง Log
-function sanitizeForLog_(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/AIza[0-9A-Za-z-_]{30,45}/g, '[REDACTED_API_KEY]')
-    .replace(/(Bearer\s+)[A-Za-z0-9\-_.]+/gi, '$1[REDACTED_TOKEN]')
-    .replace(/(x-goog-api-key['"]?\s*:\s*['"])[^'"]+/gi, '$1[REDACTED_KEY]');
-}
+var CARDS_SENT_ = 0;   // นับจำนวนการ์ด/ข้อความที่ไม่ใช่ text ที่ส่งออกไปจริง (กันโมดูลที่อ้างว่าส่งการ์ดแล้วแต่ไม่ได้ส่ง)
 
 function safeStringify_(obj) {
   try { return JSON.stringify(obj); } catch (e) { return String(obj); }
@@ -106,153 +87,29 @@ function okOut_() {
 }
 
 function isOwner_(userId) {
-  var owner = (CONFIG.TARGET_USER_ID || '').trim();
+  var owner = CONFIG.TARGET_USER_ID;
   return !!(owner && userId && userId === owner);
 }
 
-// Pillar 1: HMAC-SHA256 Signature Verification
-function verifyLineSignature_(contents, signature, channelSecret) {
-  if (!signature) return true;
-  if (!channelSecret) return true;
-  try {
-    var hash = Utilities.computeHmacSha256Signature(contents, channelSecret);
-    var calculated = Utilities.base64Encode(hash);
-    return calculated === signature;
-  } catch (e) {
-    console.error('[HMAC Error] ' + sanitizeForLog_(e.message));
-    return false;
-  }
-}
-
 // ==============================================================================
-// 🛡️ 2. LICENSE GUARD ENGINE (ระบบตรวจสอบสิทธิ์และตัดไฟอัตโนมัติ)
+// 2. WEBHOOK
 // ==============================================================================
-function isSubscriptionValid_(clientId) {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'sub_status_' + clientId;
-  var cached = cache.get(cacheKey);
-  if (cached !== null) {
-    return cached === 'ACTIVE';
-  }
-
-  var sheetId = CONFIG.MASTER_LICENSE_SPREADSHEET_ID;
-  if (!sheetId) return true;
-
-  try {
-    var ss = SpreadsheetApp.openById(sheetId);
-    var sheet = ss.getSheetByName('MASTER_CLIENT_LICENSES') || ss.getSheets()[0];
-    var data = sheet.getDataRange().getValues();
-    var isValid = false;
-    var now = new Date();
-
-    for (var i = 1; i < data.length; i++) {
-      var rowClientId = String(data[i][0] || '').trim();
-      if (rowClientId === clientId) {
-        var expireStr = data[i][4]; // คอลัมน์ Expire_Date (Index 4)
-        var status = String(data[i][5] || '').trim().toUpperCase(); // คอลัมน์ Status (Index 5)
-        
-        var expireDate = new Date(expireStr);
-        if (status === 'ACTIVE' && now.getTime() <= (expireDate.getTime() + 86400000)) {
-          isValid = true;
-        }
-        break;
-      }
-    }
-
-    cache.put(cacheKey, isValid ? 'ACTIVE' : 'EXPIRED', CACHE_TTL_SECONDS);
-    return isValid;
-  } catch (err) {
-    console.error('[License Guard Error]: ' + sanitizeForLog_(err.message || err));
-    return true;
-  }
-}
-
-// ==============================================================================
-// ☁️ 3. GITHUB CLOUD-TO-CLOUD AUTO-SYNC ENGINE (มองทะลุถึงกัน 100% ต้นทุน 0 บาท)
-// ==============================================================================
-function syncSkillsFromGitHubDirect() {
-  var repo = CONFIG.GITHUB_SKILLS_REPO;
-  var treeUrl = 'https://api.github.com/repos/' + repo + '/git/trees/main?recursive=1';
-  
-  try {
-    var res = UrlFetchApp.fetch(treeUrl, {
-      headers: { 'User-Agent': 'DUII-FACTORY-ISO9009' },
-      muteHttpExceptions: true
-    });
-    
-    var code = res.getResponseCode();
-    if (code !== 200) {
-      return { success: false, message: 'สแกน GitHub ไม่ผ่าน HTTP ' + code + ': ' + res.getContentText().substring(0, 150) };
-    }
-    
-    var treeData = JSON.parse(res.getContentText());
-    var mdFiles = (treeData.tree || []).filter(function(item) {
-      return item.type === 'blob' && item.path.endsWith('.md') && item.path.toLowerCase() !== 'readme.md';
-    });
-    
-    if (!mdFiles.length) {
-      return { success: false, message: 'ไม่พบไฟล์สกิล .md ในคลัง GitHub ' + repo };
-    }
-    
-    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName('AI_Memory') || ss.insertSheet('AI_Memory');
-    if (sheet.getLastRow() === 0) sheet.appendRow(['Timestamp', 'Type', 'Content', 'RecordedBy']);
-    
-    var count = 0;
-    var nowTime = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm:ss');
-    
-    for (var i = 0; i < mdFiles.length; i++) {
-      var filePath = mdFiles[i].path;
-      var rawUrl = 'https://raw.githubusercontent.com/' + repo + '/main/' + filePath;
-      try {
-        var fileRes = UrlFetchApp.fetch(rawUrl, { muteHttpExceptions: true });
-        if (fileRes.getResponseCode() === 200) {
-          var content = fileRes.getContentText();
-          var skillName = filePath.split('/').pop().replace(/\.md$/i, '');
-          sheet.appendRow([nowTime, 'GITHUB_SKILL', '[' + skillName + ']: ' + content.substring(0, 1200), 'GITHUB_CLOUD_SYNC']);
-          count++;
-        }
-      } catch (fe) {}
-    }
-    
-    // ล้าง Cache เพื่อให้บอทจำกฎใหม่ทันที
-    try { CacheService.getScriptCache().remove('mem_cache'); } catch (ce) {}
-    return { success: true, count: count, message: 'ซิงก์สำเร็จ ' + count + ' สกิลจาก ' + repo };
-  } catch (err) {
-    return { success: false, message: 'เกิดข้อผิดพลาด: ' + err.message };
-  }
-}
-
 function doGet(e) {
-  var action = (e && e.parameter && e.parameter.action) || '';
-  if (action === 'SYNC_SKILLS') {
-    var syncRes = syncSkillsFromGitHubDirect();
-    return ContentService.createTextOutput(JSON.stringify(syncRes)).setMimeType(ContentService.MimeType.JSON);
-  }
   return ContentService.createTextOutput('DUII FACTORY CORE ' + CORE_VERSION + ' ACTIVE').setMimeType(ContentService.MimeType.TEXT);
 }
 
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) return okOut_();
-    var rawContents = e.postData.contents;
-
-    var signature = (e.parameter && (e.parameter['x-line-signature'] || e.parameter['X-Line-Signature'])) || '';
-    if (CONFIG.LINE_CHANNEL_SECRET && signature) {
-      if (!verifyLineSignature_(rawContents, signature, CONFIG.LINE_CHANNEL_SECRET)) {
-        console.warn('[Security Warning] Invalid LINE HMAC Signature Rejected');
-        return ContentService.createTextOutput('UNAUTHORIZED').setMimeType(ContentService.MimeType.TEXT);
-      }
-    }
-
-    var data = JSON.parse(rawContents);
+    var data = JSON.parse(e.postData.contents);
     var events = data.events || [];
+    console.log('[DOPOST] ' + CORE_VERSION + ' events=' + events.length);
     for (var i = 0; i < events.length; i++) {
-      if (isDuplicateEvent_(events[i])) continue;
+      if (isDuplicateEvent_(events[i])) { console.log('[DEDUP] skip'); continue; }
       processEventSafe(events[i]);
     }
   } catch (err) {
-    console.error('[Webhook Error] ' + sanitizeForLog_(err.message || err));
+    console.error('[Webhook Error] ' + err);
   }
   return okOut_();
 }
@@ -278,16 +135,9 @@ function processEventSafe(event) {
     CURRENT_TARGET_ = src.groupId || src.roomId || userId;
 
     var ctx = { userId: userId, isGroup: isGroup, chatKey: chatKey };
-    if (event.type !== 'message' || !event.message) return;
+    console.log('[EVENT] src=' + src.type + ' type=' + event.type + ' msg=' + (event.message ? event.message.type : '-') + ' user=' + userId);
 
-    // 🛡️ LICENSE GUARD GATE: ตรวจสอบสถานะการชำระเงินก่อนเริ่มประมวลผล
-    if (!isSubscriptionValid_(CONFIG.CLIENT_ID)) {
-      var token = event.replyToken;
-      if (token) {
-        replyText_(token, '⚠️ ขออภัยครับ ระบบ AI ผู้ช่วยหมดอายุการใช้งานหรือถูกระงับสัญญาณชั่วคราว กรุณาติดต่อผู้ดูแลระบบเพื่อต่ออายุสัญญาการใช้งานครับ');
-      }
-      return;
-    }
+    if (event.type !== 'message' || !event.message) return;
 
     if (event.message.type === 'text') {
       handleTextMessage_(event, ctx);
@@ -295,23 +145,40 @@ function processEventSafe(event) {
       handleImageMessage_(event, ctx);
     }
   } catch (err) {
-    console.error('[Process Error] ' + sanitizeForLog_(err.message || err));
+    console.error('[Process Error] ' + err + ' ' + (err && err.stack ? err.stack : ''));
   }
 }
 
+// ==============================================================================
+// 3. MESSAGE HANDLERS
+// ==============================================================================
 function handleTextMessage_(event, ctx) {
   var text = String(event.message.text || '').trim();
   if (!text) return;
+
   if (handleCommands_(text, event, ctx)) return;
-  if (ctx.isGroup) pushGroupBuffer_(ctx.chatKey, 'U' + ctx.userId.slice(-4), text);
-  if (isHandoffPaused_(ctx)) return;
-  if (ctx.isGroup && !shouldReplyInGroup_(event, text)) return;
+
+  if (ctx.isGroup) {
+    pushGroupBuffer_(ctx.chatKey, 'U' + ctx.userId.slice(-4), text);
+  }
+
+  if (isHandoffPaused_(ctx)) {
+    console.log('[PAUSED] ผู้ใช้โดนพักบอท (ใช้ /resume ' + ctx.userId + ' ปลดล็อก): ' + ctx.userId);
+    return;
+  }
+
+  if (ctx.isGroup && !shouldReplyInGroup_(event, text)) {
+    console.log('[SKIP] โหมด mention และไม่ได้โดนเรียก');
+    return;
+  }
+
   answer_(text, event, ctx);
 }
 
 function handleImageMessage_(event, ctx) {
   if (ctx.isGroup && !CONFIG.GROUP_IMAGE_REPLY) return;
   if (isHandoffPaused_(ctx)) return;
+
   var token = event.replyToken;
 
   if (typeof SlipVerifier !== 'undefined' && typeof SlipVerifier.handle === 'function') {
@@ -319,7 +186,10 @@ function handleImageMessage_(event, ctx) {
   }
 
   var blob = getLineImageBinary_(event.message.id);
-  if (!blob) { replyText_(token, '❌ ดึงรูปจาก LINE ไม่ได้ครับ ลองส่งใหม่อีกที'); return; }
+  if (!blob) {
+    replyText_(token, '❌ ดึงรูปจาก LINE ไม่ได้ครับ ลองส่งใหม่อีกที');
+    return;
+  }
 
   try {
     var json = geminiRequest_({
@@ -339,19 +209,21 @@ function handleImageMessage_(event, ctx) {
     if (!out) throw new Error('GEMINI_BAD_RESPONSE:empty_text');
     sendReplyMessages(token, splitIntoLineMessages_(out));
   } catch (err) {
-    console.error('[Vision Error] ' + sanitizeForLog_(err.message || err));
+    console.error('[Vision Error] ' + err);
     notifyFailure_(token, ctx, err);
   }
 }
 
-// Pillar 4: Dual-Layer Memory Engine (คำสั่ง /จำ, /จารึก และ /ซิงก์สกิล)
+// ==============================================================================
+// 4. คำสั่งพิเศษ
+// ==============================================================================
 function handleCommands_(text, event, ctx) {
   var t = text.trim();
   var lower = t.toLowerCase();
   var token = event.replyToken;
 
   if (lower === '/myid' || t === '/เช็คไอดี') {
-    replyText_(token, '🆔 User ID ของคุณ:\n' + ctx.userId);
+    replyText_(token, '🆔 User ID ของมึง:\n' + ctx.userId);
     return true;
   }
   if (lower === '/groupid' || t === '/ไอดีกลุ่ม') {
@@ -362,9 +234,10 @@ function handleCommands_(text, event, ctx) {
     replyText_(token, runDiagnostics_(ctx));
     return true;
   }
+
   if (/^\/resume(\s|$)/i.test(t)) {
     if (!isOwner_(ctx.userId)) {
-      replyText_(token, '🔒 คำสั่งนี้ใช้ได้เฉพาะเจ้าของบอท');
+      replyText_(token, '🔒 คำสั่งนี้ใช้ได้เฉพาะเจ้าของบอท (ตั้ง TARGET_USER_ID ให้ตรงกับ /เช็คไอดี)');
       return true;
     }
     var target = t.replace(/^\/resume/i, '').trim() || ctx.userId;
@@ -372,43 +245,31 @@ function handleCommands_(text, event, ctx) {
     replyText_(token, resumed ? '▶️ ปลดล็อกพักบอทให้ ' + target + ' แล้ว' : 'ปลดล็อกไม่สำเร็จ');
     return true;
   }
+
   if (/^\/จารึก(\s|$)/.test(t)) {
-    if (!isOwner_(ctx.userId)) {
-      replyText_(token, '⛔ คำสั่ง /จารึก สงวนสิทธิ์เฉพาะ TARGET_USER_ID เท่านั้น');
-      return true;
-    }
     var directive = t.replace(/^\/จารึก/, '').trim();
-    if (!directive) { replyText_(token, 'ระบุกฎที่จะจารึกด้วย'); return true; }
+    if (!directive) { replyText_(token, 'ระบุกฎที่จะจารึกด้วย เช่น /จารึก ห้ามพูดคำหยาบกับลูกค้า'); return true; }
     var r1 = saveDualMemoryToSheet('CORE_DIRECTIVE', directive, ctx.userId);
     replyText_(token, r1.success ? '📜 [จารึกสำเร็จ]: ' + directive : r1.message);
     return true;
   }
+
   if (/^\/จำ(\s|$)/.test(t)) {
     var fact = t.replace(/^\/จำ/, '').trim();
-    if (!fact) { replyText_(token, 'ระบุสิ่งที่จะให้จำด้วย'); return true; }
+    if (!fact) { replyText_(token, 'ระบุสิ่งที่จะให้จำด้วย เช่น /จำ นัดวิ่งทริปเสาร์นี้'); return true; }
     var r2 = saveDualMemoryToSheet('DYNAMIC_FACT', fact, ctx.userId);
     replyText_(token, r2.success ? '📝 [จำสำเร็จ]: ' + fact : r2.message);
     return true;
   }
-  // ☁️ คำสั่งซิงก์สกิล Cloud-to-Cloud ตรงจาก GitHub
-  if (lower === '/ซิงก์สกิล' || lower === '/syncskills') {
-    if (!isOwner_(ctx.userId)) {
-      replyText_(token, '⛔ คำสั่งซิงก์สกิลสงวนสิทธิ์เฉพาะเจ้าของบอท');
-      return true;
-    }
-    replyText_(token, '⏳ กำลังยิงทะลุไปดูดสกิลจาก GitHub (' + CONFIG.GITHUB_SKILLS_REPO + ') สักครู่...');
-    var sRes = syncSkillsFromGitHubDirect();
-    pushLineMessage(ctx.chatKey, sRes.success ? ('✅ [GitHub Cloud Sync สำเร็จ]:\n' + sRes.message) : ('❌ [Sync Error]: ' + sRes.message));
-    return true;
-  }
+
   return false;
 }
 
 function saveDualMemoryToSheet(type, content, senderUserId) {
-  var lock = (typeof LockService !== 'undefined' && LockService.getScriptLock) ? LockService.getScriptLock() : null;
-  var hasLock = false;
+  if (!isOwner_(senderUserId)) {
+    return { success: false, message: '⛔ สงวนสิทธิ์เฉพาะ TARGET_USER_ID เท่านั้น (พิมพ์ /เช็คไอดี แล้วเอาไปตั้งใน Script Properties)' };
+  }
   try {
-    if (lock) hasLock = lock.tryLock(15000);
     if (!CONFIG.SPREADSHEET_ID) return { success: false, message: '⚠️ ยังไม่ได้ตั้ง SPREADSHEET_ID' };
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sheet = ss.getSheetByName('AI_Memory') || ss.insertSheet('AI_Memory');
@@ -418,8 +279,6 @@ function saveDualMemoryToSheet(type, content, senderUserId) {
     return { success: true };
   } catch (e) {
     return { success: false, message: '⚠️ บันทึกชีตไม่สำเร็จ: ' + e.message };
-  } finally {
-    if (lock && hasLock) { try { lock.releaseLock(); } catch (e3) {} }
   }
 }
 
@@ -433,17 +292,14 @@ function fetchMemories_() {
     var result = '';
     if (sheet && sheet.getLastRow() > 1) {
       var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
-      var core = [], skills = [], facts = [];
+      var core = [], facts = [];
       for (var i = 0; i < data.length; i++) {
-        var content = String(data[i][2] || '').substring(0, 1500);
+        var content = String(data[i][2] || '').substring(0, 500);
         if (!content) continue;
-        var type = String(data[i][1]);
-        var line = '[' + type + ']: ' + content;
-        if (type === 'CORE_DIRECTIVE') core.push(line);
-        else if (type === 'GITHUB_SKILL') skills.push(line);
-        else facts.push(line);
+        var line = '[' + data[i][1] + ']: ' + content;
+        if (String(data[i][1]) === 'CORE_DIRECTIVE') core.push(line); else facts.push(line);
       }
-      result = core.slice(-40).concat(skills.slice(-40)).concat(facts.slice(-20)).join('\n');
+      result = core.slice(-60).concat(facts.slice(-40)).join('\n');
     }
     try { cache.put('mem_cache', result.substring(0, 90000), 300); } catch (e2) {}
     return result;
@@ -452,9 +308,12 @@ function fetchMemories_() {
   }
 }
 
+// ==============================================================================
+// 5. ตัดสินใจว่าจะตอบไหม + พักบอท
+// ==============================================================================
 function isHandoffPaused_(ctx) {
-  if (!ctx.userId || isOwner_(ctx.userId)) return false;
-  if (ctx.isGroup && !CONFIG.HANDOFF_IN_GROUP) return false;
+  if (!ctx.userId || isOwner_(ctx.userId)) return false;            // เจ้าของไม่โดนพักเด็ดขาด
+  if (ctx.isGroup && !CONFIG.HANDOFF_IN_GROUP) return false;        // ในกลุ่มไม่พัก (ค่าเริ่มต้น)
   return (typeof HumanHandoff !== 'undefined' && typeof HumanHandoff.isPaused === 'function') ? !!HumanHandoff.isPaused(ctx.userId) : false;
 }
 
@@ -487,12 +346,17 @@ function isNameCalled_(text) {
   return false;
 }
 
+// ==============================================================================
+// 6. สมองหลัก: คุยกับ Gemini (วนเรียกเครื่องมือได้หลายรอบ)
+// ==============================================================================
 function answer_(text, event, ctx) {
   var token = event.replyToken;
+
   if (!CONFIG.GEMINI_API_KEYS.length) {
     replyText_(token, '⚠️ ยังไม่ได้ตั้ง GEMINI_API_KEY_1 ใน Script Properties');
     return;
   }
+
   var histKey = 'hist_' + ctx.chatKey + '_' + ctx.userId;
   var history = getHistory_(histKey);
   var groupContext = '';
@@ -503,33 +367,40 @@ function answer_(text, event, ctx) {
 
   try {
     var r = runGeminiConversation_(text, buildSystemInstruction_(ctx, groupContext), history);
-    if (r.delivered) return;
+    if (r.delivered) { console.log('[DELIVERED] เครื่องมือส่งการ์ดเองแล้ว'); return; }
+
     var out = r.text;
-    if (/^NO_REPLY$/i.test(out)) return;
+    if (/^NO_REPLY$/i.test(out)) { console.log('[NO_REPLY] โมเดลเลือกเงียบ'); return; }
 
     appendHistory_(histKey, 'user', text);
     appendHistory_(histKey, 'model', out);
     if (ctx.isGroup) pushGroupBuffer_(ctx.chatKey, 'บอท', out);
 
-    sendReplyMessages(token, splitIntoLineMessages_(out));
+    var ok = sendReplyMessages(token, splitIntoLineMessages_(out));
+    console.log('[REPLY] model=' + LAST_MODEL_ + ' sent=' + ok + ' len=' + out.length);
   } catch (err) {
-    console.error('[Pipeline Error] ' + sanitizeForLog_(err.message || err));
+    console.error('[Pipeline Error] ' + err);
     notifyFailure_(token, ctx, err);
   }
 }
 
 function buildSystemInstruction_(ctx, groupContext) {
   var parts = [CONFIG.SYSTEM_INSTRUCTION];
+
   var mem = fetchMemories_();
-  if (mem) parts.push('[MEMORIES, DIRECTIVES & GITHUB SKILLS]:\n' + mem);
+  if (mem) parts.push('[MEMORIES & DIRECTIVES]:\n' + mem);
+
   parts.push(
     '[TOOL RULES]:\n' +
-    '- ใช้เครื่องมือเมื่อผู้ใช้ขอให้ทำสิ่งนั้นจริงๆ เท่านั้น ถ้าไม่ต้องใช้ ให้ตอบเป็นข้อความธรรมดาทันที'
+    '- ใช้เครื่องมือเมื่อผู้ใช้ขอให้ทำสิ่งนั้นจริงๆ เท่านั้น ถ้าไม่ต้องใช้ ให้ตอบเป็นข้อความธรรมดาทันที\n' +
+    '- ห้ามเรียก request_human_agent เพราะผู้ใช้แค่พูดหยาบ ด่าเล่น หรือแซวกัน เรียกเฉพาะตอนผู้ใช้ขอคุยกับแอดมิน/เจ้าหน้าที่คนจริงๆ หรือโกรธจริงจัง'
   );
+
   if (ctx.isGroup) {
-    parts.push('[แชทกลุ่ม]: ตอบข้อความล่าสุดให้ตรงประเด็น กระชับ');
-    if (groupContext) parts.push('[บริบทแชทกลุ่มล่าสุด]:\n' + groupContext);
+    parts.push('[แชทกลุ่ม]: ตอบข้อความล่าสุดให้ตรงประเด็น กระชับ ตามน้ำเสียงที่ตั้งไว้');
+    if (groupContext) parts.push('[บริบทแชทกลุ่มล่าสุด (U#### = สมาชิกแต่ละคน)]:\n' + groupContext);
   }
+
   parts.push('[เวลาปัจจุบัน Asia/Bangkok]: ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'));
   return parts.join('\n\n');
 }
@@ -548,8 +419,9 @@ function isKnownTool_(name) {
 
 function runTool_(fc, toolCache) {
   var name = fc && fc.name;
-  var args = (fc && fc.args && typeof fc.args === 'object') ? fc.args : {};
+  var args = (fc && fc.args && typeof fc.args === "object") ? fc.args : {};
   if (!isKnownTool_(name)) return { error: 'unknown_tool', message: 'ไม่มีเครื่องมือชื่อนี้' };
+
   var key = name + ':' + safeStringify_(args);
   if (toolCache[key]) return toolCache[key];
 
@@ -560,6 +432,7 @@ function runTool_(fc, toolCache) {
       res = { result: res === undefined ? null : res };
     }
   } catch (err) {
+    console.error('[TOOL FAIL] ' + name + ' ' + err);
     res = { error: 'tool_failed', message: 'เครื่องมือทำงานไม่สำเร็จ' };
   }
   toolCache[key] = res;
@@ -591,6 +464,7 @@ function runGeminiConversation_(prompt, systemText, history) {
       json = geminiRequest_(payload);
     } catch (e1) {
       if (allowTools && /HTTP 400/.test(String(e1))) {
+        console.error('[TOOLS 400] ลองใหม่แบบไม่ใช้เครื่องมือ: ' + e1);
         toolsOn = false;
         delete payload.tools;
         json = geminiRequest_(payload);
@@ -602,6 +476,7 @@ function runGeminiConversation_(prompt, systemText, history) {
     var ex = extractModelContent_(json);
     if (ex.error) {
       if (allowTools && ex.error.indexOf('blocked') !== 0) {
+        console.error('[EMPTY] ' + ex.error + ' ลองใหม่แบบไม่ใช้เครื่องมือ');
         toolsOn = false;
         delete payload.tools;
         json = geminiRequest_(payload);
@@ -611,6 +486,7 @@ function runGeminiConversation_(prompt, systemText, history) {
     }
 
     var calls = ex.parts.filter(function (p) { return p && p.functionCall; });
+
     if (!calls.length) {
       var text = joinText_(ex.parts);
       if (!text) throw new Error('GEMINI_BAD_RESPONSE:empty_text finish=' + ex.finishReason);
@@ -618,6 +494,7 @@ function runGeminiConversation_(prompt, systemText, history) {
     }
 
     if (!allowTools) throw new Error('GEMINI_BAD_RESPONSE:tool_loop_limit');
+
     contents.push({ role: 'model', parts: ex.parts });
 
     var cardsBefore = CARDS_SENT_;
@@ -636,7 +513,11 @@ function runGeminiConversation_(prompt, systemText, history) {
 }
 
 function joinText_(parts) {
-  return (parts || []).filter(function (p) { return p && typeof p.text === 'string' && !p.thought; }).map(function (p) { return p.text; }).join('').trim();
+  return (parts || [])
+    .filter(function (p) { return p && typeof p.text === 'string' && !p.thought; })
+    .map(function (p) { return p.text; })
+    .join('')
+    .trim();
 }
 
 function extractModelContent_(json) {
@@ -645,11 +526,15 @@ function extractModelContent_(json) {
   var cand = json.candidates && json.candidates[0];
   if (!cand) return { error: 'no_candidates' };
   var parts = cand.content && cand.content.parts;
-  if (!parts || !parts.length) return { error: (cand.finishReason === 'SAFETY' ? 'blocked:' : 'no_parts:') + (cand.finishReason || '') };
+  if (!parts || !parts.length) {
+    return { error: (cand.finishReason === 'SAFETY' ? 'blocked:' : 'no_parts:') + (cand.finishReason || '') };
+  }
   return { parts: parts, finishReason: cand.finishReason };
 }
 
-// Pillar 3: Sovereign Gemini 3.x Protocol (x-goog-api-key & Key Pool with Backoff)
+// ==============================================================================
+// 7. GEMINI FAILOVER (หลายคีย์ x หลายโมเดล + จำตัวที่ล่มไว้ชั่วคราว)
+// ==============================================================================
 function geminiRequest_(payload) {
   var keys = CONFIG.GEMINI_API_KEYS;
   if (!keys.length) throw new Error('NO_API_KEY');
@@ -679,13 +564,7 @@ function geminiRequest_(payload) {
     try {
       var res = UrlFetchApp.fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/' + c.model + ':generateContent',
-        {
-          method: 'post',
-          contentType: 'application/json',
-          headers: { 'x-goog-api-key': String(c.key).replace(/[\r\n\s]/g, '') },
-          payload: body,
-          muteHttpExceptions: true
-        }
+        { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': c.key }, payload: body, muteHttpExceptions: true }
       );
       var code = res.getResponseCode();
       var txt = res.getContentText();
@@ -704,6 +583,7 @@ function geminiRequest_(payload) {
       var msg = '';
       try { msg = (JSON.parse(txt).error || {}).message || ''; } catch (x) { msg = String(txt).substring(0, 200); }
       lastError = 'HTTP ' + code + ' [' + c.model + ' key' + (c.ki + 1) + '] ' + msg.substring(0, 160);
+      console.error('[GEMINI FAIL] ' + lastError);
 
       if (code === 429 || code === 500 || code === 502 || code === 503 || code === 504) {
         cache.put(c.id, String(code), 60);
@@ -717,12 +597,20 @@ function geminiRequest_(payload) {
     } catch (fe) {
       if (/^HTTP 400/.test(String(fe.message))) throw fe;
       lastError = 'fetch error [' + c.model + '] ' + fe.message;
+      console.error('[GEMINI EXC] ' + lastError);
     }
   }
 
   throw new Error('GEMINI_ALL_FAILED: ' + lastError);
 }
 
+function callGeminiWithFailover(payload) {
+  return geminiRequest_(payload);
+}
+
+// ==============================================================================
+// 8. ประวัติคุย / บริบทกลุ่ม (CacheService)
+// ==============================================================================
 function getHistory_(key) {
   var raw = CacheService.getScriptCache().get(key);
   if (raw) { try { return JSON.parse(raw); } catch (e) {} }
@@ -736,7 +624,9 @@ function appendHistory_(key, role, text) {
     if (h.length > 10) h = h.slice(h.length - 10);
     while (JSON.stringify(h).length > 80000 && h.length > 2) h.shift();
     CacheService.getScriptCache().put(key, JSON.stringify(h), 21600);
-  } catch (e) {}
+  } catch (e) {
+    console.error('[HISTORY] ' + e);
+  }
 }
 
 function getGroupBuffer_(groupKey) {
@@ -753,7 +643,9 @@ function pushGroupBuffer_(groupKey, label, text) {
     buf.push({ u: label, t: String(text || '').substring(0, 200) });
     if (buf.length > 20) buf = buf.slice(buf.length - 20);
     CacheService.getScriptCache().put('gbuf_' + groupKey, JSON.stringify(buf), 21600);
-  } catch (e) {}
+  } catch (e) {
+    console.error('[GBUF] ' + e);
+  }
 }
 
 function formatGroupBuffer_(buf) {
@@ -761,6 +653,9 @@ function formatGroupBuffer_(buf) {
   return buf.map(function (b) { return b.u + ': ' + b.t; }).join('\n');
 }
 
+// ==============================================================================
+// 9. ส่งข้อความกลับ LINE (reply -> ล้มแล้ว push ต่อ + log ทุกครั้งที่พัง)
+// ==============================================================================
 function lineFetch_(url, payload) {
   try {
     var res = UrlFetchApp.fetch(url, {
@@ -830,23 +725,37 @@ function countCards_(msgs) {
 function sendReplyMessages(replyToken, messages) {
   var msgs = prepareLineMessages_(messages);
   if (!msgs.length) return false;
-  if (!CONFIG.LINE_CHANNEL_ACCESS_TOKEN) return false;
+  if (!CONFIG.LINE_CHANNEL_ACCESS_TOKEN) {
+    console.error('[LINE] ไม่มี LINE_CHANNEL_ACCESS_TOKEN ใน Script Properties');
+    return false;
+  }
+
   var needPush = !replyToken;
 
   if (replyToken) {
     var r = lineFetch_(LINE_REPLY_URL, { replyToken: replyToken, messages: msgs });
     if (r.code === 200) { rememberSentMessages_(r.json); countCards_(msgs); return true; }
+    console.error('[LINE REPLY FAIL] ' + r.code + ' ' + String(r.body).substring(0, 300));
     needPush = true;
   }
+
   if (needPush && CURRENT_TARGET_) {
     var p = lineFetch_(LINE_PUSH_URL, { to: CURRENT_TARGET_, messages: msgs });
     if (p.code === 200) { rememberSentMessages_(p.json); countCards_(msgs); return true; }
+    console.error('[LINE PUSH FAIL] ' + p.code + ' ' + String(p.body).substring(0, 300));
   }
   return false;
 }
 
 function replyText_(replyToken, text) {
   return sendReplyMessages(replyToken, [{ type: 'text', text: text }]);
+}
+
+function pushLineMessage(toId, text) {
+  var msgs = prepareLineMessages_([{ type: 'text', text: text }]);
+  var r = lineFetch_(LINE_PUSH_URL, { to: toId, messages: msgs });
+  if (r.code !== 200) console.error('[LINE PUSH FAIL] ' + r.code + ' ' + String(r.body).substring(0, 300));
+  return r.code === 200;
 }
 
 function getLineImageBinary_(messageId) {
@@ -870,6 +779,7 @@ function notifyFailure_(replyToken, ctx, err) {
   else friendly = '⚠️ ระบบ AI ขัดข้องชั่วคราว ลองใหม่อีกทีนะ';
 
   if (isOwner_(ctx.userId)) friendly += '\n\n[debug] ' + m.substring(0, 300);
+
   if (ctx.isGroup) {
     var cache = CacheService.getScriptCache();
     var k = 'errcd_' + ctx.chatKey;
@@ -879,16 +789,50 @@ function notifyFailure_(replyToken, ctx, err) {
   replyText_(replyToken, friendly);
 }
 
+// ==============================================================================
+// 10. ตรวจระบบ (/เช็คระบบ) ใช้ดูสถานะจากมือถือได้เลย
+// ==============================================================================
 function runDiagnostics_(ctx) {
   var r = [];
   r.push('🛠 DUII CORE ' + CORE_VERSION);
   r.push('💬 ห้องนี้: ' + (ctx.isGroup ? 'กลุ่ม' : 'ส่วนตัว'));
   r.push('🔑 Gemini keys: ' + CONFIG.GEMINI_API_KEYS.length);
   r.push('🤖 models: ' + CONFIG.GEMINI_MODELS.join(', '));
-  r.push('👤 TARGET_USER_ID: ' + (CONFIG.TARGET_USER_ID ? 'ตั้งแล้ว' : 'ยังไม่ตั้ง'));
-  r.push('🏷️ CLIENT_ID: ' + CONFIG.CLIENT_ID);
-  r.push('🛡️ LICENSE_STATUS: ' + (isSubscriptionValid_(CONFIG.CLIENT_ID) ? 'ACTIVE' : 'EXPIRED/SUSPENDED'));
-  r.push('☁️ GITHUB_REPO: ' + CONFIG.GITHUB_SKILLS_REPO);
+  r.push('👥 โหมดกลุ่ม: ' + CONFIG.GROUP_REPLY_MODE + ' | รูปในกลุ่ม: ' + (CONFIG.GROUP_IMAGE_REPLY ? 'on' : 'off'));
+  r.push('👤 TARGET_USER_ID: ' + (CONFIG.TARGET_USER_ID ? 'ตั้งแล้ว' : 'ยังไม่ตั้ง') + (isOwner_(ctx.userId) ? ' (มึงคือเจ้าของ)' : ''));
   r.push('🧰 เครื่องมือ: ' + (hasTools_() ? GEMINI_TOOLS_SCHEMA.length + ' ตัว' : 'ไม่มี'));
+
+  var paused = false;
+  try { paused = (typeof HumanHandoff !== 'undefined') && HumanHandoff.isPaused(ctx.userId); } catch (e) {}
+  r.push('⏸ ไอดีมึงโดนพักบอท: ' + (paused ? 'ใช่ (เจ้าของ/กลุ่มไม่โดนบล็อก)' : 'ไม่'));
+
+  try {
+    if (CONFIG.SPREADSHEET_ID) { SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID); r.push('📄 Sheet: เชื่อมต่อได้'); }
+    else r.push('📄 Sheet: ยังไม่ตั้ง SPREADSHEET_ID');
+  } catch (e2) {
+    r.push('📄 Sheet error: ' + e2.message);
+  }
+
+  var t0 = Date.now();
+  try {
+    geminiRequest_({
+      contents: [{ role: 'user', parts: [{ text: 'ตอบแค่คำว่า OK' }] }],
+      generationConfig: { maxOutputTokens: 256 }
+    });
+    r.push('✅ ยิง Gemini ผ่าน: ' + LAST_MODEL_ + ' (' + (Date.now() - t0) + ' ms)');
+  } catch (e3) {
+    r.push('❌ ยิง Gemini ไม่ผ่าน: ' + String(e3.message).substring(0, 250));
+  }
   return r.join('\n');
 }
+
+function testGemini() {
+  var json = geminiRequest_({
+    contents: [{ role: 'user', parts: [{ text: 'ทักทายสั้นๆ 1 ประโยค' }] }],
+    generationConfig: { maxOutputTokens: 512 }
+  });
+  var ex = extractModelContent_(json);
+  console.log('model=' + LAST_MODEL_ + ' | ' + (ex.error || joinText_(ex.parts)));
+}
+
+// END OF FILE : 00_CoreSpine.gs
