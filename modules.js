@@ -933,7 +933,7 @@ function debugLiveWebhook() {
     name: "02_FlexEngine (Card Generator)",
     category: "UI & Presentation",
     commands: ["Flex Cards", "Receipt", "Ticket", "Order Card"],
-    description: "สร้าง LINE Flex Message อัตโนมัติ: บิล, บัตรคิว, ตั๋ว QR Code และผลตรวจสลิป ปลอดภัย 100%",
+    description: "สร้าง LINE Flex Message อัตโนมัติ: บิล, บัตรคิว, ตั๋ว QR Code และผลตรวจสลิป ปลอดภัยสูงสุด",
     properties: [],
     setupGuide: "### 🎨 02_FlexEngine.gs\nตัวเรนเดอร์ Flex Message ส่วนกลางของทุกโมดูล",
     functionDeclaration: null,
