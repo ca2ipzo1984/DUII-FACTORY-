@@ -876,7 +876,7 @@ function initDuiiChatCopilot() {
 2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
 3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
 4. ทะเบียนสัมปทานลิขสิทธิ์: MASTER_CLIENT_LICENSES (ID: ${MASTER_LICENSE_SPREADSHEET_ID})
-5. การส่งโค้ดซ่อม: ห้ามพ่นทั้งไฟล์ถ้าไม่จำเป็น ให้ส่งเฉพาะบล็อกฟังก์ชันที่แก้ หรือถ้าส่งทั้งไฟล์ต้องมั่นใจว่าโค้ดพิมพ์จบสมบูรณ์จนถึง // END OF FILE ห้ามตัดจบกลางอากาศเด็ดขาด`;
+5. การส่งโค้ดซ่อม: ห้ามพ่นทั้งไฟล์ถ้าไม่จำเป็น ให้ส่งเฉพาะบล็อกฟังก์ชันที่แก้ หรือถ้าส่งทั้งไฟล์ต้องมั่นใจว่าโค้ดพิมพ์จบสมบูรณ์จนถึง // END OF FILE ห้ามตัดจบกลางอากาศเด็ดขาด;
 
 [พรีเซ็ตสายพานผลิตมาตรฐาน]
 1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
