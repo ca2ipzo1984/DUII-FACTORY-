@@ -364,9 +364,10 @@ window.compileAutonomousBot = function() {
     assignedSerial = existingSerialMatch[1]; // โหมดซ่อมโค้ด: คงรหัสเดิม
   } else {
     // โหมดสร้างบอทใหม่: สุ่มรหัสใหม่
-    const today = new Date().toISOString().slice(2, 10).replace(/-/g, "");
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    assignedSerial = `DUII-${today}-${rand}`;
+   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
+const coreFileName = currentBotSerialId ? `00_CoreSpine_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
+// เดิมจะเซฟออกมาเป็น: 00_CoreSpine_DUII-261013-8842.gs//
+    assignedSerial = `${today}-${rand}`;
     rawCore = rawCore.replace(
       /get CLIENT_ID\(\)\s*\{[^}]*\}/,
       `get CLIENT_ID() { return getProp_('CLIENT_ID') || '${assignedSerial}'; }`
@@ -454,7 +455,7 @@ window.downloadAllIndividualGsFiles = function() {
   }
 
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  const coreFileName = currentBotSerialId ? `00_CoreSpine_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
+  const coreFileName = currentBotSerialId ? `00_Core_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
   if (coreMod) downloadTextFile(coreFileName, file1CoreContent || coreMod.codeSnippet);
 
   const testMod = activeModules.find(m => m.id === "99_TestRunner");
