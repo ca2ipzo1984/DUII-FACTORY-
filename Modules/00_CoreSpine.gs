@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * SCRIPT NAME : 00_CoreSpine.gs
- * VERSION     : v5.0.0-NEVER-SILENT
+ * VERSION     : v5.0.0-NEVER-SILENT-METANATIVE
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
  * ARCHITECTURE: Synchronous webhook -> reply (ไม่มีคิว) + Failover + Tool loop
  * ใช้คู่กับ: 01_Modules_And_Tools.gs และโมดูล 01-12 เดิมได้เลย
@@ -9,7 +9,7 @@
  * ==============================================================================
  */
 
-var CORE_VERSION = 'v5.0.0-NEVER-SILENT';
+var CORE_VERSION = 'v5.0.0-NEVER-SILENT-METANATIVE';
 
 // ==============================================================================
 // 1. CONFIG (ตั้งค่าใน Script Properties ทั้งหมด)
@@ -70,13 +70,13 @@ var CONFIG = {
 };
 
 var LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
-var LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
-var LINE_DATA_URL = 'https://api-data.line.me/v2/bot/message';
+var LINE_PUSH_URL  = 'https://api.line.me/v2/bot/message/push';
+var LINE_DATA_URL  = 'https://api-data.line.me/v2/bot/message';
 
 var CURRENT_TARGET_ = '';
-var CURRENT_USER_ = '';
-var LAST_MODEL_ = '';
-var CARDS_SENT_ = 0;   // นับจำนวนการ์ด/ข้อความที่ไม่ใช่ text ที่ส่งออกไปจริง (กันโมดูลที่อ้างว่าส่งการ์ดแล้วแต่ไม่ได้ส่ง)
+var CURRENT_USER_   = '';
+var LAST_MODEL_     = '';
+var CARDS_SENT_     = 0;   // นับจำนวนการ์ด/ข้อความที่ไม่ใช่ text ที่ส่งออกไปจริง (กันโมดูลที่อ้างว่าส่งการ์ดแล้วแต่ไม่ได้ส่ง)
 
 function safeStringify_(obj) {
   try { return JSON.stringify(obj); } catch (e) { return String(obj); }
@@ -386,14 +386,18 @@ function answer_(text, event, ctx) {
 
 function buildSystemInstruction_(ctx, groupContext) {
   var parts = [CONFIG.SYSTEM_INSTRUCTION];
-
+  
   var mem = fetchMemories_();
   if (mem) parts.push('[MEMORIES & DIRECTIVES]:\n' + mem);
+
+  // 🔥 [ตอกสลักใหม่]: บังคับฉีดจิตสำนึกรู้ขอบเขตตัวเอง (Capability Manifest)
+  var manifest = buildCapabilityManifest_();
+  if (manifest) parts.push(manifest);
 
   parts.push(
     '[TOOL RULES]:\n' +
     '- ใช้เครื่องมือเมื่อผู้ใช้ขอให้ทำสิ่งนั้นจริงๆ เท่านั้น ถ้าไม่ต้องใช้ ให้ตอบเป็นข้อความธรรมดาทันที\n' +
-    '- ห้ามเรียก request_human_agent เพราะผู้ใช้แค่พูดหยาบ ด่าเล่น หรือแซวกัน เรียกเฉพาะตอนผู้ใช้ขอคุยกับแอดมิน/เจ้าหน้าที่คนจริงๆ หรือโกรธจริงจัง'
+    '- ตรวจสอบขอบเขตสกิลตัวเองอย่างเคร่งครัด ห้ามประดิษฐ์เครื่องมือที่ไม่มีในรายการเด็ดขาด'
   );
 
   if (ctx.isGroup) {
@@ -403,6 +407,33 @@ function buildSystemInstruction_(ctx, groupContext) {
 
   parts.push('[เวลาปัจจุบัน Asia/Bangkok]: ' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'));
   return parts.join('\n\n');
+}
+
+/**
+ * 🧠 METANATIVE CAPABILITY MANIFEST GENERATOR
+ * สแกน GEMINI_TOOLS_SCHEMA สดๆ เพื่อสร้างจิตสำนึกให้บอทรู้ขอบเขตตัวเอง 100%
+ */
+function buildCapabilityManifest_() {
+  var hasTools = (typeof GEMINI_TOOLS_SCHEMA !== 'undefined' && Array.isArray(GEMINI_TOOLS_SCHEMA) && GEMINI_TOOLS_SCHEMA.length > 0);
+  
+  if (!hasTools) {
+    return '[SELF_CAPABILITY_MANIFEST]:\n' +
+      '- ปัจจุบันคุณ "ไม่มีเครื่องมือหรือสกิลเสริมภายนอกใดๆ" ประจำการในระบบนี้\n' +
+      '- ขอบเขต: ตอบคำถามและให้ข้อมูลทั่วไปเท่านั้น\n' +
+      '- ข้อห้ามเด็ดขาด: หากผู้ใช้สั่งให้ทำธุรกรรม ตรวจสลิป จองโต๊ะ หรือสั่งการระบบภายนอก ให้ตอบปฏิเสธอย่างสุภาพทันทีว่าไม่มีระบบรองรับ ห้ามมโนหรือแสร้งว่าทำสำเร็จเด็ดขาด';
+  }
+
+  var toolDescriptions = GEMINI_TOOLS_SCHEMA.map(function(t) {
+    return '• ' + t.name + ': ' + (t.description || 'ไม่มีคำอธิบาย');
+  }).join('\n');
+
+  return '[SELF_CAPABILITY_MANIFEST - สัญญาขอบเขตความสามารถที่แท้จริง]:\n' +
+    'คุณได้รับอนุญาตให้ใช้งานเฉพาะเครื่องมือที่ลงทะเบียนไว้ต่อไปนี้เท่านั้น:\n' +
+    toolDescriptions + '\n\n' +
+    '[STRICT BOUNDARY CONSTRAINTS]:\n' +
+    '1. วิเคราะห์เจตนาของคู่สนทนาอย่างเข้มงวดว่าตรงกับเครื่องมือที่มีในรายการข้างต้นหรือไม่\n' +
+    '2. หากคำขอไม่อยู่ในรายการ ให้ระบุกับผู้ใช้อย่างตรงไปตรงมาว่าคุณไม่มีสกิลหรือเครื่องมือสำหรับเรื่องนั้น\n' +
+    '3. ห้ามเดา ห้ามสร้างชื่อ Function Call ขึ้นมาเอง และห้ามตอบตกลงในสิ่งที่ระบบทำไม่ได้เด็ดขาด!';
 }
 
 function hasTools_() {
