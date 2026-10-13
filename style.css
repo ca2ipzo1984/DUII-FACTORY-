@@ -901,3 +901,40 @@ header {
   border-radius: 8px;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.8));
 }
+/* ============================================================
+   [PATCH] DUII FACTORY - CHROME & LIQUID GOLD SKIN OVERRIDE
+   (ISO 9009 PRESERVED - APPEND ONLY)
+   ============================================================ */
+
+/* ปรับแต่งสีพื้นหลังหลักโรงงาน */
+body {
+  background: radial-gradient(circle at 50% 20%, #151d28 0%, #0a0d13 100%) !important;
+  color: #e2e8f0 !important;
+}
+
+/* แถบ Header และ Nav ด้านบน - โครเมียมตัดขอบทอง */
+header {
+  background: linear-gradient(180deg, #273142 0%, #161c26 50%, #0b0f15 100%) !important;
+  border-bottom: 2px solid #ffd700 !important;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ป้าย ISO 9009 และโลโก้สีทองโครเมียม */
+header .logo, header span:first-child {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 45%, #64748b 50%, #f8fafc 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 900 !important;
+}
+
+/* ปุ่มและแท็บต่าง ๆ - สไตล์เหล็กผสมขอบทอง */
+button, .btn, .tab-btn {
+  border-color: #ffd700 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* กล่องคลังโมดูลและรายละเอียด */
+section, aside, .panel {
+  border-color: rgba(255, 215, 0, 0.25) !important;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8), 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+}
