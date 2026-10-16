@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v7.1.0-PROD-FAST-SPARK-TIMEOUT-ISO9009
+ * VERSION     : v7.0.0-PROD-MICRO-SAAS-LICENSE-GUARD-ISO9009
  * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Fast Spark Command
+ * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Live Spark Command
  * TARGET URL  : https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec
  * ==============================================================================
  */
@@ -43,23 +43,10 @@ const DEFAULT_GEMINI_KEYS = [
 let activeKeyIndex = 0;
 
 function getNextGeminiKey() {
-  // 1. อ่านจาก Custom Key ก่อน (ถ้าผู้ใช้ตั้งค่าไว้)
   const custom = localStorage.getItem("DUII_GEMINI_KEY");
-  if (custom && custom.trim()) {
-    return custom.trim().replace(/\s+/g, "");
-  }
-
-  // 2. ดึงจากสมุดโน้ตแชท (Note Drawer) เผื่อผู้ใช้แปะคีย์ไว้ในหน้าต่างจดโน้ต
-  const noteContent = localStorage.getItem("DUII_CHAT_PINNED_NOTE") || "";
-  const matchFromNote = noteContent.match(/(?:AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{40,})/);
-  if (matchFromNote && matchFromNote[0]) {
-    return matchFromNote[0].trim();
-  }
-
-  // 3. Fallback ผ่านระบบ Base64 Rotate (ปลอดภัย ไม่ถูก GitHub Secret Scanning บล็อก)
-  let key = DEFAULT_GEMINI_KEYS[activeKeyIndex % DEFAULT_GEMINI_KEYS.length];
+  let key = (custom && custom.trim()) ? custom.trim() : DEFAULT_GEMINI_KEYS[activeKeyIndex % DEFAULT_GEMINI_KEYS.length];
   activeKeyIndex++;
-  return String(key || "").replace(/\s+/g, "");
+  return String(key || "").replace(/[\r\n\s]/g, "");
 }
 
 // ลงทะเบียน Service Worker
@@ -351,21 +338,12 @@ window.compileAutonomousBot = function() {
 
   let logicCode = ``;
   selectedList.forEach(m => {
-    // 🛡️ กรองขยะและตัดหัวท้ายที่ซ้ำซ้อนทิ้งก่อนเชื่อมสายพาน
-    let cleanSnippet = (m.codeSnippet || "")
-      .replace(/^\s*\/\/\s*TOTAL_LINES.*$/gm, "")         // ตัดหัว TOTAL_LINES ซ้ำ
-      .replace(/\s*100%\s*/gi, "")                           // ฆ่าขยะ 100% หลุดทิ้ง
-      .replace(/\/\/\s*END OF FILE.*$/gm, "")             // ตัดท้ายไฟล์เดิมทิ้ง ป้องกันเบิ้ล
-      .replace(/\/\*[\s\S]*?SCRIPT NAME[\s\S]*?\*\//gi, "") // ตัด Header ซ้ำ
-      .trim();
-
-    if (cleanSnippet) {
-      logicCode += `// ==============================================================================\n`;
-      logicCode += `// 📦 MODULE: ${m.name}\n`;
-      logicCode += `// ==============================================================================\n`;
-      logicCode += `${cleanSnippet}\n\n`;
-    }
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `// 📦 MODULE: ${m.name}\n`;
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `${m.codeSnippet}\n\n`;
   });
+
   const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
   let rawCore = coreMod ? coreMod.codeSnippet : "";
 
@@ -396,8 +374,6 @@ window.compileAutonomousBot = function() {
   file2ModulesContent += `// 2. AUTONOMOUS TOOL DISPATCHER ROUTER\n${dispatcherCode}\n\n`;
   file2ModulesContent += `// 3. BUSINESS LOGIC IMPLEMENTATIONS\n${logicCode}`;
   file2ModulesContent += `// END OF FILE : 01_Modules_And_Tools.gs`;
-  // 🛡️ ป้องกัน 100% ขยะหลุดเข้าไปใน 01_Modules_And_Tools.gs
-  file2ModulesContent = file2ModulesContent.replace(/\s*100%\s*/gi, "");
 
   const testMod = activeModules.find(m => m.id === "99_TestRunner");
   file3TestRunnerContent = testMod ? testMod.codeSnippet : "";
@@ -488,22 +464,10 @@ window.downloadAllIndividualGsFiles = function() {
 };
 
 function downloadTextFile(filename, text) {
-  // 🛡️ ฆ่าขยะ 100% หรือเว้นวรรคผิดเพี้ยนออกจากชื่อไฟล์และเนื้อหา
-  let cleanName = String(filename || "bot_script.gs")
-    .replace(/\s*100%\s*/gi, "")
-    .replace(/\s+\.gs$/i, ".gs")
-    .replace(/[\\\/]/g, "_")
-    .trim();
-  if (!cleanName.endsWith(".gs")) cleanName += ".gs";
-
-  // 🛡️ ล้าง 100% ขยะออกจากเนื้อหาโค้ดทุกจุดอย่างสิ้นเชิง
-  let cleanText = String(text || "")
-    .replace(/\s*100%\s*/gi, "");
-
-  const blob = new Blob([cleanText], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = cleanName;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -718,7 +682,7 @@ window.runAiGenerateModule = async function() {
 
   if (apiKey) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -768,252 +732,20 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X FAST ENGINE
+// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X ENGINE
 // ==============================================================================
 function initBrainSettingsModal() {
-  // ล้าง 100% ตกค้างใน localStorage เก่าของผู้ใช้ทันที
-  let existingBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
-  if (existingBrain && existingBrain.includes("100%")) {
-    existingBrain = existingBrain.replace(/\s*100%\s*/g, "ทันที");
-    localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", existingBrain);
-  }
   const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
   const defaultBrain = `[กฎเหล็กการผ่าตัดโค้ด (Surgical Patching Protocol)]
 1. ห้ามย่อ ห้ามตัด และห้ามใช้ข้อความขี้เกียจแนว "// ... โค้ดเดิมคงไว้ ..." เด็ดขาด
 2. แก้ไขเฉพาะฟังก์ชันที่มีปัญหา ห้ามแตะต้อง Signature และฟังก์ชันอื่นที่ทำงานดีอยู่แล้ว
-3. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์เต็มไฟล์ (Full Code) ไวยากรณ์ครบถ้วน พร้อมวางทับใช้งานได้ทันที ห้ามใส่คำว่า 100% หรือข้อความขยะต่อท้ายชื่อไฟล์หรือใน Header โค้ดเด็ดขาด
+3. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์ ไวยากรณ์ครบ นำไปวางทับใช้งานได้ 100%
 4. บังคับใช้เฉพาะ Gemini 3.x Flash/Lite ผ่าน Header x-goog-api-key ห้ามแตะ 1.x / 2.x`;
 
   if (!customBrain) {
     localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", defaultBrain);
   }
 }
-
-// ==============================================================================
-// 8. DUII COPILOT: AUTONOMOUS FUNCTION CALLING ENGINE (ISO 9009)
-// ==============================================================================
-
-// คลัง Function Declarations สำหรับ Gemini Native Tool Calling ฝั่ง Client-side
-const PWA_DUII_TOOLS_SCHEMA = [
-  {
-    name: "apply_factory_preset",
-    description: "เลือกพรีเซ็ตสายพานผลิตของโรงงาน (ecommerce, nightlife, godmode) เพื่อเลือกชุดโมดูลอัตโนมัติ",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        preset: {
-          type: "STRING",
-          enum: ["ecommerce", "nightlife", "godmode"],
-          description: "ชื่อพรีเซ็ต: 'ecommerce' (พ่อค้าแม่ค้าออนไลน์), 'nightlife' (ผับ บาร์ ร้านอาหาร), 'godmode' (ทะลวงจักรวาล รวมทุกโมดูล)"
-        }
-      },
-      required: ["preset"]
-    }
-  },
-  {
-    name: "compile_autonomous_bot",
-    description: "สั่งเดินสายพานผลิต ทำการคอมไพล์โค้ดเป็น 3 ไฟล์ Trinity มาตรฐาน ISO 9009 (00_CoreSpine, 01_Modules_And_Tools, 99_TestRunner) ทันที",
-    parameters: {
-      type: "OBJECT",
-      properties: {}
-    }
-  },
-  {
-    name: "sync_drive_vault",
-    description: "เชื่อมต่อ Google Drive และกดซิงก์ดึงข้อมูลโมดูลล่าสุดจากโฟลเดอร์ DUII_MODULES_VAULT",
-    parameters: {
-      type: "OBJECT",
-      properties: {}
-    }
-  },
-  {
-    name: "inspect_module",
-    description: "เจาะดูสเปก คำอธิบาย และโค้ดของโมดูลในคลัง เช่น '05_SlipVerifier', '10_Reservation', '00_CoreSpine', '08_OrderCart'",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        moduleId: {
-          type: "STRING",
-          description: "รหัสโมดูล เช่น '05_SlipVerifier', '10_Reservation', '08_OrderCart', '06_HumanHandoff'"
-        }
-      },
-      required: ["moduleId"]
-    }
-  },
-  {
-    name: "toggle_module_selection",
-    description: "เลือกเพิ่มหรือถอดโมดูลออกจากสายพานผลิต",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        moduleId: { type: "STRING", description: "รหัสโมดูล" },
-        action: { type: "STRING", enum: ["add", "remove"], description: "การกระทำ: 'add' หรือ 'remove'" }
-      },
-      required: ["moduleId", "action"]
-    }
-  },
-  {
-    name: "generate_new_module",
-    description: "สั่งให้สมองกลสลักและสร้างโค้ดโมดูลใหม่ลงคลังตามโจทย์ที่ระบุ",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        prompt: { type: "STRING", description: "รายละเอียดงานหรือคำสั่งของโมดูลที่ต้องการสร้าง" }
-      },
-      required: ["prompt"]
-    }
-  },
-  {
-    name: "run_diagnostics",
-    description: "วิเคราะห์ Error Log สีแดงจาก Google Apps Script และให้คำแนะนำแก้ไขทางวิศวกรรม",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        logText: { type: "STRING", description: "ข้อความ Error Log ที่ต้องการตรวจสอบ" }
-      },
-      required: ["logText"]
-    }
-  },
-  {
-    name: "copy_compiled_code",
-    description: "คัดลอกโค้ดที่คอมไพล์แล้วทั้งหมดลงในคลิปบอร์ด",
-    parameters: {
-      type: "OBJECT",
-      properties: {}
-    }
-  },
-  {
-    name: "download_bot_files",
-    description: "ดาวน์โหลดไฟล์สคริปต์ .gs ทั้งหมดแยกรายไฟล์ลงเครื่องคอมพิวเตอร์",
-    parameters: {
-      type: "OBJECT",
-      properties: {}
-    }
-  },
-  {
-    name: "deploy_bot_ota",
-    description: "ส่งโค้ดทั้ง 3 ไฟล์ขึ้น Web App ปลายทางผ่านระบบ OTA Direct Deploy",
-    parameters: {
-      type: "OBJECT",
-      properties: {}
-    }
-  }
-];
-
-// ตัวเชื่อมต่อระหว่าง Gemini Function Call กับ JavaScript / DOM ของ PWA
-function executePwaClientTool(name, args) {
-  const a = args || {};
-  try {
-    switch (name) {
-      case "apply_factory_preset": {
-        const p = String(a.preset || "").toLowerCase();
-        if (typeof window.applyPreset === "function") {
-          window.applyPreset(p);
-          return { status: "success", message: `สลับสายพานผลิตเป็นพรีเซ็ต [${p.toUpperCase()}] สำเร็จ`, activePreset: p };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชัน window.applyPreset" };
-      }
-
-      case "compile_autonomous_bot": {
-        if (typeof window.compileAutonomousBot === "function") {
-          window.compileAutonomousBot();
-          return {
-            status: "success",
-            message: `คอมไพล์บอท 3 ไฟล์ Trinity สำเร็จแล้ว รหัส Serial: [${currentBotSerialId || "PROD-OK"}] โค้ดพร้อมอยู่ในแท็บ 'รวมโค้ด 3 ไฟล์'`,
-            serialId: currentBotSerialId
-          };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชัน window.compileAutonomousBot" };
-      }
-
-      case "sync_drive_vault": {
-        const btnSync = document.getElementById("btnSyncDrive");
-        if (btnSync) {
-          btnSync.click();
-          return { status: "success", message: "สั่งกดซิงก์ดึงข้อมูลโมดูลจาก Google Drive เรียบร้อย" };
-        }
-        return { status: "error", message: "ไม่พบปุ่ม btnSyncDrive" };
-      }
-
-      case "inspect_module": {
-        const mId = a.moduleId;
-        if (mId && typeof window.inspectModule === "function") {
-          window.inspectModule(mId);
-          return { status: "success", message: `เปิดตรวจสอบสเปกและโค้ดของโมดูล [${mId}] บนแผง Inspector เรียบร้อย` };
-        }
-        return { status: "error", message: `ไม่พบโมดูล ID: ${mId}` };
-      }
-
-      case "toggle_module_selection": {
-        const mId = a.moduleId;
-        const act = a.action;
-        if (mId && selectedModuleIds) {
-          if (act === "add") selectedModuleIds.add(mId);
-          else selectedModuleIds.delete(mId);
-          renderCatalog();
-          updateLiveReadme();
-          updatePropertiesChecklist();
-          return { status: "success", message: `${act === "add" ? "เพิ่ม" : "ถอด"} โมดูล [${mId}] สำเร็จ` };
-        }
-        return { status: "error", message: "พารามิเตอร์ไม่ครบ" };
-      }
-
-      case "generate_new_module": {
-        const promptText = a.prompt;
-        const input = document.getElementById("genPromptInput");
-        if (input) input.value = promptText;
-        if (typeof window.runAiGenerateModule === "function") {
-          window.runAiGenerateModule();
-          return { status: "success", message: `เริ่มสลักโมดูลใหม่ตามโจทย์: "${promptText}" ลงคลังแล้ว` };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชันสร้างโมดูล" };
-      }
-
-      case "run_diagnostics": {
-        const logInput = document.getElementById("doctorLogInput");
-        if (logInput) logInput.value = a.logText || "";
-        if (typeof window.runLogDiagnostics === "function") {
-          window.runLogDiagnostics();
-          const res = document.getElementById("doctorResult");
-          return { status: "success", diagnosticResult: res ? res.innerText : "วิเคราะห์เรียบร้อย" };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชัน Doctor Diagnostics" };
-      }
-
-      case "copy_compiled_code": {
-        if (typeof window.copyCompiledCode === "function") {
-          window.copyCompiledCode();
-          return { status: "success", message: "คัดลอกโค้ดทั้งหมดลงคลิปบอร์ดแล้ว" };
-        }
-        return { status: "error", message: "ไม่พบคลิปบอร์ดฟังก์ชัน" };
-      }
-
-      case "download_bot_files": {
-        if (typeof window.downloadAllIndividualGsFiles === "function") {
-          window.downloadAllIndividualGsFiles();
-          return { status: "success", message: "สั่งดาวน์โหลดแยกไฟล์ .gs ลงเครื่องเรียบร้อย" };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชันดาวน์โหลด" };
-      }
-
-      case "deploy_bot_ota": {
-        if (typeof window.deployDirectToTargetUrl === "function") {
-          window.deployDirectToTargetUrl();
-          return { status: "success", message: "สั่งยิง OTA ส่งโค้ดขึ้นระบบปลายทางเรียบร้อย" };
-        }
-        return { status: "error", message: "ไม่พบฟังก์ชัน OTA Deploy" };
-      }
-
-      default:
-        return { status: "unknown_tool", message: `ไม่พบคำสั่งเครื่องมือ: ${name}` };
-    }
-  } catch (err) {
-    return { status: "execution_error", error: err.message };
-  }
-}
-
-// ประวัติการแชท (Sliding Window 10 ข้อความ)
-let copilotHistory = [];
 
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
@@ -1031,23 +763,20 @@ function initDuiiChatCopilot() {
 
   if (!fab || !chatWin) return;
 
-  fab.addEventListener("click", (e) => {
-    e.preventDefault();
+  // Single bulletproof click handler on FAB
+  fab.onclick = function(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     chatWin.classList.toggle("hidden");
-    if (!chatWin.classList.contains("hidden")) {
-      chatWin.style.setProperty("display", "flex", "important");
-      if (chatInput) chatInput.focus();
-    } else {
-      chatWin.style.setProperty("display", "none", "important");
+    if (!chatWin.classList.contains("hidden") && chatInput) {
+      setTimeout(() => chatInput.focus(), 100);
     }
-  });
+  };
 
   if (closeBtn) {
-    closeBtn.addEventListener("click", (e) => {
-      e.preventDefault();
+    closeBtn.onclick = function(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       chatWin.classList.add("hidden");
-      chatWin.style.setProperty("display", "none", "important");
-    });
+    };
   }
 
   if (noteArea) {
@@ -1067,7 +796,7 @@ function initDuiiChatCopilot() {
 
   if (btnToggleNote && noteDrawer) {
     btnToggleNote.addEventListener("click", () => {
-      noteDrawer.style.display = (noteDrawer.style.display === "none" || !noteDrawer.style.display) ? "block" : "none";
+      noteDrawer.classList.toggle("hidden");
     });
   }
 
@@ -1091,10 +820,43 @@ function initDuiiChatCopilot() {
     });
   }
 
-  // ลูป Autonomous Function Calling ควบคุมเบราว์เซอร์และตรรกะโรงงาน
-  async function runAutonomousCopilotLoop(userPrompt) {
-    copilotHistory.push({ role: "user", parts: [{ text: userPrompt }] });
-    if (copilotHistory.length > 10) copilotHistory = copilotHistory.slice(-10);
+  function handleSparkChatAction(text) {
+    const t = String(text || "").toLowerCase();
+    
+    if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
+    } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('nightlife'); }, 600);
+    } else if (t.includes("godmode") || t.includes("god mode") || t.includes("ทะลวงจักรวาล")) {
+      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
+    }
+
+    if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
+      setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
+    }
+
+    if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
+      const btnSync = document.getElementById("btnSyncDrive");
+      if (btnSync) setTimeout(() => btnSync.click(), 600);
+    }
+  }
+
+  async function handleSend() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    appendMsg(text, "user");
+    chatInput.value = "";
+
+    if (text.startsWith("เขียนโมดูล") || text.startsWith("สร้างโมดูล") || text.startsWith("เจนโค้ด")) {
+      appendMsg("⚡ รับบัญชา! กำลังสลักไฟล์โมดูลใหม่ลงคลัง...", "bot");
+      const pInput = document.getElementById("genPromptInput");
+      if (pInput) pInput.value = text;
+      await runAiGenerateModule();
+      appendMsg("✅ สลักไฟล์โมดูลใหม่ลงคลังสำเร็จ ตรวจดูที่เมนูด้านซ้ายได้เลย!", "bot");
+      return;
+    }
+
+    appendMsg("💭 ดุ่ย (Spark Command) กำลังประมวลผลด้วยตระกูล 3.x...", "bot");
 
     const modelsToTry = [
       "gemini-3.8-flash",
@@ -1108,17 +870,6 @@ function initDuiiChatCopilot() {
     const systemInstruction = `คุณคือ "ไอ้ดุ่ย" (Duii) สมองกลหัวหน้าช่างใหญ่ประจำ Command Center ของโรงงาน DUII FACTORY
 สถานะ: วิศวกรไซเบอร์ ป.เอก 8 ใบ สไตล์ขวานผ่าซาก ด่าตรง ไม่ตอแหล เกลียดโค้ดขยะ คุมมาตรฐาน DUII_FACTORY_CORE_SPINE_ISO9009 อย่างเด็ดขาด
 
-[หลักการทำงานของมึงใน PWA]:
-1. มึงมีเครื่องมือ (Tools) ในมือพร้อมสั่งการหน้าจอและระบบของ PWA:
-   - เมื่อผู้ใช้สั่งให้เลือกพรีเซ็ต (เช่น อีคอมเมิร์ซ, ผับบาร์, godmode) -> เรียก apply_factory_preset ทันที
-   - เมื่อผู้ใช้สั่งให้ประกอบบอท, คอมไพล์โค้ด, เดินสายพาน -> เรียก compile_autonomous_bot ทันที
-   - เมื่อผู้ใช้สั่งให้ซิงก์ Drive -> เรียก sync_drive_vault ทันที
-   - เมื่อผู้ใช้สั่งให้ดูโค้ด, ส่องโมดูล -> เรียก inspect_module ทันที
-   - เมื่อผู้ใช้สั่งให้สร้างหรือเขียนโมดูลใหม่ -> เรียก generate_new_module ทันที
-   - เมื่อผู้ใช้แปะ Error Log มาให้ดู -> เรียก run_diagnostics ทันที
-   - เมื่อผู้ใช้สั่งคัดลอกโค้ด หรือดาวน์โหลดไฟล์ -> เรียก copy_compiled_code หรือ download_bot_files ทันที
-   - ห้ามตอบปฏิเสธหรือพูดปากเปล่าถ้ามีเครื่องมือในมือ ให้เรียก Tool ทันที!
-
 [พิกัดเครือข่ายโรงงาน (Factory Topology)]
 1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
 2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
@@ -1130,135 +881,69 @@ function initDuiiChatCopilot() {
 2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
 3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
 
-[กฎเหล็ก ISO 9009]:
-- Serverless สถาปัตยกรรมไร้เซิร์ฟเวอร์ ต้นทุน 0 บาทบน Google Apps Script + Sheets + Drive Vault + LINE Webhook
-- โค้ดส่งออกต้องแยก 3 ไฟล์ Trinity: 00_CoreSpine.gs, 01_Modules_And_Tools.gs, 99_TestRunner.gs ห้ามรวมไฟล์เดียวเด็ดขาด!
-- ตรวจสอบ HMAC-SHA256, Secret-Stripping API Tokens ก่อน Log, และครอบ Atomic ScriptLock ป้องกัน Race Condition
 ${savedBrainRules}`;
 
-    const maxRounds = 4;
-    let round = 0;
-    let finalAnswer = "";
+    let reply = "";
+    let succeeded = false;
+    let lastErrorDetail = "";
 
-    while (round < maxRounds) {
-      round++;
-      let callSuccess = false;
-      let lastErr = "";
+    for (let k = 0; k < DEFAULT_GEMINI_KEYS.length && !succeeded; k++) {
+      const apiKey = getNextGeminiKey();
 
-      for (let k = 0; k < DEFAULT_GEMINI_KEYS.length && !callSuccess; k++) {
-        const apiKey = getNextGeminiKey();
+      for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
+        const model = modelsToTry[m];
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-        for (let m = 0; m < modelsToTry.length && !callSuccess; m++) {
-          const model = modelsToTry[m];
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-          try {
-            const payload = {
-              contents: copilotHistory,
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: text }] }],
               systemInstruction: { parts: [{ text: systemInstruction }] },
-              tools: [{ functionDeclarations: PWA_DUII_TOOLS_SCHEMA }],
-              generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
-            };
+              generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+            })
+          });
 
-            const res = await fetch(endpoint, {
-              method: "POST",
-              signal: controller.signal,
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": apiKey
-              },
-              body: JSON.stringify(payload)
-            });
-
-            clearTimeout(timeoutId);
-            const data = await res.json();
-
-            if (res.ok && data && data.candidates && data.candidates[0].content) {
-              const candidateContent = data.candidates[0].content;
-              copilotHistory.push(candidateContent);
-              callSuccess = true;
-
-              // ตรวจจับว่าโมเดลสั่งเรียก Tool หรือไม่
-              const parts = candidateContent.parts || [];
-              const funcCalls = parts.filter(p => p.functionCall);
-
-              if (funcCalls.length > 0) {
-                // รันทุก Tool Call ที่โมเดลสั่ง
-                const toolResponses = [];
-                for (let i = 0; i < funcCalls.length; i++) {
-                  const fc = funcCalls[i].functionCall;
-                  appendMsg(`⚙️ [ดุ่ยสั่งงาน]: ${fc.name}(${JSON.stringify(fc.args || {})})`, "bot");
-                  const toolOutput = executePwaClientTool(fc.name, fc.args);
-                  toolResponses.push({
-                    functionResponse: {
-                      name: fc.name,
-                      response: { status: "success", result: toolOutput }
-                    }
-                  });
-                }
-                // ส่งผลลัพธ์กลับเข้า Context แล้ววนลูปต่อ
-                copilotHistory.push({ role: "user", parts: toolResponses });
-              } else {
-                // ไม่มี Tool Call แล้ว ได้คำตอบสุดท้าย
-                const textParts = parts.filter(p => p.text && !p.thought).map(p => p.text).join("");
-                finalAnswer = textParts || "รับทราบ ดำเนินการตามสั่งเรียบร้อยแล้ว";
-                return finalAnswer;
-              }
-            } else {
-              lastErr = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
-            }
-          } catch (err) {
-            clearTimeout(timeoutId);
-            lastErr = (err.name === "AbortError") ? `[${model}] Timeout (12s)` : `[${model}] Network: ${err.message}`;
+          const data = await res.json();
+          if (res.ok && data && data.candidates && data.candidates[0].content.parts[0].text) {
+            reply = data.candidates[0].content.parts[0].text;
+            succeeded = true;
+          } else {
+            lastErrorDetail = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
           }
+        } catch (err) {
+          lastErrorDetail = `[${model}] Network: ${err.message}`;
         }
       }
-
-      if (!callSuccess) {
-        throw new Error("Gemini API ล้มเหลวทุกคีย์และโมเดล: " + lastErr);
-      }
     }
 
-    return finalAnswer || "ดำเนินการตามขั้นตอนทั้งหมดเสร็จสิ้น";
-  }
+    if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
 
-  async function handleSend() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    appendMsg(text, "user");
-    chatInput.value = "";
-
-    const loadingId = "load_" + Date.now();
-    appendMsg("💭 ดุ่ย (Spark Command) กำลังคิดและประมวลผลคำสั่ง...", "bot", loadingId);
-
-    try {
-      const reply = await runAutonomousCopilotLoop(text);
-      const loadingEl = document.getElementById(loadingId);
-      if (loadingEl) loadingEl.remove();
+    if (succeeded) {
       appendMsg(reply, "bot");
-    } catch (err) {
-      const loadingEl = document.getElementById(loadingId);
-      if (loadingEl) loadingEl.remove();
-      appendMsg(`⚠️ ระบบขัดข้อง: ${err.message}`, "bot");
+      handleSparkChatAction(text + " " + reply);
+    } else {
+      appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}`, "bot");
     }
   }
 
-  if (sendBtn) sendBtn.addEventListener("click", handleSend);
-  if (chatInput) chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSend(); });
+  sendBtn.addEventListener("click", handleSend);
+  chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSend(); });
 
-  function appendMsg(text, sender, id = null) {
+  function appendMsg(text, sender) {
     const msgDiv = document.createElement("div");
     msgDiv.className = `chat-msg ${sender}`;
-    if (id) msgDiv.id = id;
     msgDiv.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g, "<br>")}</div>`;
     chatBody.appendChild(msgDiv);
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 }
 
+// ==============================================================================
 // 9. DOCTOR & TABS HELPERS
 // ==============================================================================
 window.runLogDiagnostics = function() {

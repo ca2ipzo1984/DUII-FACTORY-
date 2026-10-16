@@ -13,10 +13,7 @@
     #editorModal[style*="display: none"] {
       display: none !important;
     }
-    #duiiChatWindow.hidden,
-    #duiiChatWindow[style*="display: none"] {
-      display: none !important;
-    }
+    
     .fab-avatar-img {
       width: 100%;
       height: 100%;
@@ -171,14 +168,14 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย" onclick="toggleDuiiChat(event)">
+  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
     <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
     <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
   <!-- DUII LIVE CHAT WINDOW (ซ่อนตั้งต้นเด็ดขาด) -->
-  <div class="duii-chat-window hidden" id="duiiChatWindow" style="display: none !important;">
+  <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
         <img src="avatar.png" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'">
@@ -224,13 +221,10 @@
       if (e) { e.preventDefault(); e.stopPropagation(); }
       const win = document.getElementById("duiiChatWindow");
       if (!win) return;
-      const isHidden = (win.style.display === "none" || win.classList.contains("hidden"));
-      if (isHidden) {
-        win.style.setProperty("display", "flex", "important");
-        win.classList.remove("hidden");
-      } else {
-        win.style.setProperty("display", "none", "important");
-        win.classList.add("hidden");
+      win.classList.toggle("hidden");
+      if (!win.classList.contains("hidden")) {
+        const inp = document.getElementById("chatInput");
+        if (inp) setTimeout(() => inp.focus(), 100);
       }
     }
 

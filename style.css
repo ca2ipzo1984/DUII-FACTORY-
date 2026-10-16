@@ -546,7 +546,7 @@ body {
   border-radius: 50% !important;
   background: #000 !important;
   border: 2px solid var(--accent-orange) !important;
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
@@ -591,7 +591,7 @@ body {
   background: #11161f !important;
   border: 2px solid var(--accent-orange) !important;
   border-radius: 14px !important;
-  display: flex !important;
+  display: flex;
   flex-direction: column !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(245, 158, 11, 0.3) !important;
   z-index: 1000000 !important;
@@ -777,3 +777,16 @@ body {
     height: 70vh !important;
   }
 }
+
+
+.duii-fab * {
+  pointer-events: none !important;
+}
+.duii-fab {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+}
+
+
+.duii-chat-window.hidden { display: none !important; }
