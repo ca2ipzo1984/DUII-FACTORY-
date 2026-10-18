@@ -961,7 +961,7 @@ function initDuiiChatCopilot() {
     };
   }
 
- function speakOfficerReply(text, officerKey) {
+function speakOfficerReply(text, officerKey) {
   if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
 
@@ -969,19 +969,22 @@ function initDuiiChatCopilot() {
     .replace(/```[\s\S]*?```/g, "ดูบล็อกโค้ดบนหน้าจอครับ")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/[*#_~]/g, "")
-    .replace(/\[.*?\]:/g, "") // ตัดคำนำหน้า [ไอ้ดุ่ย]: ออก ป้องกันมันอ่านเป็นภาษาอังกฤษพิลึก
+    .replace(/\[.*?\]:/g, "")
     .trim();
 
   if (!cleanText) return;
 
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = "th-TH"; // บังคับล็อกเสียงภาษาไทย
-  
-  // หาเสียงภาษาไทยในเครื่องมาใช้โดยตรง (แก้ปัญหาเครื่องอ่านอังกฤษ)
+  utterance.lang = "th-TH";
+
+  // ฟังก์ชันดึงเสียงภาษาไทยจากเครื่องแบบละเอียดสุดๆ
   const voices = window.speechSynthesis.getVoices();
-  const thaiVoice = voices.find(v => v.lang === 'th-TH' || v.lang.includes('th'));
+  let thaiVoice = voices.find(v => v.lang === 'th-TH' || v.lang === 'th_TH' || v.name.includes('Thai') || v.name.includes('ไทย'));
+  
   if (thaiVoice) {
     utterance.voice = thaiVoice;
+  } else {
+    console.warn("⚠️ เบราว์เซอร์นี้ไม่มีเสียงภาษาไทยในระบบเครื่อง! เสียงอาจจะไม่พูดหรืออ่านเพี้ยน");
   }
 
   const profile = SQUAD_VOICE_PROFILES[officerKey] || SQUAD_VOICE_PROFILES.duii;
@@ -989,6 +992,13 @@ function initDuiiChatCopilot() {
   utterance.rate = profile.rate;
 
   window.speechSynthesis.speak(utterance);
+}
+
+// โหลดรายชื่อเสียงล่วงหน้า (Chrome บนมือถือต้องใช้ event นี้ถึงจะยอมโหลดเสียงในเครื่องออกมา)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
 }
 
   if (btnVoiceRecord && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
