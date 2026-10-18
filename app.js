@@ -112,7 +112,7 @@ const SquadQualityGates = {
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v7.6.0-PROD-AUTONOMOUS-VOICE-RADIO-DIO
+ * VERSION     : v8.0.0-PROD-ULTIMATE-INTEGRATED-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager, 4 Gates & Squad Voice Radio
  * TARGET URL  : https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec
@@ -419,14 +419,13 @@ window.applyPreset = function(presetType) {
 };
 
 // ==============================================================================
-// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE WITH 4 GATES & HANDSHAKE
+// 5. AUTONOMOUS COMPILER (DIO) WITH 4 GATES & HANDSHAKE
 // ==============================================================================
 window.compileAutonomousBot = async function() {
   const statusBadge = document.getElementById("syncStatusText");
   try {
     if (statusBadge) statusBadge.textContent = "⏳ กำลังเดินสายพานผลิตผ่าน 4 ขุนพล...";
 
-    // 1. บังบ่าว หัวจ่าย: ตรวจเช็คหัวจ่าย API Key ก่อนจ่ายไฟ
     await SquadQualityGates.bangBao();
 
     const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
@@ -485,7 +484,6 @@ window.compileAutonomousBot = async function() {
 
     file1CoreContent = rawCore;
 
-    // 2. ลุงจั่น ปีกหิน: ตรวจความปลอดภัยและโครงสร้าง Chassis
     SquadQualityGates.lungJan(file1CoreContent, currentBotSerialId);
 
     const runNum = Math.floor(1000 + Math.random() * 9000);
@@ -495,13 +493,9 @@ window.compileAutonomousBot = async function() {
     file2ModulesContent += `// 3. BUSINESS LOGIC IMPLEMENTATIONS\n${logicCode}`;
     file2ModulesContent += `// END OF FILE : 01_Modules_And_Tools.gs`;
 
-    // 3. อ้ายหนานส่อง: ส่องตรวจ Schema และ Dispatcher Router
     SquadQualityGates.aiSong(file2ModulesContent, selectedList);
-
-    // 4. บักจ่อย ซอยขาด: รัน Dry-run Syntax ตรวจวงจรปิด
     SquadQualityGates.bakJoi(file2ModulesContent, file1CoreContent);
 
-    // 🛡️ ทำการลงทะเบียนสัมปทานชีตกลางแบบ Handshake
     await registerBotToMasterSheet(currentBotSerialId);
 
     const testMod = activeModules.find(m => m.id === "99_TestRunner");
@@ -544,7 +538,6 @@ ${file3TestRunnerContent}`;
   }
 };
 
-// ลงทะเบียนบอทเข้าชีตกลาง MASTER_CLIENT_LICENSES
 async function registerBotToMasterSheet(serialId) {
   const syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
   const now = new Date();
@@ -562,7 +555,7 @@ async function registerBotToMasterSheet(serialId) {
   };
 
   try {
-    const res = await fetch(syncEndpoint, {
+    await fetch(syncEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: JSON.stringify(payload)
@@ -617,9 +610,6 @@ window.copyCompiledCode = function() {
   });
 };
 
-// ==============================================================================
-// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)
-// ==============================================================================
 window.deployDirectToTargetUrl = async function() {
   const targetUrl = prompt(
     "🔗 ยืนยัน Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
@@ -697,9 +687,6 @@ function updatePropertiesChecklist() {
   propsArea.value = checklist;
 }
 
-// ==============================================================================
-// 6. HARVEST & LOOT SEPARATOR
-// ==============================================================================
 window.analyzeAndExtractCode = function() {
   const raw = document.getElementById("rawCodeInput").value.trim();
   const listEl = document.getElementById("harvestResultList");
@@ -763,9 +750,6 @@ window.harvestSingleFunction = function(funcName) {
   alert(`💎 สกัดแยกเป็นไฟล์ [Modules/${fileName}] เรียบร้อย!`);
 };
 
-// ==============================================================================
-// 7. CODE EDITOR & GENERATOR MODALS
-// ==============================================================================
 window.openModuleEditor = function(moduleId) {
   const mod = activeModules.find(m => m.id === moduleId);
   if (!mod) return;
@@ -868,7 +852,7 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER, GEMINI 3.X & SQUAD VOICE RADIO
+// 8. DUII COPILOT: SPARK COMMAND, GEMINI 3.X & SQUAD VOICE RADIO
 // ==============================================================================
 function initBrainSettingsModal() {
   const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
@@ -897,14 +881,12 @@ function initDuiiChatCopilot() {
   const noteArea = document.getElementById("chatNoteArea");
   const btnClearNote = document.getElementById("btnClearNote");
 
-  // Squad Radio & Voice Elements
   const officerSelect = document.getElementById("squadOfficerSelect");
   const btnToggleVoiceOut = document.getElementById("btnToggleSpeechOutput");
   const btnVoiceRecord = document.getElementById("btnVoiceRecord");
 
   let isSpeechOutputEnabled = true;
 
-  // คาแรคเตอร์เสียง 4 ขุนพลแก๊งส่องกบ
   const SQUAD_VOICE_PROFILES = {
     duii: { pitch: 1.0, rate: 1.05, label: "ไอ้ดุ่ย" },
     lung_jan: { pitch: 0.6, rate: 0.9, label: "ลุงจั่น ปีกหิน" },
@@ -971,7 +953,6 @@ function initDuiiChatCopilot() {
     });
   }
 
-  // ระบบเปิด/ปิดเสียงตอบกลับ (Text-to-Speech Toggle)
   if (btnToggleVoiceOut) {
     btnToggleVoiceOut.onclick = function() {
       isSpeechOutputEnabled = !isSpeechOutputEnabled;
@@ -980,12 +961,10 @@ function initDuiiChatCopilot() {
     };
   }
 
-  // ระบบสังเคราะห์เสียงพูดตอบกลับตามคาแรคเตอร์ขุนพล
   function speakOfficerReply(text, officerKey) {
     if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
 
-    // ตัดส่วนบล็อกโค้ด ตัวเลขยาว และสัญลักษณ์พิเศษออกเพื่อให้อ่านลื่นหู
     const cleanText = text
       .replace(/```[\s\S]*?```/g, "ดูบล็อกโค้ดบนหน้าจอครับ")
       .replace(/`([^`]+)`/g, "$1")
@@ -1003,7 +982,6 @@ function initDuiiChatCopilot() {
     window.speechSynthesis.speak(utterance);
   }
 
-  // ระบบดักฟังเสียง ว. (Speech-to-Text Push-to-Talk)
   if (btnVoiceRecord && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognizer = new SpeechRec();
@@ -1089,7 +1067,6 @@ function initDuiiChatCopilot() {
 
     const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
 
-    // ปรับ System Instruction ตามตัวขุนพลที่เลือกคุย
     let officerPersona = `คุณคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ประจำ DUII FACTORY คุมมาตรฐาน DIO`;
     if (selectedOfficer === "lung_jan") {
       officerPersona = `คุณคือ "ลุงจั่น ปีกหิน" ขุนพลคุมโครงสร้าง 00_CoreSpine และด่านตรวจสัมปทาน License Guard พูดจาเข้ม ดุดัน ชัดเจน สไตล์ช่างใหญ่`;
@@ -1224,4 +1201,3 @@ function initSearch() {
     searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
   }
 }
-
