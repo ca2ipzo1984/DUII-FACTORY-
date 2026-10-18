@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
- * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (ISO 9009)
- * Standard : DUII_FACTORY_CORE_SPINE_ISO9009
+ * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (DIO)
+ * Standard : DUII_FACTORY_CORE_SPINE_DIO
  * Version  : v5.9.0-PERFECT-UNTRUNCATED-PROD
  * ==============================================================================
  */
@@ -31,7 +31,7 @@ const FACTORY_REGISTRY = [
 /**
  * SCRIPT NAME : 00_CoreSpine.gs
  * VERSION     : v5.2.0-NEVER-SILENT-BAKJOI
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  */
 
 var CORE_VERSION = 'v5.2.0-NEVER-SILENT-BAKJOI';
@@ -757,7 +757,7 @@ function runDiagnostics_(ctx) {
  * ==============================================================================
  * SCRIPT NAME : 99_Test.gs
  * VERSION     : v5.2.0-INTEGRATED-TESTER
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : รวมทั้ง Unit Test ตรวจโมดูล (Logic) และ Live Sniper ตรวจ API/Properties
  * ==============================================================================
  */
