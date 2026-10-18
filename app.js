@@ -1224,3 +1224,4 @@ function initSearch() {
     searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
   }
 }
+
