@@ -887,12 +887,12 @@ function initDuiiChatCopilot() {
 
   let isSpeechOutputEnabled = true;
 
-  const SQUAD_VOICE_PROFILES = {
-    duii: { pitch: 1.0, rate: 1.05, label: "ไอ้ดุ่ย" },
-    lung_jan: { pitch: 0.6, rate: 0.9, label: "ลุงจั่น ปีกหิน" },
-    ai_song: { pitch: 1.15, rate: 1.0, label: "อ้ายหนานส่อง" },
-    bak_joy: { pitch: 1.35, rate: 1.25, label: "บักจ่อย ซอยขาด" },
-    bang_bao: { pitch: 0.75, rate: 0.95, label: "บังบ่าว หัวจ่าย" }
+ const SQUAD_VOICE_PROFILES = {
+    duii: { pitch: 0.4, rate: 1.1, label: "ไอ้ดุ่ย" },       // เสียงทุ้มต่ำ ห้าว ดุสไตล์หัวหน้าช่างใหญ่
+    lung_jan: { pitch: 0.2, rate: 0.85, label: "ลุงจั่น ปีกหิน" }, // เสียงต่ำเข้มรุ่นใหญ่ ขึงขัง
+    ai_song: { pitch: 0.5, rate: 1.0, label: "อ้ายหนานส่อง" },     // เสียงกลางห้าวๆ ตาไว
+    bak_joy: { pitch: 0.6, rate: 1.2, label: "บักจ่อย ซอยขาด" },     // เสียงกระแทกกระทั้น รวดเร็ว
+    bang_bao: { pitch: 0.3, rate: 0.9, label: "บังบ่าว หัวจ่าย" }    // เสียงหนา ทุ้ม ลึก สไตล์พ่อค้าใหญ่
   };
 
   if (!fab || !chatWin) return;
@@ -960,7 +960,6 @@ function initDuiiChatCopilot() {
       this.style.borderColor = isSpeechOutputEnabled ? "var(--accent-green)" : "#30363d";
     };
   }
-
 function speakOfficerReply(text, officerKey) {
   if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
@@ -981,24 +980,26 @@ function speakOfficerReply(text, officerKey) {
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = "th-TH";
 
-  // เช็กชื่อเสียงในระบบแบบกวาดล้างทุกตัวอักษรที่ขึ้นต้นด้วย th หรือ Thai
   const voices = window.speechSynthesis.getVoices();
-  let thaiVoice = voices.find(v => v.lang.toLowerCase().startsWith('th') || v.name.toLowerCase().includes('thai') || v.name.includes('ไทย'));
+  // พยายามเลือกเสียงผู้ชายหรือเสียงทุ้มถ้าเครื่องมือถือรองรับ (พ่วงคีย์เวิร์ด male หรือ natural)
+  let thaiVoice = voices.find(v => (v.lang.toLowerCase().includes('th') || v.name.toLowerCase().includes('thai') || v.name.includes('ไทย')) && (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('enhanced')));
   
+  // ถ้าไม่เจอเสียงระบุเพศ ให้ดึงเสียงไทยตัวแรกที่เจอ
+  if (!thaiVoice) {
+    thaiVoice = voices.find(v => v.lang.toLowerCase().includes('th') || v.name.toLowerCase().includes('thai') || v.name.includes('ไทย'));
+  }
+
   if (thaiVoice) {
     utterance.voice = thaiVoice;
-    console.log("🔊 เจอเสียงไทย:", thaiVoice.name);
-  } else {
-    console.warn("⚠️ ไม่พบเสียงไทยในเบราว์เซอร์ ระบบจะใช้เสียงพื้นฐานแทน");
   }
 
   const profile = SQUAD_VOICE_PROFILES[officerKey] || SQUAD_VOICE_PROFILES.duii;
-  utterance.pitch = profile.pitch;
+  utterance.pitch = profile.pitch; // ดึงต่ำลงมาเหลือ 0.2 - 0.5 รับรองเสียงไม่หวานแน่นอน
   utterance.rate = profile.rate;
 
   window.speechSynthesis.speak(utterance);
 }
-
+  
 // โหลดรายชื่อเสียงล่วงหน้า (Chrome บนมือถือต้องใช้ event นี้ถึงจะยอมโหลดเสียงในเครื่องออกมา)
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = () => {
