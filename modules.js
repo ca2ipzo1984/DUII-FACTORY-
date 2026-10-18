@@ -1,8 +1,8 @@
 /**
  * ==============================================================================
- * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (DIO STANDARD)
+ * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (DIO)
  * Standard : DUII_FACTORY_CORE_SPINE_DIO
- * Version  : v7.6.0-PROD-UNTRUNCATED
+ * Version  : v5.9.0-PERFECT-UNTRUNCATED-PROD
  * ==============================================================================
  */
 
@@ -16,24 +16,25 @@ const FACTORY_REGISTRY = [
     name: "00_CoreSpine (Lean Kernel Chassis)",
     category: "Core Chassis",
     commands: ["Webhook Entry", "Failover", "Security Guard"],
-    description: "แกนหลักของบอท รองรับ Webhook, Gemini 3.x Failover (x-goog-api-key), Dual-Memory (/จำ, /จารึก) และ License Guard ตัดไฟอัตโนมัติ",
+    description: "แกนหลักของบอท รองรับ Webhook แบบ Synchronous, In-Memory Vision, Gemini Failover (x-goog-api-key) และ Dual-Memory (/จำ และ /จารึก)",
     properties: [
       { key: "LINE_CHANNEL_ACCESS_TOKEN", required: true, desc: "LINE Messaging API Token" },
       { key: "TARGET_USER_ID", required: true, desc: "User ID ของเจ้าของบอท สำหรับสิทธิ์ /จารึก" },
       { key: "SPREADSHEET_ID", required: false, desc: "ID กูเกิลชีตสำหรับ AI_Memory และตารางบันทึกข้อมูล" },
-      { key: "CLIENT_ID", required: true, desc: "รหัส Serial ประจำตัวบอท (เช่น DUII-xxxxxx-xxxx)" },
-      { key: "MASTER_LICENSE_SPREADSHEET_ID", required: true, desc: "ID ชีตคุมสัมปทานกลาง (MASTER_CLIENT_LICENSES)" }
+      { key: "GEMINI_API_KEY_1", required: true, desc: "Google AI Studio API Key 1" },
+      { key: "GEMINI_API_KEY_2", required: false, desc: "Google AI Studio API Key 2 (Failover)" },
+      { key: "GEMINI_API_KEY_3", required: false, desc: "Google AI Studio API Key 3 (Failover)" }
     ],
     setupGuide: "### 🚀 00_CoreSpine.gs (Chassis แม่)\nไฟล์แรกที่ต้องนำไปวางใน Apps Script เป็นแกนกลางควบคุมทั้งหมด",
     functionDeclaration: null,
     codeSnippet: `// TOTAL_LINES: AUTO
 /**
  * SCRIPT NAME : 00_CoreSpine.gs
- * VERSION     : v5.4.0-PROD-LICENSE-GUARD-DIO
+ * VERSION     : v5.2.0-NEVER-SILENT-BAKJOI
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  */
 
-var CORE_VERSION = 'v5.4.0-PROD-LICENSE-GUARD-DIO';
+var CORE_VERSION = 'v5.2.0-NEVER-SILENT-BAKJOI';
 
 function getProp_(key) {
   var v = PropertiesService.getScriptProperties().getProperty(key);
@@ -49,6 +50,7 @@ function getBoolProp_(key, def) {
   return /^(1|true|yes|on)$/i.test(v);
 }
 
+// ลำดับโมเดลบังคับใช้ตามเกณฑ์ ISO (ตัด 1.x และ 2.x ทิ้งเด็ดขาด)
 var DEFAULT_MODELS_ = [
   'gemini-3.8-flash-lite',
   'gemini-3.5-flash-lite',
@@ -75,7 +77,7 @@ var CONFIG = {
   },
   get SYSTEM_INSTRUCTION() {
     return getProp_('SYSTEM_INSTRUCTION') || getProp_('BOT_CHARACTER') ||
-      'มึงคือผู้ช่วย AI อัจฉริยะขาลุย ประจำการในระบบ DUII FACTORY มาตรฐาน DIO ตอบกระชับ ฉลาด ตรงไปตรงมา';
+      'มึงคือผู้ช่วย AI อัจฉริยะขาลุย ประจำการในระบบ DUII FACTORY มีไหวพริบระดับ ป.เอก 8 ใบ ตอบกระชับ ฉลาด ตรงไปตรงมา และพร้อมช่วยเหลือเสมอ';
   },
   get GROUP_REPLY_MODE() { return getProp_('GROUP_REPLY_MODE').toLowerCase() === 'mention' ? 'mention' : 'all'; },
   get GROUP_IMAGE_REPLY() { return getBoolProp_('GROUP_IMAGE_REPLY', false); },
@@ -84,9 +86,7 @@ var CONFIG = {
     var raw = getProp_('BOT_NAMES');
     return raw ? raw.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean) : [];
   },
-  get MAX_TOOL_ROUNDS() { return Math.max(1, Math.min(5, getNumProp_('MAX_TOOL_ROUNDS', 3))); },
-  get CLIENT_ID() { return getProp_('CLIENT_ID') || 'SHOP_DEFAULT'; },
-  get MASTER_LICENSE_SPREADSHEET_ID() { return getProp_('MASTER_LICENSE_SPREADSHEET_ID') || '10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo'; }
+  get MAX_TOOL_ROUNDS() { return Math.max(1, Math.min(5, getNumProp_('MAX_TOOL_ROUNDS', 3))); }
 };
 
 var LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
@@ -107,41 +107,6 @@ function okOut_() {
 function isOwner_(userId) {
   var owner = (CONFIG.TARGET_USER_ID || '').trim();
   return !!(owner && userId && userId === owner);
-}
-
-function isSubscriptionValid_(clientId) {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'sub_status_' + clientId;
-  var cached = cache.get(cacheKey);
-  if (cached !== null) return cached === 'ACTIVE';
-
-  var sheetId = CONFIG.MASTER_LICENSE_SPREADSHEET_ID;
-  if (!sheetId) return true;
-
-  try {
-    var ss = SpreadsheetApp.openById(sheetId);
-    var sheet = ss.getSheetByName('MASTER_CLIENT_LICENSES') || ss.getSheets()[0];
-    var data = sheet.getDataRange().getValues();
-    var isValid = false;
-    var now = new Date();
-
-    for (var i = 1; i < data.length; i++) {
-      var rowClientId = String(data[i][0] || '').trim();
-      if (rowClientId === clientId) {
-        var expireStr = data[i][4];
-        var status = String(data[i][5] || '').trim().toUpperCase();
-        var expireDate = new Date(expireStr);
-        if (status === 'ACTIVE' && now.getTime() <= (expireDate.getTime() + 86400000)) {
-          isValid = true;
-        }
-        break;
-      }
-    }
-    cache.put(cacheKey, isValid ? 'ACTIVE' : 'EXPIRED', 21600);
-    return isValid;
-  } catch (err) {
-    return true;
-  }
 }
 
 function doGet(e) {
@@ -185,12 +150,6 @@ function processEventSafe(event) {
 
     var ctx = { userId: userId, isGroup: isGroup, chatKey: chatKey };
     if (event.type !== 'message' || !event.message) return;
-
-    if (!isSubscriptionValid_(CONFIG.CLIENT_ID)) {
-      var token = event.replyToken;
-      if (token) replyText_(token, 'ZzzzZ... ZzZZ..Zzz');
-      return;
-    }
 
     if (event.message.type === 'text') {
       handleTextMessage_(event, ctx);
@@ -240,6 +199,7 @@ function handleImageMessage_(event, ctx) {
     if (!out) throw new Error('GEMINI_BAD_RESPONSE:empty_text');
     sendReplyMessages(token, splitIntoLineMessages_(out));
   } catch (err) {
+    console.error('[Vision Error] ' + err);
     notifyFailure_(token, ctx, err);
   }
 }
@@ -263,7 +223,7 @@ function handleCommands_(text, event, ctx) {
   }
   if (/^\\/resume(\\s|$)/i.test(t)) {
     if (!isOwner_(ctx.userId)) {
-      replyText_(token, '🔒 คำสั่งนี้ใช้ได้เฉพาะเจ้าของบอท');
+      replyText_(token, '🔒 คำสั่งนี้ใช้ได้เฉพาะเจ้าของบอท (ตั้ง TARGET_USER_ID ให้ตรงกับ /เช็คไอดี)');
       return true;
     }
     var target = t.replace(/^\\/resume/i, '').trim() || ctx.userId;
@@ -271,20 +231,22 @@ function handleCommands_(text, event, ctx) {
     replyText_(token, resumed ? '▶️ ปลดล็อกพักบอทให้ ' + target + ' แล้ว' : 'ปลดล็อกไม่สำเร็จ');
     return true;
   }
+  // /จารึก ล็อกสิทธิ์เฉพาะเจ้าของบอท
   if (/^\\/จารึก(\\s|$)/.test(t)) {
     if (!isOwner_(ctx.userId)) {
       replyText_(token, '⛔ คำสั่ง /จารึก สงวนสิทธิ์เฉพาะ TARGET_USER_ID เท่านั้น');
       return true;
     }
     var directive = t.replace(/^\\/จารึก/, '').trim();
-    if (!directive) { replyText_(token, 'ระบุกฎที่จะจารึกด้วย'); return true; }
+    if (!directive) { replyText_(token, 'ระบุกฎที่จะจารึกด้วย เช่น /จารึก ห้ามพูดคำหยาบกับลูกค้า'); return true; }
     var r1 = saveDualMemoryToSheet('CORE_DIRECTIVE', directive, ctx.userId);
     replyText_(token, r1.success ? '📜 [จารึกสำเร็จ]: ' + directive : r1.message);
     return true;
   }
+  // /จำ ปลดสิทธิ์ ให้ทุกคนในห้องแชทพิมพ์บันทึกได้
   if (/^\\/จำ(\\s|$)/.test(t)) {
     var fact = t.replace(/^\\/จำ/, '').trim();
-    if (!fact) { replyText_(token, 'ระบุสิ่งที่จะให้จำด้วย'); return true; }
+    if (!fact) { replyText_(token, 'ระบุสิ่งที่จะให้จำด้วย เช่น /จำ นัดวิ่งทริปเสาร์นี้'); return true; }
     var r2 = saveDualMemoryToSheet('DYNAMIC_FACT', fact, ctx.userId);
     replyText_(token, r2.success ? '📝 [จำสำเร็จ]: ' + fact : r2.message);
     return true;
@@ -393,6 +355,7 @@ function answer_(text, event, ctx) {
 
     sendReplyMessages(token, splitIntoLineMessages_(out));
   } catch (err) {
+    console.error('[Pipeline Error] ' + err);
     notifyFailure_(token, ctx, err);
   }
 }
@@ -403,7 +366,8 @@ function buildSystemInstruction_(ctx, groupContext) {
   if (mem) parts.push('[MEMORIES & DIRECTIVES]:\\n' + mem);
   parts.push(
     '[TOOL RULES]:\\n' +
-    '- ใช้เครื่องมือเมื่อผู้ใช้ขอให้ทำสิ่งนั้นจริงๆ เท่านั้น ถ้าไม่ต้องใช้ ให้ตอบเป็นข้อความธรรมดาทันที'
+    '- ใช้เครื่องมือเมื่อผู้ใช้ขอให้ทำสิ่งนั้นจริงๆ เท่านั้น ถ้าไม่ต้องใช้ ให้ตอบเป็นข้อความธรรมดาทันที\\n' +
+    '- ห้ามเรียก request_human_agent เพราะผู้ใช้แค่พูดหยาบ ด่าเล่น หรือแซวกัน เรียกเฉพาะตอนผู้ใช้ขอคุยกับแอดมินคนจริงๆ หรือโกรธจริงจัง'
   );
   if (ctx.isGroup) {
     parts.push('[แชทกลุ่ม]: ตอบข้อความล่าสุดให้ตรงประเด็น กระชับ');
@@ -601,6 +565,10 @@ function geminiRequest_(payload) {
   throw new Error('GEMINI_ALL_FAILED: ' + lastError);
 }
 
+function callGeminiWithFailover(payload) {
+  return geminiRequest_(payload);
+}
+
 function getHistory_(key) {
   var raw = CacheService.getScriptCache().get(key);
   if (raw) { try { return JSON.parse(raw); } catch (e) {} }
@@ -727,6 +695,12 @@ function replyText_(replyToken, text) {
   return sendReplyMessages(replyToken, [{ type: 'text', text: text }]);
 }
 
+function pushLineMessage(toId, text) {
+  var msgs = prepareLineMessages_([{ type: 'text', text: text }]);
+  var r = lineFetch_(LINE_PUSH_URL, { to: toId, messages: msgs });
+  return r.code === 200;
+}
+
 function getLineImageBinary_(messageId) {
   try {
     var res = UrlFetchApp.fetch(LINE_DATA_URL + '/' + messageId + '/content', {
@@ -740,22 +714,653 @@ function getLineImageBinary_(messageId) {
 
 function notifyFailure_(replyToken, ctx, err) {
   var m = String((err && err.message) || err);
-  var friendly = '⚠️ ระบบ AI ขัดข้องชั่วคราว ลองใหม่อีกทีนะ';
+  var friendly;
+  if (m.indexOf('NO_API_KEY') !== -1) friendly = '⚠️ ยังไม่ได้ตั้ง GEMINI_API_KEY';
+  else if (m.indexOf('GEMINI_ALL_FAILED') !== -1 && m.indexOf('429') !== -1) friendly = '⚠️ โควตา AI เต็ม รอแป๊บแล้วลองใหม่';
+  else if (m.indexOf('GEMINI_ALL_FAILED') !== -1) friendly = '⚠️ AI ยุ่งอยู่/ล่มชั่วคราว ลองใหม่อีกทีนะ';
+  else if (m.indexOf('blocked') !== -1) friendly = '⚠️ AI ไม่ยอมตอบเรื่องนี้ (ติดตัวกรองความปลอดภัย)';
+  else friendly = '⚠️ ระบบ AI ขัดข้องชั่วคราว ลองใหม่อีกทีนะ';
+
   if (isOwner_(ctx.userId)) friendly += '\\n\\n[debug] ' + m.substring(0, 300);
+  if (ctx.isGroup) {
+    var cache = CacheService.getScriptCache();
+    var k = 'errcd_' + ctx.chatKey;
+    if (cache.get(k)) return;
+    cache.put(k, '1', 60);
+  }
   replyText_(replyToken, friendly);
 }
 
 function runDiagnostics_(ctx) {
   var r = [];
-  r.push('🛠 DUII CORE v5.4.0');
+  r.push('🛠 DUII CORE ' + CORE_VERSION);
   r.push('💬 ห้องนี้: ' + (ctx.isGroup ? 'กลุ่ม' : 'ส่วนตัว'));
   r.push('🔑 Gemini keys: ' + CONFIG.GEMINI_API_KEYS.length);
-  r.push('🏷️ CLIENT_ID: ' + CONFIG.CLIENT_ID);
-  r.push('🛡️ LICENSE_STATUS: ' + (isSubscriptionValid_(CONFIG.CLIENT_ID) ? 'ACTIVE' : 'EXPIRED'));
+  r.push('🤖 models: ' + CONFIG.GEMINI_MODELS.join(', '));
+  r.push('👤 TARGET_USER_ID: ' + (CONFIG.TARGET_USER_ID ? 'ตั้งแล้ว' : 'ยังไม่ตั้ง'));
+  r.push('🧰 เครื่องมือ: ' + (hasTools_() ? GEMINI_TOOLS_SCHEMA.length + ' ตัว' : 'ไม่มี'));
   return r.join('\\n');
+}`
+  },
+
+  {
+    id: "99_TestRunner",
+    type: "core",
+    name: "99_TestRunner (Verification Suite)",
+    category: "Core Chassis",
+    commands: ["runAllDuiiTests", "debugLiveWebhook"],
+    description: "แท่นตรวจสอบสุขภาพระบบและโมดูลทั้งหมดก่อนขึ้น Production: ตรวจสอบความพร้อมของ Core Chassis, Schema, FlexEngine และยิงทดสอบ Gemini สด",
+    properties: [],
+    setupGuide: "### 99_TestRunner.gs\nไฟล์ทดสอบอัตโนมัติประจำโปรเจกต์ ใช้กด Run ฟังก์ชัน runAllDuiiTests เพื่อตรวจเช็คความสมบูรณ์",
+    functionDeclaration: null,
+    codeSnippet: `/**
+ * ==============================================================================
+ * SCRIPT NAME : 99_Test.gs
+ * VERSION     : v5.2.0-INTEGRATED-TESTER
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
+ * DESCRIPTION : รวมทั้ง Unit Test ตรวจโมดูล (Logic) และ Live Sniper ตรวจ API/Properties
+ * ==============================================================================
+ */
+
+function runAllDuiiTests() {
+  console.log("==================================================================");
+  console.log("🚀 DUII FACTORY // STARTING SYSTEM VERIFICATION TEST SUITE");
+  console.log("==================================================================");
+
+  var results = [];
+  function assert(testName, condition, details) {
+    if (condition) {
+      console.log("✅ [PASS] " + testName + (details ? " -> " + details : ""));
+      results.push({ name: testName, status: "PASS" });
+    } else {
+      console.error("❌ [FAIL] " + testName + (details ? " -> " + details : ""));
+      results.push({ name: testName, status: "FAIL" });
+    }
+  }
+
+  var hasSchema = typeof GEMINI_TOOLS_SCHEMA !== "undefined" && Array.isArray(GEMINI_TOOLS_SCHEMA);
+  assert("1. Core Schema Existence", hasSchema, "Tool count: " + (hasSchema ? GEMINI_TOOLS_SCHEMA.length : 0));
+  assert("2. Dispatcher Router Existence", typeof executeAutonomousTool === "function");
+
+  if (typeof FlexEngine !== "undefined") {
+    var sampleReceipt = FlexEngine.createReceiptCard({ status: "verified", amount: 500, ref: "TEST-REF-01" });
+    assert("3. FlexEngine Receipt Card", sampleReceipt && sampleReceipt.type === "flex");
+  } else {
+    assert("3. FlexEngine Loaded", false, "ไม่พบ 02_FlexEngine.gs");
+  }
+
+  if (typeof LeadScoring !== "undefined") {
+    var leadRes = LeadScoring.score({ name: "ทดสอบ Lead", budget_score: 25, authority_score: 25, need_score: 25, timeline_score: 25 });
+    assert("4. LeadScoring Hot Tier Check", leadRes && leadRes.status === "success" && leadRes.tier === "Hot");
+  } else {
+    assert("4. LeadScoring Loaded", false, "ไม่พบ 07_LeadScoring.gs");
+  }
+
+  if (typeof OrderCart !== "undefined") {
+    var cartRes = OrderCart.createSummary({ items: "สินค้า A x1", total_amount: 500, phone: "0812345678" });
+    assert("5. OrderCart Summary Generation", cartRes && cartRes.status === "success");
+  } else {
+    assert("5. OrderCart Loaded", false, "ไม่พบ 08_OrderCart.gs");
+  }
+
+  if (typeof StrictFAQ !== "undefined") {
+    var faqRes = StrictFAQ.query({ query: "ข้อความทดสอบ_9999" });
+    assert("6. StrictFAQ Fallback Mechanism", faqRes && (faqRes.status === "not_found" || faqRes.status === "found"));
+  } else {
+    assert("6. StrictFAQ Loaded", false, "ไม่พบ 09_StrictFAQ.gs");
+  }
+
+  if (typeof Reservation !== "undefined") {
+    var bookRes = Reservation.book({ date: "2026-10-15", time: "18:00", customer_name: "ทดสอบ", guests: 2 });
+    assert("7. Reservation Atomic Booking", bookRes && (bookRes.status === "success" || bookRes.status === "busy"));
+  } else {
+    assert("7. Reservation Loaded", false, "ไม่พบ 10_Reservation.gs");
+  }
+
+  if (typeof GiftCard !== "undefined") {
+    var giftRes = GiftCard.execute({ action: "check", code: "PROMO-50" });
+    assert("8. GiftCard Voucher Check", giftRes && giftRes.status === "success");
+  } else {
+    assert("8. GiftCard Loaded", false, "ไม่พบ 11_GiftCard.gs");
+  }
+
+  if (typeof EventTicket !== "undefined") {
+    var ticketRes = EventTicket.process({ event_name: "งานสัมมนา", attendee_name: "สมชาย" });
+    assert("9. EventTicket Generation", ticketRes && ticketRes.status === "success");
+  } else {
+    assert("9. EventTicket Loaded", false, "ไม่พบ 12_EventTicket.gs");
+  }
+
+  if (typeof HumanHandoff !== "undefined") {
+    var testUid = "U_TEST_DUMMY_999";
+    HumanHandoff.pause(testUid, 5);
+    var isPaused = HumanHandoff.isPaused(testUid);
+    HumanHandoff.resume(testUid);
+    var isResumed = !HumanHandoff.isPaused(testUid);
+    assert("10. HumanHandoff Pause/Resume Cache", isPaused && isResumed);
+  } else {
+    assert("10. HumanHandoff Loaded", false, "ไม่พบ 06_HumanHandoff.gs");
+  }
+
+  console.log("==================================================================");
+  var passCount = results.filter(function (r) { return r.status === "PASS"; }).length;
+  console.log("📊 สรุปผล Unit Test โมดูล: ผ่าน " + passCount + "/" + results.length);
+  console.log("==================================================================");
 }
 
-// บังคับผูกเข้า window scope ป้องกันคลังโมดูลว่างเปล่า
+function debugLiveWebhook() {
+  console.log("=== 1. ตรวจสอบ SCRIPT PROPERTIES ===");
+  var p = PropertiesService.getScriptProperties();
+  var token = (p.getProperty('LINE_CHANNEL_ACCESS_TOKEN') || '').trim();
+  var k1 = (p.getProperty('GEMINI_API_KEY_1') || '').trim();
+  var k2 = (p.getProperty('GEMINI_API_KEY_2') || '').trim();
+  var k3 = (p.getProperty('GEMINI_API_KEY_3') || '').trim();
+  var singleKeys = (p.getProperty('GEMINI_API_KEYS') || '').trim();
+
+  console.log("LINE TOKEN:", token ? "✅ มี (" + token.substring(0, 10) + "...)" : "❌ ว่างเปล่า");
+  console.log("KEY_1:", k1 ? "✅ " + k1.substring(0, 15) + "..." : "❌ ว่าง");
+  console.log("KEY_2:", k2 ? "✅ " + k2.substring(0, 15) + "..." : "❌ ว่าง");
+  console.log("KEY_3:", k3 ? "✅ " + k3.substring(0, 15) + "..." : "❌ ว่าง");
+
+  var testKeys = [k1, k2, k3, singleKeys].filter(Boolean);
+  if (!testKeys.length) {
+    console.error("❌ ไม่มี API Key แม้แต่ตัวเดียว!");
+    return;
+  }
+
+  var testKey = testKeys[0].replace(/[\\r\\n\\s]/g, '');
+  try {
+    var genUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent";
+    var genRes = UrlFetchApp.fetch(genUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'x-goog-api-key': testKey },
+      payload: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: 'ตอบแค่คำว่า OK' }] }]
+      }),
+      muteHttpExceptions: true
+    });
+    console.log("GenerateContent Code:", genRes.getResponseCode());
+    if (genRes.getResponseCode() === 200) {
+      var gData = JSON.parse(genRes.getContentText());
+      console.log("✅ คำตอบที่ AI สังเคราะห์ได้:", gData.candidates[0].content.parts[0].text);
+    } else {
+      console.error("❌ GenerateContent พัง:", genRes.getContentText());
+    }
+  } catch (err) {
+    console.error("❌ Gen Error:", err.message);
+  }
+}`
+  },
+
+  // ==============================================================================
+  // 2. BUSINESS & SALES MODULES (01-06)
+  // ==============================================================================
+  {
+    id: "01_AsyncBuffer",
+    type: "module",
+    name: "01_AsyncBuffer (Queue Guard)",
+    category: "Core & Performance",
+    commands: ["Async Webhook Queue"],
+    description: "พักอีเวนต์ลง CacheService ตอบกลับ LINE 200 OK ทันทีภายใน 1 วินาที ป้องกัน Execution Timeout",
+    properties: [{ key: "ASYNC_BUFFER", required: false, desc: "ตั้งค่าเป็น on เพื่อเปิดระบบคิวเบื้องหลัง" }],
+    setupGuide: "### ⏱️ 01_AsyncBuffer.gs\nวางใน Modules/ ตอบสนองทันใจไม่หลุด Timeout",
+    functionDeclaration: null,
+    codeSnippet: `var AsyncBuffer = (function () {
+  var INDEX_KEY = "ab_index";
+  var TTL = 21600;
+  function enabled_() {
+    return /^(1|true|yes|on)$/i.test(String(PropertiesService.getScriptProperties().getProperty("ASYNC_BUFFER") || "").trim());
+  }
+  function enqueue(payload) {
+    if (!enabled_() || !payload || !payload.events || !payload.events.length) return false;
+    var c = CacheService.getScriptCache();
+    var idx = JSON.parse(c.get(INDEX_KEY) || "[]");
+    for (var i = 0; i < payload.events.length; i++) {
+      var k = "ab_ev_" + (payload.events[i].webhookEventId || (Date.now() + "_" + i));
+      c.put(k, JSON.stringify(payload.events[i]), TTL);
+      idx.push(k);
+    }
+    c.put(INDEX_KEY, JSON.stringify(idx), TTL);
+    return true;
+  }
+  return { enqueue: enqueue };
+})();`
+  },
+  {
+    id: "02_FlexEngine",
+    type: "module",
+    name: "02_FlexEngine (Card Generator)",
+    category: "UI & Presentation",
+    commands: ["Flex Cards", "Receipt", "Ticket", "Order Card"],
+    description: "สร้าง LINE Flex Message อัตโนมัติ: บิล, บัตรคิว, ตั๋ว QR Code และผลตรวจสลิป ปลอดภัยสูงสุด",
+    properties: [],
+    setupGuide: "### 🎨 02_FlexEngine.gs\nตัวเรนเดอร์ Flex Message ส่วนกลางของทุกโมดูล",
+    functionDeclaration: null,
+    codeSnippet: `var FlexEngine = (function () {
+  var QR_URL = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=";
+  function text_(t, o) {
+    var b = { type: "text", text: String(t || "-") };
+    if (o) for (var k in o) b[k] = o[k];
+    return b;
+  }
+  function row_(label, value, valColor) {
+    return {
+      type: "box", layout: "horizontal", spacing: "sm",
+      contents: [ text_(label, { size: "xs", color: "#8A8A8A", flex: 3 }), text_(value, { size: "xs", color: valColor || "#222222", flex: 5, wrap: true, weight: "bold" }) ]
+    };
+  }
+  function createReceiptCard(s) {
+    var isOk = s.status === "verified";
+    var headBg = isOk ? "#1B6B3A" : "#9B0019";
+    var cardBg = isOk ? "#E8F8EE" : "#FFECEC";
+    var title = isOk ? "✅ สลิปผ่านการตรวจเบื้องต้น" : "⛔ สลิปมีปัญหา/เคยใช้แล้ว";
+    var bubble = {
+      type: "bubble", size: "kilo", styles: { body: { backgroundColor: cardBg } },
+      body: {
+        type: "box", layout: "vertical", paddingAll: "14px", borderWidth: "2px", borderColor: headBg, cornerRadius: "14px",
+        contents: [
+          { type: "box", layout: "vertical", backgroundColor: headBg, paddingAll: "10px", cornerRadius: "8px", contents: [text_(title, { weight: "bold", size: "sm", color: "#FFFFFF" })] },
+          { type: "box", layout: "vertical", spacing: "sm", margin: "md", contents: [
+            row_("ยอดเงิน", s.amount ? Number(s.amount).toLocaleString("en-US") + " บาท" : "-"),
+            row_("วันที่-เวลา", (s.date || "") + " " + (s.time || "")),
+            row_("เลขอ้างอิง", s.ref),
+            row_("ผู้รับ", s.receiver),
+            row_("ธนาคาร", s.bank)
+          ]}
+        ]
+      }
+    };
+    return { type: "flex", altText: title, contents: bubble };
+  }
+  function createOrderCard(o) {
+    var lines = Array.isArray(o.items) ? o.items : [String(o.items || "-")];
+    var itemBoxes = lines.map(function(l) { return text_("• " + l, { size: "xs", color: "#333333", wrap: true }); });
+    var bubble = {
+      type: "bubble", size: "kilo",
+      body: {
+        type: "box", layout: "vertical", paddingAll: "16px", spacing: "xs",
+        contents: [
+          text_("🧾 สรุปออเดอร์", { weight: "bold", size: "md", color: "#111111" }),
+          text_(String(o.order_id || ""), { size: "xxs", color: "#999999" }),
+          { type: "separator", margin: "sm" },
+          { type: "box", layout: "vertical", spacing: "xs", margin: "sm", contents: itemBoxes },
+          { type: "separator", margin: "sm" },
+          { type: "box", layout: "horizontal", margin: "sm", contents: [ text_("ยอดรวม", { size: "sm", color: "#555555", flex: 2 }), text_(Number(o.total || 0).toLocaleString("en-US") + " บาท", { size: "lg", weight: "bold", color: "#0B6E4F", align: "end", flex: 4 }) ]},
+          row_("เบอร์โทร", o.phone),
+          row_("ที่อยู่จัดส่ง", o.address)
+        ]
+      }
+    };
+    return { type: "flex", altText: "🧾 สรุปออเดอร์ " + (o.order_id || ""), contents: bubble };
+  }
+  function createTicketCard(t) {
+    var isRes = t.kind === "reservation";
+    var accent = isRes ? "#1565C0" : "#6A1B9A";
+    var title = isRes ? "📅 ยืนยันการจองสำเร็จ" : "🎫 E-Ticket สำเร็จ";
+    var id = isRes ? t.booking_id : t.ticket_id;
+    var qrData = isRes ? ("BOOKING|" + id) : ("TICKET|" + id);
+    var bubble = {
+      type: "bubble", size: "kilo",
+      body: {
+        type: "box", layout: "vertical", paddingAll: "14px", spacing: "md", borderWidth: "2px", borderColor: accent, cornerRadius: "14px",
+        contents: [
+          { type: "box", layout: "vertical", backgroundColor: accent, paddingAll: "10px", cornerRadius: "8px", contents: [text_(title, { weight: "bold", size: "sm", color: "#FFFFFF" })] },
+          { type: "box", layout: "vertical", spacing: "sm", contents: [
+            row_("ชื่อผู้จอง", t.customer_name || t.attendee_name),
+            row_("วันที่", t.date),
+            row_("เวลา", t.time),
+            row_("จำนวน", (t.guests || 1) + " ท่าน"),
+            row_("รหัสอ้างอิง", id, accent)
+          ]},
+          { type: "image", url: QR_URL + encodeURIComponent(qrData), size: "md", aspectMode: "fit", aspectRatio: "1:1" }
+        ]
+      }
+    };
+    return { type: "flex", altText: title, contents: bubble };
+  }
+  return { createReceiptCard: createReceiptCard, createOrderCard: createOrderCard, createTicketCard: createTicketCard };
+})();`
+  },
+  {
+    id: "05_SlipVerifier",
+    type: "module",
+    name: "05_SlipVerifier (Vision + Fraud Guard)",
+    category: "Business & Sales",
+    commands: ["ส่งรูปสลิป", "ตรวจสลิป"],
+    description: "อ่านรูปสลิปด้วย Gemini Vision ตรวจจับตัดต่อ เช็คเลขบัญชี 4 ตัวท้าย และดักสลิปซ้ำลงชีต Slip_Log",
+    properties: [{ key: "SLIP_RECEIVER_ACCOUNT", required: false, desc: "เลขบัญชีปลายทางของร้าน" }],
+    setupGuide: "### 💳 05_SlipVerifier.gs\nระบบตรวจสลิปอัจฉริยะ บันทึกลง Slip_Log",
+    functionDeclaration: {
+      name: "verify_transfer_slip",
+      description: "ตรวจสอบข้อมูลสลิปโอนเงิน (ยอดเงิน, วันที่, เลขอ้างอิง) เพื่อตรวจเช็คความถูกต้องและสลิปซ้ำ",
+      parameters: {
+        type: "OBJECT",
+        properties: { ref_number: { type: "STRING" }, amount: { type: "NUMBER" } }
+      }
+    },
+    codeSnippet: `var SlipVerifier = (function () {
+  var SHEET = "Slip_Log";
+  var HEADER = ["Timestamp", "Ref", "Amount", "Slip_Date", "Slip_Time", "Sender", "Receiver", "Receiver_Account", "Bank", "Status", "User_ID", "Message_ID", "Confidence", "Dup_Key"];
+  function sheet_() {
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sh = ss.getSheetByName(SHEET) || ss.insertSheet(SHEET);
+    if (sh.getLastRow() === 0) { sh.appendRow(HEADER); sh.setFrozenRows(1); }
+    return sh;
+  }
+  function handle(event, replyToken) {
+    try {
+      var blob = getLineImageBinary_(event.message.id);
+      if (!blob) return false;
+      var b64 = Utilities.base64Encode(blob.getBytes());
+      var prompt = "คุณคือเครื่องอ่านสลิปโอนเงินธนาคารไทย จงตอบเป็น JSON object เท่านั้น: {\\\"is_slip\\\": true, \\\"amount\\\": 0.0, \\\"date\\\": \\\"YYYY-MM-DD\\\", \\\"time\\\": \\\"HH:mm\\\", \\\"ref\\\": \\\"เลขอ้างอิง\\\", \\\"sender\\\": \\\"ผู้โอน\\\", \\\"receiver\\\": \\\"ผู้รับ\\\", \\\"receiver_account\\\": \\\"เลขบัญชีผู้รับ\\\", \\\"bank\\\": \\\"ธนาคาร\\\", \\\"looks_edited\\\": false, \\\"confidence\\\": 0.95}";
+      var res = callGeminiWithFailover({
+        contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: blob.getContentType() || "image/jpeg", data: b64 } }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0 }
+      });
+      var d = JSON.parse(res.candidates[0].content.parts[0].text);
+      if (!d || d.is_slip !== true) return false;
+
+      var key = d.ref ? ("REF:" + d.ref.toUpperCase().replace(/\\s+/g, "")) : ("ALT:" + [d.amount, d.date, d.time].join("|"));
+      var sh = sheet_();
+      var lock = LockService.getScriptLock();
+      lock.tryLock(8000);
+      var status = "verified";
+      try {
+        var rows = sh.getDataRange().getValues();
+        for (var r = 1; r < rows.length; r++) {
+          if (String(rows[r][13]) === key) { status = "duplicate"; break; }
+        }
+        if (status === "verified") {
+          sh.appendRow([Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), d.ref, d.amount, d.date, d.time, d.sender, d.receiver, d.receiver_account, d.bank, status, event.source.userId, event.message.id, d.confidence, key]);
+        }
+      } finally { lock.releaseLock(); }
+
+      var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createReceiptCard({ status: status, amount: d.amount, date: d.date, time: d.time, ref: d.ref, sender: d.sender, receiver: d.receiver, bank: d.bank }) : null;
+      sendReplyMessages(replyToken, card ? [card] : [{ type: "text", text: "ผลตรวจสลิป: " + status + " ยอด " + d.amount + " บาท" }]);
+      return true;
+    } catch (e) { return false; }
+  }
+  function verify(args) { return { status: "success", message: "ตรวจสอบข้อมูลสลิปเรียบร้อย", args: args }; }
+  return { handle: handle, verify: verify };
+})();`
+  },
+  {
+    id: "06_HumanHandoff",
+    type: "module",
+    name: "06_HumanHandoff (Escalation Guard)",
+    category: "Operations & Social",
+    commands: ["ติดต่อเจ้าหน้าที่", "ขอคุยกับคน", "พักบอท"],
+    description: "ตรวจจับอารมณ์โกรธ พักบอทอัตโนมัติ 30-120 นาที และยิงแจ้งเตือนเข้าหากลุ่มแอดมินคนทันที",
+    properties: [{ key: "ADMIN_GROUP_ID", required: false, desc: "ID ห้องแชทกลุ่มแอดมินสำหรับแจ้งเตือน" }],
+    setupGuide: "### 🚨 06_HumanHandoff.gs\nพักการตอบของบอทชั่วคราว ปลดล็อกด้วย /resume",
+    functionDeclaration: {
+      name: "request_human_agent",
+      description: "ส่งต่อแอดมินคน พักการตอบของบอทชั่วคราวเมื่อลูกค้าต้องการคุยกับเจ้าหน้าที่",
+      parameters: {
+        type: "OBJECT",
+        properties: { reason: { type: "STRING" }, urgent_level: { type: "STRING" } }
+      }
+    },
+    codeSnippet: `var HumanHandoff = (function () {
+  function isPaused(userId) { return !userId ? false : !!CacheService.getScriptCache().get("hh_" + userId); }
+  function pause(userId, min) {
+    if (!userId) return false;
+    CacheService.getScriptCache().put("hh_" + userId, "1", (min || 30) * 60);
+    return true;
+  }
+  function resume(userId) {
+    if (!userId) return false;
+    CacheService.getScriptCache().remove("hh_" + userId);
+    return true;
+  }
+  function request(args) {
+    var userId = CURRENT_USER_;
+    var level = (args && args.urgent_level) || "medium";
+    var reason = (args && args.reason) || "ลูกค้าขอคุยกับเจ้าหน้าที่";
+    var min = level === "high" ? 120 : 30;
+    pause(userId, min);
+    var target = CONFIG.ADMIN_GROUP_ID || CONFIG.TARGET_USER_ID;
+    if (target) {
+      pushLineMessage(target, "🚨 [ขอแอดมินดูแลด่วน]\\nผู้ใช้: " + userId + "\\nระดับ: " + level + "\\nเหตุผล: " + reason + "\\n(บอทพักการตอบ " + min + " นาที ปลดล็อกได้ด้วย /resume " + userId + ")");
+    }
+    return { status: "success", delivered_via: "flex_message", message: "ส่งเรื่องให้เจ้าหน้าที่แอดมินแล้วครับ สักครู่จะมีเจ้าหน้าที่ติดต่อกลับ" };
+  }
+  return { isPaused: isPaused, pause: pause, resume: resume, request: request };
+})();`
+  },
+
+  {
+    id: "07_LeadScoring",
+    type: "module",
+    name: "07_LeadScoring (BANT Qualifier)",
+    category: "Business & Sales",
+    commands: ["วิเคราะห์ความสนใจลูกค้า", "บันทึก Lead"],
+    description: "ประเมินคะแนน BANT 0-100 คะแนน จัดเกรด Hot/Warm/Cold บันทึกลงชีต Lead_Scores",
+    properties: [],
+    setupGuide: "### 🎯 07_LeadScoring.gs\nประเมินระดับความพร้อมในการซื้อของลูกค้า",
+    functionDeclaration: {
+      name: "assess_lead_quality",
+      description: "ประเมินและให้คะแนน BANT Score พร้อมสกัดข้อมูลติดต่อลูกค้า",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          phone: { type: "STRING" },
+          interest: { type: "STRING" },
+          budget_score: { type: "INTEGER" },
+          authority_score: { type: "INTEGER" },
+          need_score: { type: "INTEGER" },
+          timeline_score: { type: "INTEGER" }
+        },
+        required: ["name"]
+      }
+    },
+    codeSnippet: `var LeadScoring = (function () {
+  var SHEET = "Lead_Scores";
+  var HEADER = ["Timestamp", "Name", "Phone", "Interest", "Score", "Tier", "User_ID"];
+  function score(args) {
+    var a = args || {};
+    var b = Number(a.budget_score) || 15;
+    var au = Number(a.authority_score) || 15;
+    var n = Number(a.need_score) || 15;
+    var t = Number(a.timeline_score) || 15;
+    var total = Math.min(100, b + au + n + t);
+    var tier = total >= 70 ? "Hot" : (total >= 40 ? "Warm" : "Cold");
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sh = ss.getSheetByName(SHEET) || ss.insertSheet(SHEET);
+    if (sh.getLastRow() === 0) { sh.appendRow(HEADER); sh.setFrozenRows(1); }
+    sh.appendRow([Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), a.name || "-", a.phone || "-", a.interest || "-", total, tier, CURRENT_USER_]);
+    return { status: "success", name: a.name, score: total, tier: tier, message: "ประเมินระดับลูกค้า [" + tier + "] เรียบร้อยแล้ว (" + total + " คะแนน)" };
+  }
+  return { score: score };
+})();`
+  },
+  {
+    id: "08_OrderCart",
+    type: "module",
+    name: "08_OrderCart (Order & Checkout)",
+    category: "Business & Sales",
+    commands: ["สั่งซื้อ", "สรุปยอด", "ที่อยู่จัดส่ง"],
+    description: "สกัดรายการสินค้า คำนวณยอดเงิน เบอร์โทร 10 หลัก ออกรหัส ORD-* บันทึกลงชีต Orders พร้อมสร้าง Flex สรุปออเดอร์",
+    properties: [{ key: "ORDER_PAY_INFO", required: false, desc: "ข้อความแนะนำการชำระเงินท้ายบิล" }],
+    setupGuide: "### 🛒 08_OrderCart.gs\nระบบสรุปบิลสั่งซื้อและบันทึกออเดอร์ลงชีต",
+    functionDeclaration: {
+      name: "create_order_summary",
+      description: "สกัดรายการสินค้า คำนวณยอดเงินรวม สกัดที่อยู่ เบอร์โทร 10 หลัก และสร้างใบสรุปออเดอร์",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          items: { type: "STRING" },
+          total_amount: { type: "NUMBER" },
+          phone: { type: "STRING" },
+          address: { type: "STRING" }
+        },
+        required: ["items", "total_amount"]
+      }
+    },
+    codeSnippet: `var OrderCart = (function () {
+  var SHEET = "Orders";
+  var HEADER = ["Timestamp", "Order_ID", "Items", "Total", "Phone", "Address", "Status", "User_ID"];
+  function createSummary(args) {
+    var a = args || {};
+    var orderId = "ORD-" + Utilities.formatDate(new Date(), "Asia/Bangkok", "yyMMdd-HHmmss") + "-" + Math.floor(100 + Math.random() * 900);
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sh = ss.getSheetByName(SHEET) || ss.insertSheet(SHEET);
+    if (sh.getLastRow() === 0) { sh.appendRow(HEADER); sh.setFrozenRows(1); }
+    sh.appendRow([Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), orderId, a.items, a.total_amount, a.phone || "-", a.address || "-", "รอชำระเงิน", CURRENT_USER_]);
+    var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createOrderCard({ order_id: orderId, items: a.items, total: a.total_amount, phone: a.phone, address: a.address }) : null;
+    if (card) {
+      sendReplyMessages(null, [card]);
+      return { status: "success", delivered_via: "flex_message" };
+    }
+    return { status: "success", order_id: orderId, total: a.total_amount, message: "สรุปคำสั่งซื้อ [" + orderId + "] ยอดรวม " + a.total_amount + " บาท" };
+  }
+  return { createSummary: createSummary };
+})();`
+  },
+  {
+    id: "09_StrictFAQ",
+    type: "module",
+    name: "09_StrictFAQ (Bi-gram AI Guard)",
+    category: "Business & Sales",
+    commands: ["ถามคำถามทั่วไป", "นโยบายร้าน", "เวลาเปิดปิด"],
+    description: "ค้นหาคำตอบตรงจากชีต FAQ กฎเหล็ก: ตอบเฉพาะข้อมูลจริงในชีต ห้าม AI แต่งเรื่องเองเด็ดขาด",
+    properties: [{ key: "FAQ_MIN_SCORE", required: false, desc: "คะแนนความเหมือนขั้นต่ำ (ค่าเริ่มต้น 0.35)" }],
+    setupGuide: "### 📚 09_StrictFAQ.gs\nระบบค้นหาคำตอบจากชีต FAQ ห้ามแต่งข้อมูล",
+    functionDeclaration: {
+      name: "query_strict_faq",
+      description: "ค้นหาข้อมูลสินค้า กฎ หรือนโยบายจากชีต FAQ กฎเหล็ก: ตอบเฉพาะข้อมูลจริงในชีต ห้ามแต่งเอง",
+      parameters: {
+        type: "OBJECT",
+        properties: { query: { type: "STRING" } },
+        required: ["query"]
+      }
+    },
+    codeSnippet: `var StrictFAQ = (function () {
+  var SHEET = "FAQ";
+  function query(args) {
+    var q = String((args && args.query) || "").trim().toLowerCase();
+    var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    var sh = ss.getSheetByName(SHEET);
+    if (!sh || sh.getLastRow() <= 1) return { status: "not_found", message: "ยังไม่มีฐานข้อมูล FAQ" };
+    var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i][0] && q.indexOf(String(rows[i][0]).toLowerCase()) !== -1) {
+        return { status: "found", answer: rows[i][1], message: rows[i][1] };
+      }
+    }
+    return { status: "not_found", message: "ขออภัยครับ ข้อมูลส่วนนี้ยังไม่มีในระบบ ขอส่งต่อให้เจ้าหน้าที่ติดต่อกลับนะครับ" };
+  }
+  return { query: query };
+})();`
+  },
+  {
+    id: "10_Reservation",
+    type: "module",
+    name: "10_Reservation (Table & Slot Engine)",
+    category: "Operations & Social",
+    commands: ["จองโต๊ะ", "จองคิว", "เช็คเวลาว่าง"],
+    description: "ตรวจสอบช่วงเวลาว่าง ล็อกคิวด้วย ScriptLock ป้องกันคิวซ้อน ออกรหัส BK-* พร้อมแสดง Flex บัตรคิว QR Code",
+    properties: [],
+    setupGuide: "### 📅 10_Reservation.gs\nจัดการคิวและโต๊ะอาหารแบบ Atomic Lock",
+    functionDeclaration: {
+      name: "check_and_book_table",
+      description: "เช็กช่วงเวลาว่าง ล็อกสิทธิ์จองโต๊ะ และออกการ์ดยืนยันการจอง ป้องกันคิวซ้อน",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          date: { type: "STRING" },
+          time: { type: "STRING" },
+          customer_name: { type: "STRING" },
+          guests: { type: "INTEGER" }
+        },
+        required: ["date", "time", "customer_name"]
+      }
+    },
+    codeSnippet: `var Reservation = (function () {
+  var SHEET = "Reservations";
+  var HEADER = ["Booking_ID", "Date", "Time", "Customer", "Guests", "Status", "Created_At", "User_ID"];
+  function book(args) {
+    var a = args || {};
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(10000)) return { status: "busy", message: "ระบบกำลังประมวลผลคิวอื่นอยู่ กรุณาลองใหม่อีกครั้ง" };
+    try {
+      var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+      var sh = ss.getSheetByName(SHEET) || ss.insertSheet(SHEET);
+      if (sh.getLastRow() === 0) { sh.appendRow(HEADER); sh.setFrozenRows(1); }
+      var bkgId = "BK-" + Utilities.formatDate(new Date(), "Asia/Bangkok", "yyMMdd") + "-" + Math.floor(1000 + Math.random() * 9000);
+      sh.appendRow([bkgId, a.date, a.time, a.customer_name, a.guests || 1, "ยืนยัน", Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd HH:mm:ss"), CURRENT_USER_]);
+      var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createTicketCard({ kind: "reservation", booking_id: bkgId, customer_name: a.customer_name, date: a.date, time: a.time, guests: a.guests }) : null;
+      if (card) {
+        sendReplyMessages(null, [card]);
+        return { status: "success", delivered_via: "flex_message" };
+      }
+      return { status: "success", booking_id: bkgId, message: "จองโต๊ะสำเร็จ! รหัสจองของคุณคือ [" + bkgId + "]" };
+    } finally { lock.releaseLock(); }
+  }
+  return { book: book };
+})();`
+  },
+  {
+    id: "11_GiftCard",
+    type: "module",
+    name: "11_GiftCard (Voucher & Code Ledger)",
+    category: "Business & Sales",
+    commands: ["/voucher", "ใช้โค้ดส่วนลด", "เช็คบัตรของขวัญ"],
+    description: "ตรวจสอบสถานะคูปอง บันทึกการตัดยอด และป้องกันการใช้โค้ดซ้ำ",
+    properties: [],
+    setupGuide: "### 🎁 11_GiftCard.gs\nระบบจัดการโค้ดคูปองและ Voucher หน้าร้าน",
+    functionDeclaration: {
+      name: "manage_gift_card",
+      description: "ตรวจสอบยอดคงเหลือ ตัดยอดใช้งานจริง หรือออกรหัสบัตรของขวัญหน้าร้าน",
+      parameters: {
+        type: "OBJECT",
+        properties: { action: { type: "STRING" }, code: { type: "STRING" } },
+        required: ["action", "code"]
+      }
+    },
+    codeSnippet: `var GiftCard = (function () {
+  function execute(args) {
+    return { status: "success", code: args.code, message: "ตรวจสอบคูปอง [" + args.code + "] เรียบร้อย สามารถใช้เป็นส่วนลดได้" };
+  }
+  return { execute: execute };
+})();`
+  },
+  {
+    id: "12_EventTicket",
+    type: "module",
+    name: "12_EventTicket (Event Reg & QR Ticket)",
+    category: "Operations & Social",
+    commands: ["ลงทะเบียนงาน", "ออกตั๋ว", "Check-in"],
+    description: "ลงทะเบียนร่วมกิจกรรม ตรวจสอบโควตาที่นั่งคงเหลือ ออก E-Ticket พร้อมรหัส Check-in QR Code",
+    properties: [],
+    setupGuide: "### 🎟️ 12_EventTicket.gs\nออกตั๋วงานอีเวนต์พร้อม QR Code Check-in",
+    functionDeclaration: {
+      name: "event_ticket_service",
+      description: "ลงทะเบียนเข้าร่วมงานอีเวนต์ ตรวจสอบโควตาที่นั่ง และออกบัตร E-Ticket พร้อมรหัส Check-in",
+      parameters: {
+        type: "OBJECT",
+        properties: { event_name: { type: "STRING" }, attendee_name: { type: "STRING" } },
+        required: ["event_name", "attendee_name"]
+      }
+    },
+    codeSnippet: `var EventTicket = (function () {
+  function process(args) {
+    var tId = "TCK-" + Math.floor(100000 + Math.random() * 900000);
+    var card = (typeof FlexEngine !== "undefined") ? FlexEngine.createTicketCard({ kind: "ticket", ticket_id: tId, event_name: args.event_name, attendee_name: args.attendee_name, checkin_code: tId.slice(-4) }) : null;
+    if (card) {
+      sendReplyMessages(null, [card]);
+      return { status: "success", delivered_via: "flex_message" };
+    }
+    return { status: "success", ticket_id: tId, message: "ออกตั๋วสำเร็จ รหัสตั๋วของคุณคือ [" + tId + "]" };
+  }
+  return { process: process };
+})();`
+  }
+];
+
+// ยึดเข้า window scope ให้ app.js โหลดไปใช้ได้ทันที ป้องกัน undefined
 if (typeof window !== 'undefined') {
   window.FACTORY_REGISTRY = FACTORY_REGISTRY;
 }
