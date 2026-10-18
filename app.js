@@ -961,26 +961,35 @@ function initDuiiChatCopilot() {
     };
   }
 
-  function speakOfficerReply(text, officerKey) {
-    if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+ function speakOfficerReply(text, officerKey) {
+  if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
 
-    const cleanText = text
-      .replace(/```[\s\S]*?```/g, "ดูบล็อกโค้ดบนหน้าจอครับ")
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/[*#_~]/g, "")
-      .trim();
+  const cleanText = text
+    .replace(/```[\s\S]*?```/g, "ดูบล็อกโค้ดบนหน้าจอครับ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/[*#_~]/g, "")
+    .replace(/\[.*?\]:/g, "") // ตัดคำนำหน้า [ไอ้ดุ่ย]: ออก ป้องกันมันอ่านเป็นภาษาอังกฤษพิลึก
+    .trim();
 
-    if (!cleanText) return;
+  if (!cleanText) return;
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = "th-TH";
-    const profile = SQUAD_VOICE_PROFILES[officerKey] || SQUAD_VOICE_PROFILES.duii;
-    utterance.pitch = profile.pitch;
-    utterance.rate = profile.rate;
-
-    window.speechSynthesis.speak(utterance);
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = "th-TH"; // บังคับล็อกเสียงภาษาไทย
+  
+  // หาเสียงภาษาไทยในเครื่องมาใช้โดยตรง (แก้ปัญหาเครื่องอ่านอังกฤษ)
+  const voices = window.speechSynthesis.getVoices();
+  const thaiVoice = voices.find(v => v.lang === 'th-TH' || v.lang.includes('th'));
+  if (thaiVoice) {
+    utterance.voice = thaiVoice;
   }
+
+  const profile = SQUAD_VOICE_PROFILES[officerKey] || SQUAD_VOICE_PROFILES.duii;
+  utterance.pitch = profile.pitch;
+  utterance.rate = profile.rate;
+
+  window.speechSynthesis.speak(utterance);
+}
 
   if (btnVoiceRecord && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
