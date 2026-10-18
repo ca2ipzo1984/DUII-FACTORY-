@@ -308,4 +308,16 @@
       const textarea = document.getElementById("editorTextarea");
       const title = document.getElementById("editorTitle");
       
-      const
+      const mod = (typeof activeModules !== "undefined") ? activeModules.find(m => m.id === moduleId) : null;
+      if (mod && textarea && title) {
+        title.textContent = `✏️ แก้ไขโค้ด: ${mod.name}`;
+        textarea.value = mod.codeSnippet || "";
+      }
+      if (modal) {
+        modal.style.setProperty("display", "flex", "important");
+        modal.classList.remove("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
