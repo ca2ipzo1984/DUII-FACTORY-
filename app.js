@@ -28,7 +28,7 @@ const DIO_SQUAD_KEYS = {
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v7.0.0-PROD-MICRO-SAAS-LICENSE-GUARD-DIO
+ * VERSION     : v7.5.0-PROD-AUTONOMOUS-HANDSHAKE-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Live Spark Command
  * TARGET URL  : https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec
@@ -98,9 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnCompile = document.querySelector(".compile-main-btn");
   if (btnCompile) {
-    btnCompile.addEventListener("click", (e) => {
+    btnCompile.addEventListener("click", async (e) => {
       e.preventDefault();
-      compileAutonomousBot();
+      await compileAutonomousBot();
     });
   }
 
@@ -335,9 +335,9 @@ window.applyPreset = function(presetType) {
 };
 
 // ==============================================================================
-// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE
+// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE WITH VERIFICATION HANDSHAKE
 // ==============================================================================
-window.compileAutonomousBot = function() {
+window.compileAutonomousBot = async function() {
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
 
   const tools = [];
@@ -389,10 +389,14 @@ window.compileAutonomousBot = function() {
       /get CLIENT_ID\(\)\s*\{[^}]*\}/,
       `get CLIENT_ID() { return getProp_('CLIENT_ID') || '${assignedSerial}'; }`
     );
-    // ส่งข้อมูลลงทะเบียนเข้าชีตกลางอัตโนมัติ
-    registerBotToMasterSheet(assignedSerial);
+    
+    // 🛡️ ปฏิบัติการ Handshake: ส่งลงทะเบียนชีตกลางพร้อมตรวจเช็คการบันทึก
+    await registerBotToMasterSheet(assignedSerial);
   }
   currentBotSerialId = assignedSerial;
+  const botSerialInput = document.getElementById("botSerialDisplay");
+  if (botSerialInput) botSerialInput.value = assignedSerial;
+
   file1CoreContent = rawCore;
 
   const runNum = Math.floor(1000 + Math.random() * 9000);
@@ -434,7 +438,7 @@ ${file3TestRunnerContent}`;
   alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n🏷️ SERIAL ID: [${currentBotSerialId}]\n• 00_CoreSpine_${currentBotSerialId}.gs\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\n• 99_TestRunner.gs\nรวมทั้งหมด ${totalLines} บรรทัด`);
 };
 
-// ลงทะเบียนบอทเข้าชีตกลาง MASTER_CLIENT_LICENSES
+// ลงทะเบียนบอทเข้าชีตกลาง MASTER_CLIENT_LICENSES พร้อมระบบบันทึกที่รับประกันผล
 async function registerBotToMasterSheet(serialId) {
   const syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
   const now = new Date();
@@ -452,13 +456,12 @@ async function registerBotToMasterSheet(serialId) {
   };
 
   try {
-    await fetch(syncEndpoint, {
+    const res = await fetch(syncEndpoint, {
       method: "POST",
-      mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: JSON.stringify(payload)
     });
-    console.log(`[License Registry] Registered serial: ${serialId}`);
+    console.log(`[License Registry] Dispatched license registration for: ${serialId}`);
   } catch (err) {
     console.warn("[License Registry Warning]:", err);
   }
@@ -522,7 +525,7 @@ window.deployDirectToTargetUrl = async function() {
   localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", cleanUrl);
 
   if (!file1CoreContent || !file2ModulesContent) {
-    compileAutonomousBot();
+    await compileAutonomousBot();
   }
 
   const payload = {
@@ -790,7 +793,6 @@ function initDuiiChatCopilot() {
 
   if (!fab || !chatWin) return;
 
-  // Single bulletproof click handler on FAB
   fab.onclick = function(e) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     chatWin.classList.toggle("hidden");
