@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler</title>
+  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler (DIO STANDARD)</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#0d1117">
@@ -21,6 +21,37 @@
       object-fit: cover;
       display: block;
     }
+
+    /* แถบวิทยุสื่อสาร 4 ขุนพลแก๊งส่องกบ */
+    .squad-radio-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #080b10;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .squad-select {
+      background: #161b22;
+      color: #fff;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      padding: 3px 6px;
+      outline: none;
+      font-family: inherit;
+    }
+    .squad-select:focus {
+      border-color: var(--accent-orange);
+    }
+    .radio-btn-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -29,7 +60,7 @@
   <header class="factory-header">
     <div style="display:flex; align-items:center;">
       <span class="brand-title">DUII FACTORY</span>
-      <span class="tag-iso">ISO 9009</span>
+      <span class="tag-iso" style="border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.15);">DIO STANDARD</span>
     </div>
 
     <!-- TOP NAVIGATION -->
@@ -109,11 +140,11 @@
             <button type="button" class="sub-tab-btn" data-subtab="view-readme">📖 คู่มือ (README)</button>
             <button type="button" class="sub-tab-btn" data-subtab="view-props">🔑 Properties</button>
           </div>
-          <span class="line-badge" id="lineCountBadge">LINES: 0 (ISO 9009)</span>
+          <span class="line-badge" id="lineCountBadge">LINES: 0 (DIO)</span>
         </div>
 
         <div class="sub-view active" id="view-code" style="flex-direction:column; height:100%;">
-          <textarea class="code-editor-area" id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท 3 ไฟล์' เพื่อผลิตโค้ดมาตรฐาน Trinity ISO 9009..."></textarea>
+          <textarea class="code-editor-area" id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท 3 ไฟล์' เพื่อผลิตโค้ดมาตรฐาน Trinity DIO Standard..."></textarea>
           <div style="display:flex; gap:8px; padding:8px 12px; background:#161b22; border-top:1px solid var(--border-color);">
             <button type="button" class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
             <button type="button" class="btn-action secondary" onclick="downloadAllIndividualGsFiles()">💾 ดาวน์โหลดแยก 3 ไฟล์ (.gs)</button>
@@ -152,7 +183,7 @@
     </div>
   </main>
 
-  <!-- MODAL: CODE EDITOR (ซ่อนตั้งต้นเด็ดขาด ไม่เกะกะบังหน้าจอ) -->
+  <!-- MODAL: CODE EDITOR -->
   <div id="editorModal" class="hidden" style="display: none !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:9999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
       <span id="editorTitle" style="color:#fff; font-weight:bold; font-size:0.85rem;">✏️ แก้ไขโค้ดโมดูล</span>
@@ -167,14 +198,14 @@
     </div>
   </div>
 
-  <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
+  <!-- FLOATING CHAT BUTTON (FAB) -->
   <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
     <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
     <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
-  <!-- DUII LIVE CHAT WINDOW (ซ่อนตั้งต้นเด็ดขาด) -->
+  <!-- DUII LIVE CHAT WINDOW -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
@@ -188,8 +219,26 @@
         <!-- ปุ่มเปิด/ปิดกระดาษโน้ต 📝 -->
         <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
         <button type="button" class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
-        <!-- ปุ่มปิด ✖ พร้อม Direct Event Handler ปิดหน้าต่างทันที -->
+        <!-- ปุ่มปิด ✖ -->
         <button type="button" class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
+      </div>
+    </div>
+
+    <!-- SQUAD WALKIE-TALKIE RADIO BAR (แถบวิทยุสื่อสาร 4 ขุนพล) -->
+    <div class="squad-radio-bar">
+      <div style="display:flex; gap:4px; align-items:center;">
+        <span style="color:var(--text-muted); font-size:0.7rem;">ว. หา:</span>
+        <select id="squadOfficerSelect" class="squad-select">
+          <option value="duii">👑 ไอ้ดุ่ย (หัวหน้าใหญ่)</option>
+          <option value="lung_jan">🛡️ ลุงจั่น ปีกหิน (Chassis/License)</option>
+          <option value="ai_song">🔍 อ้ายหนานส่อง (Schema/Router)</option>
+          <option value="bak_joy">⚡ บักจ่อย ซอยขาด (Syntax Tester)</option>
+          <option value="bang_bao">⛽ บังบ่าว หัวจ่าย (Keys Manager)</option>
+        </select>
+      </div>
+      <div class="radio-btn-group">
+        <button type="button" id="btnToggleSpeechOutput" class="btn-preset" style="padding:2px 8px; font-size:0.7rem; background:#21262d; border:1px solid #30363d;" title="เปิด/ปิดเสียงตอบกลับ">🔊 เปิดเสียง</button>
+        <button type="button" id="btnVoiceRecord" class="btn-preset btn-nightlife" style="padding:2px 10px; font-size:0.75rem; background:#da3633; font-weight:bold;" title="กดค้างเพื่อ ว. สั่งการ">🎙️ ว. คุย</button>
       </div>
     </div>
 
@@ -201,12 +250,12 @@
 
     <div class="chat-body" id="chatBody">
       <div class="chat-msg bot">
-        <div class="msg-bubble">กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY ISO 9009 มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลย!</div>
+        <div class="msg-bubble">กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY มาตรฐาน DIO พร้อมแก๊งส่องกบ 4 ขุนพลประจำสถานีรบ มึงอยากสั่งวิเคราะห์หรือประกอบพรีเซ็ตไหน สั่งการมาได้เลย!</div>
       </div>
     </div>
 
     <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน เช่น 'ประกอบบอทผับบาร์'..." autocomplete="off">
+      <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน หรือกด '🎙️ ว. คุย'..." autocomplete="off">
       <button type="button" class="btn-send" id="btnChatSend">ส่ง</button>
     </div>
   </div>
@@ -215,7 +264,7 @@
   <script src="modules.js"></script>
   <script src="app.js"></script>
 
-  <!-- DIRECT ACTION HANDLERS (รับประกันปุ่มปิด ✖ และปุ่มเปิดใช้งานได้แน่นอน) -->
+  <!-- DIRECT ACTION HANDLERS -->
   <script>
     function toggleDuiiChat(e) {
       if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -259,16 +308,4 @@
       const textarea = document.getElementById("editorTextarea");
       const title = document.getElementById("editorTitle");
       
-      const mod = (typeof activeModules !== "undefined") ? activeModules.find(m => m.id === moduleId) : null;
-      if (mod && textarea && title) {
-        title.textContent = `✏️ แก้ไขโค้ด: ${mod.name}`;
-        textarea.value = mod.codeSnippet || "";
-      }
-      if (modal) {
-        modal.style.setProperty("display", "flex", "important");
-        modal.classList.remove("hidden");
-      }
-    }
-  </script>
-</body>
-</html>
+      const
