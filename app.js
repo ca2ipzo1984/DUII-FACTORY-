@@ -965,14 +965,13 @@ function speakOfficerReply(text, officerKey) {
   if (!isSpeechOutputEnabled || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
 
-  // แปลงและล้างคำอังกฤษที่เป็นจุดตายออกให้หมด เพื่อบังคับให้ engine อ่านภาษาไทยยาวๆ
   const cleanText = text
     .replace(/```[\s\S]*?```/g, "มีชุดโค้ดบนหน้าจอครับ")
     .replace(/`([^`]+)`/g, "")
     .replace(/Error Log/gi, "เออเรอร์ล็อก")
     .replace(/API/gi, "เอพียี")
     .replace(/JSON/gi, "เจซอน")
-    .replace(/[a-zA-Z]+/g, "") // ตัดตัวอักษรภาษาอังกฤษทิ้งทุกตัวที่หลุดรอดมา
+    .replace(/[a-zA-Z]+/g, "")
     .replace(/[*#_~\[\]():!-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -982,10 +981,15 @@ function speakOfficerReply(text, officerKey) {
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = "th-TH";
 
+  // เช็กชื่อเสียงในระบบแบบกวาดล้างทุกตัวอักษรที่ขึ้นต้นด้วย th หรือ Thai
   const voices = window.speechSynthesis.getVoices();
-  let thaiVoice = voices.find(v => v.lang === 'th-TH' || v.lang === 'th_TH' || v.name.includes('Thai') || v.name.includes('ไทย'));
+  let thaiVoice = voices.find(v => v.lang.toLowerCase().startsWith('th') || v.name.toLowerCase().includes('thai') || v.name.includes('ไทย'));
+  
   if (thaiVoice) {
     utterance.voice = thaiVoice;
+    console.log("🔊 เจอเสียงไทย:", thaiVoice.name);
+  } else {
+    console.warn("⚠️ ไม่พบเสียงไทยในเบราว์เซอร์ ระบบจะใช้เสียงพื้นฐานแทน");
   }
 
   const profile = SQUAD_VOICE_PROFILES[officerKey] || SQUAD_VOICE_PROFILES.duii;
