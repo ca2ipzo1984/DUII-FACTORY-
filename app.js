@@ -1949,7 +1949,7 @@ window.switchToScoutWarRoom = function() {
   if (btn) btn.click();
 };
 
-// เพิ่มข้อความลงในช่องแชทจำลองทีมส่องกบ
+// เพิ่มข้อความลงในช่องแชทจำลองทีมส่องกบ พร้อมสีประจำตัวขุนพล DIO SQUAD
 function appendScoutChatMessage(agentKey, actionTag, message) {
   const feed = document.getElementById("scoutChatFeed");
   if (!feed) return;
@@ -1958,29 +1958,35 @@ function appendScoutChatMessage(agentKey, actionTag, message) {
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   const agentConfig = {
-    chief: { name: "👑 ไอ้ดุ่ย", role: "Chief Commander", color: "#fbbf24", class: "chief" },
-    scout: { name: "🔭 อ้ายหนานส่อง", role: "Lead Scout", color: "#38bdf8", class: "scout" },
-    inspector: { name: "🔍 ลุงจั่น", role: "Security Inspector", color: "#4ade80", class: "inspector" },
-    triage: { name: "🩺 บักจ่อย", role: "Triage Officer", color: "#f87171", class: "triage" },
-    welder: { name: "⚡ บังบ่าว", role: "Chassis Welder", color: "#c084fc", class: "welder" },
-    supreme: { name: "🎖️ นายหัวพีท", role: "Supreme Commander", color: "#34d399", class: "supreme" }
+    chief: { name: "👑 ไอ้ดุ่ย", role: "Chief Commander", class: "chief" },
+    scout: { name: "🔭 อ้ายหนานส่อง", role: "Lead Scout", class: "scout" },
+    inspector: { name: "🔍 ลุงจั่น", role: "Security Inspector", class: "inspector" },
+    triage: { name: "🩺 บักจ่อย", role: "Triage Officer", class: "triage" },
+    welder: { name: "⚡ บังบ่าว", role: "Chassis Welder", class: "welder" },
+    supreme: { name: "🎖️ นายหัวพีท", role: "Supreme Commander", class: "supreme" }
   };
 
   const agent = agentConfig[agentKey] || agentConfig.scout;
+
+  const formattedMessage = String(message || "")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
 
   const bubble = document.createElement("div");
   bubble.className = `scout-chat-bubble ${agent.class}`;
   bubble.innerHTML = `
     <div class="scout-bubble-header">
-      <span class="scout-agent-tag" style="color:${agent.color};">
-        ${agent.name} <span style="font-size:0.65rem; color:var(--text-muted); font-weight:normal;">[${agent.role}]</span>
-      </span>
+      <div class="scout-agent-badge">
+        <span>${agent.name}</span>
+        <span class="scout-agent-role">[${agent.role}]</span>
+      </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        ${actionTag ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; font-size:0.65rem; color:#94a3b8; font-weight:bold;">${actionTag}</span>` : ''}
-        <span style="font-size:0.65rem; color:var(--text-muted);">${timeStr}</span>
+        ${actionTag ? `<span class="scout-action-tag">${actionTag}</span>` : ''}
+        <span style="font-size:0.65rem; color:var(--text-muted); font-family:monospace;">${timeStr}</span>
       </div>
     </div>
-    <div class="scout-bubble-text">${message}</div>
+    <div class="scout-bubble-text">${formattedMessage}</div>
   `;
 
   feed.appendChild(bubble);
