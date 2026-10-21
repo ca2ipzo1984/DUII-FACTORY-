@@ -180,12 +180,12 @@
         </div>
       </div>
 
-      <div style="display:flex; align-items:center; gap:10px; flex:1; max-width:650px; justify-content:flex-end;">
-        <input type="text" id="scoutTargetInput" value="โมดูลบอท GAS และ LINE ขั้นเทพ ล้ำยุค ต้นทุน 0 บาท มีประโยชน์สูง" placeholder="ระบุภารกิจส่องกบ..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;">
-        <button type="button" class="btn-action success" id="btnDeployScoutSquad" onclick="runFrogScoutMission()" style="width:auto; padding:8px 18px; font-weight:bold; white-space:nowrap; background:#238636; border:1px solid #2ea043; cursor:pointer;">
+      <form id="scoutTargetForm" onsubmit="event.preventDefault(); runFrogScoutMission();" style="display:flex; align-items:center; gap:10px; flex:1; max-width:650px; justify-content:flex-end; margin:0;">
+        <input type="text" id="scoutTargetInput" value="โมดูลบอท GAS และ LINE ขั้นเทพ ล้ำยุค ต้นทุน 0 บาท มีประโยชน์สูง" placeholder="ระบุภารกิจส่องกบ..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();runFrogScoutMission();}">
+        <button type="submit" class="btn-action success" id="btnDeployScoutSquad" style="width:auto; padding:8px 18px; font-weight:bold; white-space:nowrap; background:#238636; border:1px solid #2ea043; cursor:pointer;">
           🚀 ปล่อยทีมส่องกบออกล่า
         </button>
-      </div>
+      </form>
     </div>
 
     <!-- MAIN SCOUT COCKPIT: DUAL PANE -->
@@ -215,11 +215,11 @@
           <!-- Chat bubbles will stream here -->
         </div>
 
-        <!-- QUICK CHAT INPUT FOR NAY HUA -->
-        <div style="padding:10px 14px; background:#0d1117; border-top:1px solid var(--border-color); display:flex; gap:8px;">
-          <input type="text" id="scoutChatInput" placeholder="พิมพ์สั่งการทีมส่องกบเพิ่มเติมได้ที่นี่..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;" onkeydown="if(event.key==='Enter') sendScoutManualOrder()">
-          <button type="button" class="btn-action primary" onclick="sendScoutManualOrder()" style="width:auto; padding:8px 16px; font-size:0.8rem;">สั่งการ</button>
-        </div>
+        <!-- QUICK CHAT INPUT FOR COMMANDER -->
+        <form id="scoutChatForm" onsubmit="event.preventDefault(); sendScoutManualOrder();" style="padding:10px 14px; background:#0d1117; border-top:1px solid var(--border-color); display:flex; gap:8px; margin:0;">
+          <input type="text" id="scoutChatInput" placeholder="พิมพ์สั่งการทีมส่องกบเพิ่มเติมได้ที่นี่..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();sendScoutManualOrder();}">
+          <button type="submit" class="btn-action primary" style="width:auto; padding:8px 16px; font-size:0.8rem;">สั่งการ</button>
+        </form>
       </section>
 
       <!-- RIGHT PANE: LOOTED VAULT / คลังของล้ำที่ล่ามาได้ (45%) -->

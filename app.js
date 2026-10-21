@@ -2281,15 +2281,19 @@ async function runAutonomousWarRoomSquad(customOrder) {
    - เมื่อลุงจั่นตรวจโค้ด ให้เรียก audit_code_compliance
    - เมื่อบักจ่อยกรองขยะ ให้เรียก triage_filter_junk
    - เมื่อบังบ่าวเชื่อม ให้เรียก weld_module_schema
-3. ห้ามใช้บทละครปาหี่ซ้ำซาก ให้ตอบโต้ด้วยสำเนียง 4 ภาคตามอัตลักษณ์ และคิดสดตามเป้าหมายของมึงพีทอย่างเฉียบขาด!`;
+3. ห้ามใช้บทละครปาหี่ซ้ำซาก ให้ตอบโต้ด้วยสำเนียง 4 ภาคตามอัตลักษณ์ และคิดสดตามเป้าหมายของมึงอย่างเฉียบขาด!`;
 
-  const availableKeys = getAllAvailableGeminiKeys();
+  let availableKeys = getAllAvailableGeminiKeys();
   if (!availableKeys.length) {
-    appendScoutChatMessage("chief", "ALERT", "⚠️ **ไอ้ดุ่ยรายงาน**: ไม่มี API Key ในระบบว่ะมึง! เปิด Note Drawer 📝 แล้วใส่คีย์ Gemini ก่อนนะเว้ย!");
+    await autoSyncSquadKeysFromBridge();
+    availableKeys = getAllAvailableGeminiKeys();
+  }
+  if (!availableKeys.length) {
+    appendScoutChatMessage("chief", "ALERT", "⚡ ไอ้ดุ่ยกำลังต่อท่อดูดคีย์จาก Bridge อยู่เว้ยมึง! รอนิดเดียวแล้วกดสั่งใหม่ได้เลย!");
     if (btn) btn.disabled = false;
     if (stageBadge) {
-      stageBadge.textContent = "🔴 ขาด API Key";
-      stageBadge.style.color = "#f87171";
+      stageBadge.textContent = "🟡 กำลังซิงก์คีย์";
+      stageBadge.style.color = "#f59e0b";
     }
     return;
   }
@@ -2459,6 +2463,43 @@ window.sendScoutManualOrder = function() {
 function initScoutWarRoom() {
   renderScoutLootCards();
   appendScoutChatMessage("chief", "WAR ROOM READY", "👑 **ศูนย์บัญชาการรบ DIO SQUAD สแตนด์บาย!** สั่งการมาได้เลยมึง! จะพิมพ์ในช่องแชทสั่งงานขุนพล หรือกด '🚀 ปล่อยทีมส่องกบออกล่า' ด้านบน พวกกูพร้อมรบ 24 ชั่วโมง!");
+
+  // ผูก Event Listener ครอบคลุมทั้ง Enter (Keydown) และ Form Submit ป้องกันปัญหากด Enter ไม่ทำงาน
+  const chatForm = document.getElementById("scoutChatForm");
+  if (chatForm) {
+    chatForm.onsubmit = function(e) {
+      if (e) e.preventDefault();
+      window.sendScoutManualOrder();
+    };
+  }
+
+  const chatInput = document.getElementById("scoutChatInput");
+  if (chatInput) {
+    chatInput.onkeydown = function(e) {
+      if ((e.key === "Enter" || e.keyCode === 13) && !e.isComposing) {
+        e.preventDefault();
+        window.sendScoutManualOrder();
+      }
+    };
+  }
+
+  const targetForm = document.getElementById("scoutTargetForm");
+  if (targetForm) {
+    targetForm.onsubmit = function(e) {
+      if (e) e.preventDefault();
+      window.runFrogScoutMission();
+    };
+  }
+
+  const targetInput = document.getElementById("scoutTargetInput");
+  if (targetInput) {
+    targetInput.onkeydown = function(e) {
+      if ((e.key === "Enter" || e.keyCode === 13) && !e.isComposing) {
+        e.preventDefault();
+        window.runFrogScoutMission();
+      }
+    };
+  }
 }
 
 // ==============================================================================
