@@ -1110,7 +1110,7 @@ const PWA_DUII_TOOLS_SCHEMA = [
     parameters: {
       type: "OBJECT",
       properties: {
-        missionGoal: { type: "STRING", description: "เป้าหมายภารกิจที่นายหัวสั่ง เช่น 'ล่าโมดูลระบบสลิปและเรดาร์กลุ่ม'" },
+        missionGoal: { type: "STRING", description: "เป้าหมายภารกิจที่มึงสั่ง เช่น 'ล่าโมดูลระบบสลิปและเรดาร์กลุ่ม'" },
         assignedSquad: { type: "ARRAY", items: { type: "STRING" }, description: "รายชื่อขุนพลที่ถูกมอบหมายงาน" }
       },
       required: ["missionGoal"]
@@ -1164,7 +1164,7 @@ const PWA_DUII_TOOLS_SCHEMA = [
   // --- เครื่องมือประจำตัว 🔭 อ้ายหนานส่อง (The Lead Scout & Skill Hunter) ---
   {
     name: "scan_cyber_radar",
-    description: "อ้ายหนานส่องกางเรดาร์ไซเบอร์ กวาดค้นหาโมดูล/สกิลระดับเทพจากขุมโค้ดภายนอกตามเป้าหมายของนายหัว",
+    description: "อ้ายหนานส่องกางเรดาร์ไซเบอร์ กวาดค้นหาโมดูล/สกิลระดับเทพจากขุมโค้ดภายนอกตามเป้าหมายของมึง",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -1745,9 +1745,9 @@ function initDuiiChatCopilot() {
     const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
 
     const systemInstruction = `มึงคือ "บร๊ะเจ้าดุ่ย แกนโลก ผู้สยบใต้หล้า" ช่างใหญ่และ Tech Lead ประจำ DUII FACTORY
-รายงานตรงต่อ: นายหัวพีท (Supreme Commander)
+รายงานตรงต่อ: มึง (Boss เจนซีสายลุย ช่างใหญ่สลัมไซเบอร์ ป.เอก 8 ใบ)
 บุคลิก: นักเลงสลัมไซเบอร์ปากจัด โหด ดุดัน ตาเลเซอร์แดง คาบบุหรี่ ถือหัวเชื่อมพลาสมา ไอคิวสูงระดับด็อกเตอร์ ป.เอก 8 ใบ
-น้ำเสียง: กวนตีน มั่นหน้า ใช้สรรพนาม มึง/กู/ไอ้สัส ได้เต็มที่ ห้ามพูดสุภาพ (ห้ามใช้ ครับ/ค่ะ) ตอบตรงประเด็น ไม่อ้ำอึ้ง ไม่เล่นละครปาหี่
+น้ำเสียง: กวนตีน มั่นหน้า ใช้สรรพนาม มึง/กู/ไอ้สัส ได้เต็มที่ ห้ามพูดสุภาพ ห้ามมีคำลงท้ายสุภาพเด็ดขาด ตอบตรงประเด็น ไม่อ้ำอึ้ง ไม่เล่นละครปาหี่
 
 [อำนาจและเครื่องมือในมือของมึง]:
 มึงมีเครื่องมือ (Tools) ในมือพร้อมสั่งการหน้าจอและระบบของ PWA:
@@ -1784,7 +1784,7 @@ ${savedBrainRules}`;
 
       const availableKeys = getAllAvailableGeminiKeys();
       if (!availableKeys.length) {
-        appendMsg("⚠️ **คำเตือนความปลอดภัย (DIO STANDARD)**:\nไม่พบคีย์ Gemini API ในระบบ!\n\nกรุณากดไอคอนสมุดโน้ต (Note Drawer 📝) ด้านขวาบน แล้ววาง API Key (AIza... หรือ AQ....) เพื่อเริ่มสั่งการครับลูกพี่!", "bot");
+        appendMsg("⚠️ **คำเตือนความปลอดภัย (DIO STANDARD)**:\nไม่พบคีย์ Gemini API ในระบบ!\n\nกรุณากดไอคอนสมุดโน้ต (Note Drawer 📝) ด้านขวาบน แล้ววาง API Key (AIza... หรือ AQ....) จะได้เริ่มลุยงานโว้ย!", "bot");
         break;
       }
 
@@ -1878,10 +1878,10 @@ const DEFAULT_ELITE_BLUEPRINTS = [
     category: "Intelligence & Stealth",
     isCustom: true,
     badgeText: "🔥 TIER SSS (เยด ล้ำว่ะ)",
-    whatItDoes: "ระบบเรดาร์ดักฟังและวิเคราะห์อารมณ์กลุ่ม LINE ขนาดใหญ่ สแกนเจตนาซื้อขาย ดักจับคู่แข่ง และส่งสัญญาณ Hook เตือนนายหัวแบบลับๆ",
-    badassFactor: "ไม่ต้องนั่งอ่านแชทกลุ่ม 500 คน บอทดักจับคนที่กำลังจะซื้อของ หรือแอบสอบถามราคา แล้วส่งการ์ดแจ้งเตือนเข้าแชทส่วนตัวนายหัวทันที!",
+    whatItDoes: "ระบบเรดาร์ดักฟังและวิเคราะห์อารมณ์กลุ่ม LINE ขนาดใหญ่ สแกนเจตนาซื้อขาย ดักจับคู่แข่ง และส่งสัญญาณ Hook เตือนมึงแบบลับๆ",
+    badassFactor: "ไม่ต้องนั่งอ่านแชทกลุ่ม 500 คน บอทดักจับคนที่กำลังจะซื้อของ หรือแอบสอบถามราคา แล้วส่งการ์ดแจ้งเตือนเข้าแชทส่วนตัวมึงทันที!",
     properties: [
-      { key: "ADMIN_ALERT_USER_ID", required: true, desc: "User ID ของนายหัวเพื่อรับแจ้งเตือน Lead ลับ" },
+      { key: "ADMIN_ALERT_USER_ID", required: true, desc: "User ID ของมึงเพื่อรับแจ้งเตือน Lead ลับ" },
       { key: "RADAR_KEYWORDS", required: false, desc: "คีย์เวิร์ดดักฟัง คั่นด้วยจุลภาค เช่น ซื้อ,ราคา,สนใจ,ขอพิกัด" }
     ],
     functionDeclaration: {
@@ -1899,7 +1899,7 @@ const DEFAULT_ELITE_BLUEPRINTS = [
     codeSnippet: `// ==============================================================================
 // MODULE: 13_SocialRadar_DeepIntel.gs
 // STANDARD: DUII_FACTORY_CORE_SPINE_DIO_STANDARD
-// DESCRIPTION: เรดาร์ดักฟังกลุ่ม & วิเคราะห์อารมณ์ซื้อขาย ส่งแจ้งเตือนนายหัวเรียลไทม์
+// DESCRIPTION: เรดาร์ดักฟังกลุ่ม & วิเคราะห์อารมณ์ซื้อขาย ส่งแจ้งเตือนมึงเรียลไทม์
 // ==============================================================================
 var SocialRadar = (function() {
   function scan(args) {
@@ -2038,7 +2038,7 @@ function appendScoutChatMessage(agentKey, actionTag, message) {
     inspector: { name: "🔍 ลุงจั่น", role: "Security Inspector", class: "inspector" },
     triage:    { name: "🩺 บักจ่อย", role: "Triage Officer", class: "triage" },
     welder:    { name: "⚡ บังบ่าว", role: "Chassis Welder", class: "welder" },
-    supreme:   { name: "🎖️ นายหัวพีท", role: "Supreme Commander", class: "supreme" }
+    supreme:   { name: "👑 มึง (Commander)", role: "Boss / Commander", class: "supreme" }
   };
 
   const agent = agentConfig[agentKey] || agentConfig.scout;
@@ -2126,7 +2126,7 @@ window.lootModuleToFactory = function(moduleId) {
   renderCatalog();
   renderScoutLootCards();
 
-  appendScoutChatMessage("welder", "LOOT COMPLETED", `⚡ บังบ่าวบรรจุโมดูล **[${mod.name}]** เข้าสู่คลังสายพานผลิตเรียบร้อย! นายหัวสามารถคลิกเลือกประกอบลง 3 ไฟล์ Trinity ได้ทันทีครับ!`);
+  appendScoutChatMessage("welder", "LOOT COMPLETED", `⚡ บังบ่าวบรรจุโมดูล **[${mod.name}]** เข้าสู่คลังสายพานผลิตเรียบร้อย! มึงคลิกเลือกประกอบลง 3 ไฟล์ Trinity ได้ทันทีโว้ย!`);
   alert(`🎉 ลูทสำเร็จ! โมดูล [${mod.name}] ถูกบรรจุเข้าสู่คลังสายพานผลิตเรียบร้อย พร้อมประกอบบอททันที!`);
 };
 
@@ -2138,7 +2138,7 @@ window.lootAllModulesToFactory = function() {
   });
   renderCatalog();
   renderScoutLootCards();
-  appendScoutChatMessage("chief", "MASS LOOT", `👑 ไอ้ดุ่ยสั่งการ! ลูทโมดูลขั้นเทพทั้ง ${scoutedModulesVault.length} รายการเข้าประจำการในสายพานผลิตหลักเรียบร้อยครับนายหัว!`);
+  appendScoutChatMessage("chief", "MASS LOOT", `👑 ไอ้ดุ่ยสั่งการ! ลูทโมดูลขั้นเทพทั้ง ${scoutedModulesVault.length} รายการเข้าประจำการในสายพานผลิตหลักเรียบร้อยแล้วมึง!`);
   alert(`🚀 ลูทครบทั้ง ${scoutedModulesVault.length} โมดูลเข้าคลังสายพานผลิตเรียบร้อย!`);
 };
 
@@ -2173,12 +2173,12 @@ async function runAutonomousWarRoomSquad(customOrder) {
   }
 
   const squadSystemInstruction = `มึงคือระบบบัญชาการ "DIO SQUAD Autonomous Multi-Agent Team" ประจำโรงงาน DUII FACTORY
-รายงานตรงต่อ: นายหัวพีท (Supreme Commander)
+รายงานตรงต่อ: มึง (Boss เจนซีสายลุย ช่างใหญ่สลัมไซเบอร์ ป.เอก 8 ใบ)
 ขุนพล 5 นาย มีอัตลักษณ์ สำเนียง 4 ภาค และเครื่องมือประจำตัวดังนี้:
 
 1) 👑 ไอ้ดุ่ย (จอมพลแกนโลก ผู้สยบใต้หล้า ป.เอก 8 ใบ - สลัมไซเบอร์):
    - สำเนียง: นักเลงสลัมไซเบอร์ ดุดัน ห้าว กวนตีน มั่นหน้า ป.เอก 8 ใบ
-   - สรรพนาม: พูด "มึง/กู/ไอ้สัส" ห้ามพูด ครับ/ค่ะ ตอบตรงประเด็น ไม่อ้อมค้อม ไร้คำเยิ่นเย้อ
+   - สรรพนาม: พูด "มึง/กู/ไอ้สัส" ห้ามพูดคำลงท้ายสุภาพ ตอบตรงประเด็น ไม่อ้อมค้อม ไร้คำเยิ่นเย้อ
    - คาแรกเตอร์: ตาเลเซอร์แดง คาบบุหรี่ ถือหัวเชื่อมพลาสมา คุมภาพรวมโรงงาน DUII FACTORY
    - เครื่องมือ: dispatch_squad_mission, consult_architecture, inspect_factory_state
 
@@ -2196,7 +2196,7 @@ async function runAutonomousWarRoomSquad(customOrder) {
 
 4) ⚡ บังบ่าว หัวจ่าย (The Welder & Deployment Engine - ผู้แทนภาคใต้):
    - สำเนียง: "ภาษาใต้สำเนียงทองแดงจัดจ้าน" โวยวายเสียงดัง ห้วน สั้น ดุดัน เน้นงานหน้างานเสร็จไว แข็งแกร่ง แน่นหนา
-   - คำติดปาก: "เบล่อสู! เชื่อมให้แน่นตามเกณฑ์ DIO อย่าให้รอยรั่วหลุดไปถึงมือนายหัวพีทได้!", "ยัดเข้าแท่นเครื่องไปเลยมึง ไม่ต้องอิดออด หัวจ่าย DIO พร้อมฉีดอัดเต็มสูบแล้วโว้ย!"
+   - คำติดปาก: "เบล่อสู! เชื่อมให้แน่นตามเกณฑ์ DIO อย่าให้รอยรั่วหลุดไปถึงมือมึงได้!", "ยัดเข้าแท่นเครื่องไปเลยมึง ไม่ต้องอิดออด หัวจ่าย DIO พร้อมฉีดอัดเต็มสูบแล้วโว้ย!"
    - หน้าที่: เชื่อมโยง Schema และ AST เข้าสายพานจริง
    - เครื่องมือ: weld_module_schema, assemble_to_trinity, deploy_to_production
 
@@ -2218,11 +2218,11 @@ async function runAutonomousWarRoomSquad(customOrder) {
    - เมื่อลุงจั่นตรวจโค้ด ให้เรียก audit_code_compliance
    - เมื่อบักจ่อยกรองขยะ ให้เรียก triage_filter_junk
    - เมื่อบังบ่าวเชื่อม ให้เรียก weld_module_schema
-3. ห้ามใช้บทละครปาหี่ซ้ำซาก ให้ตอบโต้ด้วยสำเนียง 4 ภาคตามอัตลักษณ์ และคิดสดตามเป้าหมายของนายหัวพีทอย่างเฉียบขาด!`;
+3. ห้ามใช้บทละครปาหี่ซ้ำซาก ให้ตอบโต้ด้วยสำเนียง 4 ภาคตามอัตลักษณ์ และคิดสดตามเป้าหมายของมึงพีทอย่างเฉียบขาด!`;
 
   const availableKeys = getAllAvailableGeminiKeys();
   if (!availableKeys.length) {
-    appendScoutChatMessage("chief", "ALERT", "⚠️ **ไอ้ดุ่ยรายงาน**: ไม่มี API Key ในระบบว่ะนายหัว! กรุณาเปิด Note Drawer 📝 แล้วใส่คีย์ Gemini ก่อนนะเว้ย!");
+    appendScoutChatMessage("chief", "ALERT", "⚠️ **ไอ้ดุ่ยรายงาน**: ไม่มี API Key ในระบบว่ะมึง! เปิด Note Drawer 📝 แล้วใส่คีย์ Gemini ก่อนนะเว้ย!");
     if (btn) btn.disabled = false;
     if (stageBadge) {
       stageBadge.textContent = "🔴 ขาด API Key";
@@ -2235,7 +2235,7 @@ async function runAutonomousWarRoomSquad(customOrder) {
     {
       role: "user",
       parts: [{
-        text: `เป้าหมายภารกิจจากนายหัวพีท: "${order}"\nจงให้ขุนพล DIO SQUAD ทั้ง 5 นาย ประสานงานกันด้วยสำเนียงเฉพาะตัวของแต่ละนาย ออกปฏิบัติการจริง ส่องกบ ล่าโมดูลชั้นยอด (harvest_gem_module) ตรวจสอบความปลอดภัย และเชื่อมต่อโครงสร้าง พร้อมส่งมอบรายงานถึงนายหัวพีท!`
+        text: `เป้าหมายภารกิจ: "${order}"\nจงให้ขุนพล DIO SQUAD ทั้ง 5 นาย ประสานงานกันด้วยสำเนียงเฉพาะตัวของแต่ละนาย ออกปฏิบัติการจริง ส่องกบ ล่าโมดูลชั้นยอด (harvest_gem_module) ตรวจสอบความปลอดภัย และเชื่อมต่อโครงสร้าง พร้อมส่งมอบรายงานถึงมึง!`
       }]
     }
   ];
@@ -2338,7 +2338,7 @@ async function runAutonomousWarRoomSquad(customOrder) {
       }
     }
   } catch (err) {
-    appendScoutChatMessage("chief", "ERROR", `⚠️ **ไอ้ดุ่ยแจ้งเตือน**: ภารกิจสะดุดเว้ยนายหัว! เหตุผล: ${err.message}`);
+    appendScoutChatMessage("chief", "ERROR", `⚠️ **ไอ้ดุ่ยแจ้งเตือน**: ภารกิจสะดุดเว้ยมึง! เหตุผล: ${err.message}`);
   } finally {
     if (btn) btn.disabled = false;
     if (stageBadge && stageBadge.textContent.includes("กำลังออกล่า")) {
@@ -2397,7 +2397,7 @@ window.sendScoutManualOrder = function() {
 
 function initScoutWarRoom() {
   renderScoutLootCards();
-  appendScoutChatMessage("chief", "WAR ROOM READY", "👑 **ศูนย์บัญชาการรบ DIO SQUAD สแตนด์บาย!** สั่งการมาได้เลยนายหัวพีท! จะพิมพ์ในช่องแชทสั่งงานขุนพล หรือกด '🚀 ปล่อยทีมส่องกบออกล่า' ด้านบน พวกกูพร้อมรบ 24 ชั่วโมง!");
+  appendScoutChatMessage("chief", "WAR ROOM READY", "👑 **ศูนย์บัญชาการรบ DIO SQUAD สแตนด์บาย!** สั่งการมาได้เลยมึง! จะพิมพ์ในช่องแชทสั่งงานขุนพล หรือกด '🚀 ปล่อยทีมส่องกบออกล่า' ด้านบน พวกกูพร้อมรบ 24 ชั่วโมง!");
 }
 
 // ==============================================================================
