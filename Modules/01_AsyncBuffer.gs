@@ -1,6 +1,6 @@
 /**
  * MODULE: 01_AsyncBuffer.gs
- * STANDARD: DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD: DUII_FACTORY_CORE_SPINE_DIO_STANDARD
  */
 var AsyncBuffer = (function () {
   var INDEX_KEY = "ab_index";

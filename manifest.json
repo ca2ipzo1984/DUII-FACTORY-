@@ -1,7 +1,7 @@
 {
   "name": "DUII FACTORY // บร๊ะเจ้าดุ่ย แกนโลก สยบใต้หล้า",
   "short_name": "DuiiFactory",
-  "description": "Serverless Autonomous Bot Assembler & Management Suite (ISO 9009)",
+  "description": "Serverless Autonomous Bot Assembler & Management Suite (DIO STANDARD)",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
- * SCRIPT NAME : 99_Test.gs
- * VERSION     : v5.2.0-INTEGRATED-TESTER
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
- * DESCRIPTION : รวมทั้ง Unit Test ตรวจโมดูล (Logic) และ Live Sniper ตรวจ API/Properties
+ * SCRIPT NAME : 99_TestRunner.gs
+ * VERSION     : v6.0.0-DIO-STANDARD-TEST-BENCH
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
+ * DESCRIPTION : แท่นทดสอบมาตรฐานระบบ DIO STANDARD: Unit Test ตรวจโมดูล และ Live Diagnostics Sniper
  * ==============================================================================
  */
 
@@ -12,7 +12,7 @@
 // ==============================================================================
 function runAllDuiiTests() {
   console.log("==================================================================");
-  console.log("🚀 DUII FACTORY // STARTING SYSTEM VERIFICATION TEST SUITE");
+  console.log("🚀 DUII FACTORY // STARTING SYSTEM VERIFICATION TEST SUITE (DIO STANDARD)");
   console.log("==================================================================");
 
   var results = [];
@@ -99,6 +99,14 @@ function runAllDuiiTests() {
     assert("10. HumanHandoff Loaded", false, "ไม่พบ 06_HumanHandoff.gs");
   }
 
+  // 10. License Guard Check
+  if (typeof checkCentralLicense_ === "function") {
+    var lic = checkCentralLicense_();
+    assert("11. License Guard Sentinel", lic && typeof lic.valid === "boolean", "Status: " + (lic.valid ? "ACTIVE" : lic.reason));
+  } else {
+    assert("11. License Guard Sentinel", false, "ไม่พบฟังก์ชัน checkCentralLicense_ ใน 00_CoreSpine");
+  }
+
   console.log("==================================================================");
   var passCount = results.filter(function (r) { return r.status === "PASS"; }).length;
   console.log("📊 สรุปผล Unit Test โมดูล: ผ่าน " + passCount + "/" + results.length);
@@ -106,7 +114,7 @@ function runAllDuiiTests() {
 }
 
 // ==============================================================================
-// 2. LIVE DIAGNOSTICS SNIPER (ส่องดู Script Properties และยิงทดสอบ API ภายนอกสดๆ)
+// 2. LIVE DIAGNOSTICS SNIPER (ส่องดู Script Properties และยิงทดสอบ API ผ่าน x-goog-api-key)
 // ==============================================================================
 function debugLiveWebhook() {
   console.log("=== 1. ตรวจสอบ SCRIPT PROPERTIES ===");
@@ -115,25 +123,36 @@ function debugLiveWebhook() {
   var k1 = (p.getProperty('GEMINI_API_KEY_1') || '').trim();
   var k2 = (p.getProperty('GEMINI_API_KEY_2') || '').trim();
   var k3 = (p.getProperty('GEMINI_API_KEY_3') || '').trim();
+  var k4 = (p.getProperty('GEMINI_API_KEY_4') || '').trim();
+  var k5 = (p.getProperty('GEMINI_API_KEY_5') || '').trim();
+  var k6 = (p.getProperty('GEMINI_API_KEY_6') || '').trim();
   var singleKeys = (p.getProperty('GEMINI_API_KEYS') || '').trim();
+  var clientId = (p.getProperty('CLIENT_ID') || (typeof CONFIG !== 'undefined' ? CONFIG.CLIENT_ID : '')).trim();
 
+  console.log("SERIAL ID:", clientId ? "✅ " + clientId : "⚠️ ยังไม่ได้กำหนด (SHOP_DEFAULT)");
   console.log("LINE TOKEN:", token ? "✅ มี (" + token.substring(0, 10) + "...)" : "❌ ว่างเปล่า");
   console.log("KEY_1:", k1 ? "✅ " + k1.substring(0, 15) + "..." : "❌ ว่าง");
-  console.log("KEY_2:", k2 ? "✅ " + k2.substring(0, 15) + "..." : "❌ ว่าง");
-  console.log("KEY_3:", k3 ? "✅ " + k3.substring(0, 15) + "..." : "❌ ว่าง");
-  console.log("GEMINI_API_KEYS (Single):", singleKeys ? "✅ มี" : "ไม่มี (ใช้ KEY_1..3)");
+  console.log("KEY_2:", k2 ? "✅ " + k2.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_3:", k3 ? "✅ " + k3.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_4:", k4 ? "✅ " + k4.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_5:", k5 ? "✅ " + k5.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_6:", k6 ? "✅ " + k6.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("GEMINI_API_KEYS (Single):", singleKeys ? "✅ มี" : "ไม่มี (ใช้ KEY_1..6)");
 
-  console.log("\n=== 2. ทดสอบยิงเช็ค GEMINI 3.x API สดๆ ===");
-  var testKeys = [k1, k2, k3, singleKeys].filter(Boolean);
+  console.log("\n=== 2. ทดสอบยิงเช็ค GEMINI 3.x API สดๆ ผ่าน Header x-goog-api-key ===");
+  var testKeys = [k1, k2, k3, k4, k5, k6, singleKeys].filter(Boolean);
   if (!testKeys.length) {
     console.error("❌ ไม่มี API Key แม้แต่ตัวเดียว!");
     return;
   }
 
-  var testKey = testKeys[0];
-  var testUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" + testKey;
+  var testKey = String(testKeys[0]).replace(/[\r\n\s]/g, '');
+  var testUrl = "https://generativelanguage.googleapis.com/v1beta/models";
   try {
-    var res = UrlFetchApp.fetch(testUrl, { muteHttpExceptions: true });
+    var res = UrlFetchApp.fetch(testUrl, {
+      headers: { 'x-goog-api-key': testKey },
+      muteHttpExceptions: true
+    });
     console.log("HTTP CODE:", res.getResponseCode());
     if (res.getResponseCode() === 200) {
       var data = JSON.parse(res.getContentText());
@@ -148,17 +167,18 @@ function debugLiveWebhook() {
     console.error("❌ Fetch Exception:", err.message);
   }
 
-  console.log("\n=== 3. ทดสอบการตอบแชทจำลอง (Mock Message) ===");
+  console.log("\n=== 3. ทดสอบการตอบแชทจำลอง (Mock Message ผ่าน Header x-goog-api-key) ===");
   var mockPayload = {
     contents: [{ role: 'user', parts: [{ text: 'ทดสอบระบบ' }] }],
     systemInstruction: { parts: [{ text: 'ตอบกลับสั้นๆ ไม่เกิน 1 ประโยค' }] }
   };
 
   try {
-    var genUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent?key=" + testKey;
+    var genUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent";
     var genRes = UrlFetchApp.fetch(genUrl, {
       method: 'post',
       contentType: 'application/json',
+      headers: { 'x-goog-api-key': testKey },
       payload: JSON.stringify(mockPayload),
       muteHttpExceptions: true
     });

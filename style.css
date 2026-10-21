@@ -1,5 +1,5 @@
 /* ==============================================================================
- * DUII FACTORY // MASTER STYLESHEET (ISO 9009 DARKROOM)
+ * DUII FACTORY // MASTER STYLESHEET (DIO STANDARD DARKROOM)
  * Full Responsive Layout, Pinned Note Drawer, Neon Glow & High-Z Windows
  * ============================================================================== */
 
@@ -776,4 +776,69 @@ body {
     bottom: 84px !important;
     height: 70vh !important;
   }
+}
+
+/* ==============================================================================
+ * 6. RECON WAR ROOM & SCOUT TERMINAL STYLES (DIO STANDARD)
+ * ============================================================================== */
+.scout-chat-bubble {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 0.25s ease-in-out;
+}
+.scout-chat-bubble.chief { border-left: 3px solid #fbbf24; }
+.scout-chat-bubble.scout { border-left: 3px solid #38bdf8; }
+.scout-chat-bubble.inspector { border-left: 3px solid #4ade80; }
+.scout-chat-bubble.triage { border-left: 3px solid #f87171; }
+.scout-chat-bubble.welder { border-left: 3px solid #c084fc; }
+
+.scout-bubble-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+.scout-agent-tag {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scout-bubble-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #e6edf3;
+}
+.scout-loot-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.scout-loot-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.12);
+  transform: translateY(-2px);
+}
+.loot-badge-sss {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

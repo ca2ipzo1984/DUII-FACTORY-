@@ -1,5 +1,10 @@
 /**
- * 💬 GeminiAIModule.gs - โมดูลเชื่อมต่อ AI Gemini API
+ * ==============================================================================
+ * SCRIPT NAME : GeminiAIModule.gs
+ * VERSION     : v6.0.0-DIO-STANDARD
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
+ * DESCRIPTION : โมดูลเชื่อมต่อ AI Gemini API ผ่าน Header x-goog-api-key (DIO STANDARD)
+ * ==============================================================================
  */
 
 const CACHE_TTL_SECONDS = 21600;
@@ -7,10 +12,7 @@ const CACHE_TTL_SECONDS = 21600;
 function handleAIConversation(userMessage, replyToken, senderName, userId, isGroupChat, isMentioned, isReply) {
   let promptContext = '';
   if (!isGroupChat) {
-    // เงื่อนไขภาษา: แชท 1-1 ตอบด้วยภาษาเดียวกันกับคู่สนทนาเสมอ
-    promptContext = `[สถานะ: สนทนา 1:1 กับคุณ "${senderName}"]
-[ข้อบังคับภาษา: ให้ตอบกลับด้วยภาษาเดียวกับคู่สนทนาเสมอ เช่น ภาษาไทยตอบภาษาไทย, English respond in English]
-ข้อความ: ${userMessage}`;
+    promptContext = `[สถานะ: สนทนา 1:1 กับคุณ "${senderName}"]\n[ข้อบังคับภาษา: ให้ตอบกลับด้วยภาษาเดียวกับคู่สนทนาเสมอ เช่น ภาษาไทยตอบภาษาไทย, English respond in English]\nข้อความ: ${userMessage}`;
   } else {
     if (isMentioned || isReply) {
       promptContext = `[สถานะ: ข้อความนี้ส่งจากคุณ "${senderName}" มีการ @ หรือ Reply บอทโดยตรง]\nข้อความ: ${userMessage}`;
@@ -32,14 +34,25 @@ function handleAIConversation(userMessage, replyToken, senderName, userId, isGro
 
 function callGeminiWithFallback(session, userPrompt) {
   const props = PropertiesService.getScriptProperties();
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash'];
-  const keys = [props.getProperty('GEMINI_API_KEY_1'), props.getProperty('GEMINI_API_KEY_2'), props.getProperty('GEMINI_API_KEY_3')].filter(k => !!k);
+  const models = ['gemini-3.8-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+  const rawKeyList = props.getProperty('GEMINI_API_KEYS');
+  const keys = rawKeyList
+    ? rawKeyList.split(',').map(k => k.trim()).filter(Boolean)
+    : [
+        props.getProperty('GEMINI_API_KEY_1'),
+        props.getProperty('GEMINI_API_KEY_2'),
+        props.getProperty('GEMINI_API_KEY_3'),
+        props.getProperty('GEMINI_API_KEY_4'),
+        props.getProperty('GEMINI_API_KEY_5'),
+        props.getProperty('GEMINI_API_KEY_6')
+      ].filter(k => !!k);
   const dynamicInstruction = typeof getDynamicSystemInstruction === 'function' ? getDynamicSystemInstruction() : 'คุณคือ AI ผู้ช่วย';
 
   for (const model of models) {
     for (const key of keys) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+        const cleanKey = String(key).replace(/[\r\n\s]/g, '');
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         const contents = session.history.slice(-6).map(h => ({
           role: h.role === 'model' ? 'model' : 'user',
           parts: [{ text: h.text }]
@@ -49,7 +62,8 @@ function callGeminiWithFallback(session, userPrompt) {
         const res = UrlFetchApp.fetch(url, {
           method: 'post',
           contentType: 'application/json',
-          payload: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 300 } }),
+          headers: { 'x-goog-api-key': cleanKey },
+          payload: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 500 } }),
           muteHttpExceptions: true
         });
 

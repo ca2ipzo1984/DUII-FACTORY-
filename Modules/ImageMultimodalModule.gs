@@ -1,5 +1,10 @@
 /**
- * 👁️ ImageMultimodalModule.gs - ระบบวิเคราะห์รูปภาพ
+ * ==============================================================================
+ * SCRIPT NAME : ImageMultimodalModule.gs
+ * VERSION     : v6.0.0-DIO-STANDARD
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
+ * DESCRIPTION : ระบบวิเคราะห์รูปภาพผ่าน Header x-goog-api-key (DIO STANDARD)
+ * ==============================================================================
  */
 
 const LINE_DATA_URL = 'https://api-data.line.me/v2/bot/message';
@@ -49,16 +54,28 @@ function downloadLineImageBinary(messageId) {
 
 function callGeminiImageRawPayload(payload) {
   const props = PropertiesService.getScriptProperties();
-  const keys = [props.getProperty('GEMINI_API_KEY_1'), props.getProperty('GEMINI_API_KEY_2'), props.getProperty('GEMINI_API_KEY_3')].filter(k => !!k);
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash'];
+  const rawKeyList = props.getProperty('GEMINI_API_KEYS');
+  const keys = rawKeyList
+    ? rawKeyList.split(',').map(k => k.trim()).filter(Boolean)
+    : [
+        props.getProperty('GEMINI_API_KEY_1'),
+        props.getProperty('GEMINI_API_KEY_2'),
+        props.getProperty('GEMINI_API_KEY_3'),
+        props.getProperty('GEMINI_API_KEY_4'),
+        props.getProperty('GEMINI_API_KEY_5'),
+        props.getProperty('GEMINI_API_KEY_6')
+      ].filter(k => !!k);
+  const models = ['gemini-3.8-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 
   for (const model of models) {
     for (const key of keys) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+        const cleanKey = String(key).replace(/[\r\n\s]/g, '');
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         const res = UrlFetchApp.fetch(url, {
           method: 'post',
           contentType: 'application/json',
+          headers: { 'x-goog-api-key': cleanKey },
           payload: JSON.stringify(payload),
           muteHttpExceptions: true
         });

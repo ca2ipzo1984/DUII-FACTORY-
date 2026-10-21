@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
- * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (ISO 9009)
- * Standard : DUII_FACTORY_CORE_SPINE_ISO9009
+ * DUII FACTORY // MASTER MODULE & SKILL REGISTRY VAULT (DIO STANDARD)
+ * Standard : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
  * Version  : v5.9.0-PERFECT-UNTRUNCATED-PROD
  * ==============================================================================
  */
@@ -21,9 +21,12 @@ const FACTORY_REGISTRY = [
       { key: "LINE_CHANNEL_ACCESS_TOKEN", required: true, desc: "LINE Messaging API Token" },
       { key: "TARGET_USER_ID", required: true, desc: "User ID ของเจ้าของบอท สำหรับสิทธิ์ /จารึก" },
       { key: "SPREADSHEET_ID", required: false, desc: "ID กูเกิลชีตสำหรับ AI_Memory และตารางบันทึกข้อมูล" },
-      { key: "GEMINI_API_KEY_1", required: true, desc: "Google AI Studio API Key 1" },
-      { key: "GEMINI_API_KEY_2", required: false, desc: "Google AI Studio API Key 2 (Failover)" },
-      { key: "GEMINI_API_KEY_3", required: false, desc: "Google AI Studio API Key 3 (Failover)" }
+      { key: "GEMINI_API_KEY_1", required: true, desc: "Google AI Studio API Key 1 (หลัก)" },
+      { key: "GEMINI_API_KEY_2", required: false, desc: "Google AI Studio API Key 2 (Failover สำรอง 1)" },
+      { key: "GEMINI_API_KEY_3", required: false, desc: "Google AI Studio API Key 3 (Failover สำรอง 2)" },
+      { key: "GEMINI_API_KEY_4", required: false, desc: "Google AI Studio API Key 4 (Failover สำรอง 3)" },
+      { key: "GEMINI_API_KEY_5", required: false, desc: "Google AI Studio API Key 5 (Failover สำรอง 4)" },
+      { key: "GEMINI_API_KEY_6", required: false, desc: "Google AI Studio API Key 6 (Failover สำรอง 5)" }
     ],
     setupGuide: "### 🚀 00_CoreSpine.gs (Chassis แม่)\nไฟล์แรกที่ต้องนำไปวางใน Apps Script เป็นแกนกลางควบคุมทั้งหมด",
     functionDeclaration: null,
@@ -31,7 +34,7 @@ const FACTORY_REGISTRY = [
 /**
  * SCRIPT NAME : 00_CoreSpine.gs
  * VERSION     : v5.2.0-NEVER-SILENT-BAKJOI
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
  */
 
 var CORE_VERSION = 'v5.2.0-NEVER-SILENT-BAKJOI';
@@ -50,7 +53,7 @@ function getBoolProp_(key, def) {
   return /^(1|true|yes|on)$/i.test(v);
 }
 
-// ลำดับโมเดลบังคับใช้ตามเกณฑ์ ISO (ตัด 1.x และ 2.x ทิ้งเด็ดขาด)
+// ลำดับโมเดลบังคับใช้ตามเกณฑ์ DIO STANDARD (ตัด 1.x และ 2.x ทิ้งเด็ดขาด)
 var DEFAULT_MODELS_ = [
   'gemini-3.8-flash-lite',
   'gemini-3.5-flash-lite',
@@ -60,14 +63,25 @@ var DEFAULT_MODELS_ = [
   'gemini-3.8-flash'
 ];
 
+var MASTER_LICENSE_SPREADSHEET_ID = '10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo';
+
 var CONFIG = {
+  get CLIENT_ID() { return getProp_('CLIENT_ID') || 'SHOP_DEFAULT'; },
+  get MASTER_LICENSE_ID() { return getProp_('MASTER_LICENSE_SPREADSHEET_ID') || MASTER_LICENSE_SPREADSHEET_ID; },
   get LINE_CHANNEL_ACCESS_TOKEN() { return getProp_('LINE_CHANNEL_ACCESS_TOKEN'); },
   get TARGET_USER_ID() { return getProp_('TARGET_USER_ID'); },
   get SPREADSHEET_ID() { return getProp_('SPREADSHEET_ID') || getProp_('ERROR_LOG_SPREADSHEET_ID'); },
   get ADMIN_GROUP_ID() { return getProp_('ADMIN_GROUP_ID'); },
   get GEMINI_API_KEYS() {
     var raw = getProp_('GEMINI_API_KEYS');
-    var list = raw ? raw.split(',') : [getProp_('GEMINI_API_KEY_1'), getProp_('GEMINI_API_KEY_2'), getProp_('GEMINI_API_KEY_3')];
+    var list = raw ? raw.split(',') : [
+      getProp_('GEMINI_API_KEY_1'),
+      getProp_('GEMINI_API_KEY_2'),
+      getProp_('GEMINI_API_KEY_3'),
+      getProp_('GEMINI_API_KEY_4'),
+      getProp_('GEMINI_API_KEY_5'),
+      getProp_('GEMINI_API_KEY_6')
+    ];
     return list.map(function (k) { return String(k || '').trim(); }).filter(Boolean);
   },
   get GEMINI_MODELS() {
@@ -113,9 +127,61 @@ function doGet(e) {
   return ContentService.createTextOutput('DUII FACTORY CORE ' + CORE_VERSION + ' ACTIVE').setMimeType(ContentService.MimeType.TEXT);
 }
 
+function checkCentralLicense_() {
+  var serial = CONFIG.CLIENT_ID;
+  if (!serial || serial === 'SHOP_DEFAULT') return { valid: false, reason: 'NO_SERIAL_ID' };
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'dio_lic_' + serial;
+  var cachedStatus = cache.get(cacheKey);
+  if (cachedStatus === 'ACTIVE') return { valid: true };
+  if (cachedStatus === 'SUSPENDED') return { valid: false, reason: 'LICENSE_SUSPENDED' };
+  if (cachedStatus === 'EXPIRED') return { valid: false, reason: 'LICENSE_EXPIRED' };
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.MASTER_LICENSE_ID);
+    var sheet = ss.getSheetByName('MASTER_CLIENT_LICENSES') || ss.getSheets()[0];
+    var data = sheet.getDataRange().getValues();
+    if (!data || data.length < 2) return { valid: false, reason: 'LICENSE_SHEET_EMPTY' };
+    var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+    var cCol = headers.indexOf('client_id'); if (cCol === -1) cCol = 0;
+    var sCol = headers.indexOf('status'); if (sCol === -1) sCol = 3;
+    var eCol = headers.indexOf('expire_date'); if (eCol === -1) eCol = 2;
+    var lCol = headers.indexOf('last_checked');
+    var foundRow = -1, rec = null;
+    for (var r = 1; r < data.length; r++) {
+      if (String(data[r][cCol]).trim() === serial) { foundRow = r + 1; rec = data[r]; break; }
+    }
+    if (!rec) { cache.put(cacheKey, 'SUSPENDED', 1800); return { valid: false, reason: 'LICENSE_NOT_FOUND' }; }
+    var status = String(rec[sCol] || '').trim().toUpperCase();
+    var exp = rec[eCol] ? new Date(rec[eCol]) : null;
+    if (status === 'SUSPENDED') { cache.put(cacheKey, 'SUSPENDED', 21600); return { valid: false, reason: 'LICENSE_SUSPENDED' }; }
+    if (exp && !isNaN(exp.getTime()) && exp.getTime() < Date.now()) { cache.put(cacheKey, 'EXPIRED', 21600); return { valid: false, reason: 'LICENSE_EXPIRED' }; }
+    if (status !== 'ACTIVE') { cache.put(cacheKey, 'SUSPENDED', 3600); return { valid: false, reason: 'STATUS_' + status }; }
+    if (lCol !== -1 && foundRow > 0) { try { sheet.getRange(foundRow, lCol + 1).setValue(new Date().toISOString()); } catch (eU) {} }
+    cache.put(cacheKey, 'ACTIVE', 21600);
+    return { valid: true };
+  } catch (err) {
+    console.error('[License Guard] ' + err);
+    return { valid: false, reason: 'CONNECTION_ERROR: ' + err.message };
+  }
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) return okOut_();
+    var lic = checkCentralLicense_();
+    if (!lic.valid) {
+      console.error('[LICENSE DENIED] Serial: ' + CONFIG.CLIENT_ID + ' Reason: ' + lic.reason);
+      try {
+        var dataEarly = JSON.parse(e.postData.contents);
+        var evtEarly = (dataEarly.events && dataEarly.events[0]) || null;
+        if (evtEarly && evtEarly.replyToken) {
+          replyText_(evtEarly.replyToken, '⛔ [ระบบถูกระงับการทำงาน]\nสัมปทานใบอนุญาต (' + CONFIG.CLIENT_ID + ') ' +
+            (lic.reason === 'LICENSE_EXPIRED' ? 'หมดอายุการใช้งาน' : 'ถูกระงับสิทธิ์ชั่วคราว') +
+            '\nกรุณาติดต่อ DUII FACTORY เพื่อต่อสัญญา');
+        }
+      } catch (eSub) {}
+      return okOut_();
+    }
     var data = JSON.parse(e.postData.contents);
     var events = data.events || [];
     for (var i = 0; i < events.length; i++) {
@@ -755,9 +821,9 @@ function runDiagnostics_(ctx) {
     functionDeclaration: null,
     codeSnippet: `/**
  * ==============================================================================
- * SCRIPT NAME : 99_Test.gs
+ * SCRIPT NAME : 99_TestRunner.gs
  * VERSION     : v5.2.0-INTEGRATED-TESTER
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
  * DESCRIPTION : รวมทั้ง Unit Test ตรวจโมดูล (Logic) และ Live Sniper ตรวจ API/Properties
  * ==============================================================================
  */
@@ -855,14 +921,20 @@ function debugLiveWebhook() {
   var k1 = (p.getProperty('GEMINI_API_KEY_1') || '').trim();
   var k2 = (p.getProperty('GEMINI_API_KEY_2') || '').trim();
   var k3 = (p.getProperty('GEMINI_API_KEY_3') || '').trim();
+  var k4 = (p.getProperty('GEMINI_API_KEY_4') || '').trim();
+  var k5 = (p.getProperty('GEMINI_API_KEY_5') || '').trim();
+  var k6 = (p.getProperty('GEMINI_API_KEY_6') || '').trim();
   var singleKeys = (p.getProperty('GEMINI_API_KEYS') || '').trim();
 
   console.log("LINE TOKEN:", token ? "✅ มี (" + token.substring(0, 10) + "...)" : "❌ ว่างเปล่า");
   console.log("KEY_1:", k1 ? "✅ " + k1.substring(0, 15) + "..." : "❌ ว่าง");
-  console.log("KEY_2:", k2 ? "✅ " + k2.substring(0, 15) + "..." : "❌ ว่าง");
-  console.log("KEY_3:", k3 ? "✅ " + k3.substring(0, 15) + "..." : "❌ ว่าง");
+  console.log("KEY_2:", k2 ? "✅ " + k2.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_3:", k3 ? "✅ " + k3.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_4:", k4 ? "✅ " + k4.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_5:", k5 ? "✅ " + k5.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
+  console.log("KEY_6:", k6 ? "✅ " + k6.substring(0, 15) + "..." : "❌ ว่าง (ไม่บังคับ)");
 
-  var testKeys = [k1, k2, k3, singleKeys].filter(Boolean);
+  var testKeys = [k1, k2, k3, k4, k5, k6, singleKeys].filter(Boolean);
   if (!testKeys.length) {
     console.error("❌ ไม่มี API Key แม้แต่ตัวเดียว!");
     return;

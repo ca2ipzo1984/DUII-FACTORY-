@@ -2,14 +2,15 @@
  * ==============================================================================
  * SCRIPT NAME : 00_CoreSpine.gs
  * VERSION     : v5.0.0-NEVER-SILENT
- * STANDARD    : DUII_FACTORY_CORE_SPINE_ISO9009
+ * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO_STANDARD
  * ARCHITECTURE: Synchronous webhook -> reply (ไม่มีคิว) + Failover + Tool loop
  * ใช้คู่กับ: 01_Modules_And_Tools.gs และโมดูล 01-12 เดิมได้เลย
  * วิธีลง: เลือกทั้งไฟล์ 00_CoreSpine.gs เดิม -> ลบ -> วางไฟล์นี้ -> เซฟ -> Deploy เวอร์ชันใหม่
  * ==============================================================================
  */
 
-var CORE_VERSION = 'v5.0.0-NEVER-SILENT';
+var CORE_VERSION = 'v6.0.0-DIO-STANDARD';
+var MASTER_LICENSE_SPREADSHEET_ID = '10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo';
 
 // ==============================================================================
 // 1. CONFIG (ตั้งค่าใน Script Properties ทั้งหมด)
@@ -39,13 +40,22 @@ var DEFAULT_MODELS_ = [
 ];
 
 var CONFIG = {
+  get CLIENT_ID() { return getProp_('CLIENT_ID') || 'SHOP_DEFAULT'; },
+  get MASTER_LICENSE_ID() { return getProp_('MASTER_LICENSE_SPREADSHEET_ID') || MASTER_LICENSE_SPREADSHEET_ID; },
   get LINE_CHANNEL_ACCESS_TOKEN() { return getProp_('LINE_CHANNEL_ACCESS_TOKEN'); },
   get TARGET_USER_ID() { return getProp_('TARGET_USER_ID'); },
   get SPREADSHEET_ID() { return getProp_('SPREADSHEET_ID') || getProp_('ERROR_LOG_SPREADSHEET_ID'); },
   get ADMIN_GROUP_ID() { return getProp_('ADMIN_GROUP_ID'); },
   get GEMINI_API_KEYS() {
     var raw = getProp_('GEMINI_API_KEYS');
-    var list = raw ? raw.split(',') : [getProp_('GEMINI_API_KEY_1'), getProp_('GEMINI_API_KEY_2'), getProp_('GEMINI_API_KEY_3')];
+    var list = raw ? raw.split(',') : [
+      getProp_('GEMINI_API_KEY_1'),
+      getProp_('GEMINI_API_KEY_2'),
+      getProp_('GEMINI_API_KEY_3'),
+      getProp_('GEMINI_API_KEY_4'),
+      getProp_('GEMINI_API_KEY_5'),
+      getProp_('GEMINI_API_KEY_6')
+    ];
     return list.map(function (k) { return String(k || '').trim(); }).filter(Boolean);
   },
   get GEMINI_MODELS() {
@@ -92,6 +102,99 @@ function isOwner_(userId) {
 }
 
 // ==============================================================================
+
+// ==============================================================================
+// 1.1 LICENSE GUARD (เสาหลัก Micro-SaaS ที่ 1 & 2: ตรวจสอบสิทธิ์ชีตกลาง 10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo)
+// ==============================================================================
+function checkCentralLicense_() {
+  var serial = CONFIG.CLIENT_ID;
+  if (!serial || serial === 'SHOP_DEFAULT') {
+    return { valid: false, reason: 'NO_SERIAL_ID' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'dio_lic_' + serial;
+  var cachedStatus = cache.get(cacheKey);
+
+  if (cachedStatus === 'ACTIVE') return { valid: true };
+  if (cachedStatus === 'SUSPENDED') return { valid: false, reason: 'LICENSE_SUSPENDED' };
+  if (cachedStatus === 'EXPIRED') return { valid: false, reason: 'LICENSE_EXPIRED' };
+
+  try {
+    var ssId = CONFIG.MASTER_LICENSE_ID;
+    var ss = SpreadsheetApp.openById(ssId);
+    var sheet = ss.getSheetByName('MASTER_CLIENT_LICENSES') || ss.getSheets()[0];
+    var data = sheet.getDataRange().getValues();
+
+    if (!data || data.length < 2) {
+      return { valid: false, reason: 'LICENSE_SHEET_EMPTY' };
+    }
+
+    var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+    var clientCol = headers.indexOf('client_id');
+    if (clientCol === -1) clientCol = headers.indexOf('clientid');
+    if (clientCol === -1) clientCol = headers.indexOf('serial_id');
+    if (clientCol === -1) clientCol = 0;
+
+    var statusCol = headers.indexOf('status');
+    if (statusCol === -1) statusCol = 3;
+
+    var expireCol = headers.indexOf('expire_date');
+    if (expireCol === -1) expireCol = headers.indexOf('expiredate');
+    if (expireCol === -1) expireCol = 2;
+
+    var lastCheckedCol = headers.indexOf('last_checked');
+
+    var foundRowIndex = -1;
+    var clientRecord = null;
+
+    for (var r = 1; r < data.length; r++) {
+      if (String(data[r][clientCol]).trim() === serial) {
+        foundRowIndex = r + 1;
+        clientRecord = data[r];
+        break;
+      }
+    }
+
+    if (!clientRecord) {
+      cache.put(cacheKey, 'SUSPENDED', 1800);
+      return { valid: false, reason: 'LICENSE_NOT_FOUND' };
+    }
+
+    var status = String(clientRecord[statusCol] || '').trim().toUpperCase();
+    var expireRaw = clientRecord[expireCol];
+    var expireDate = expireRaw ? new Date(expireRaw) : null;
+    var now = new Date();
+
+    if (status === 'SUSPENDED') {
+      cache.put(cacheKey, 'SUSPENDED', 21600);
+      return { valid: false, reason: 'LICENSE_SUSPENDED' };
+    }
+
+    if (expireDate && !isNaN(expireDate.getTime()) && expireDate.getTime() < now.getTime()) {
+      cache.put(cacheKey, 'EXPIRED', 21600);
+      return { valid: false, reason: 'LICENSE_EXPIRED' };
+    }
+
+    if (status !== 'ACTIVE') {
+      cache.put(cacheKey, 'SUSPENDED', 3600);
+      return { valid: false, reason: 'STATUS_' + status };
+    }
+
+    if (lastCheckedCol !== -1 && foundRowIndex > 0) {
+      try {
+        sheet.getRange(foundRowIndex, lastCheckedCol + 1).setValue(new Date().toISOString());
+      } catch (eUp) {}
+    }
+
+    cache.put(cacheKey, 'ACTIVE', 21600);
+    return { valid: true };
+  } catch (err) {
+    console.error('[License Guard] Fatal error:', err);
+    return { valid: false, reason: 'CONNECTION_ERROR: ' + err.message };
+  }
+}
+
 // 2. WEBHOOK
 // ==============================================================================
 function doGet(e) {
@@ -101,6 +204,23 @@ function doGet(e) {
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) return okOut_();
+
+    // 🛡️ เสาที่ 1: ตรวจสอบสิทธิ์ License Guard ก่อนเปิดสายพานทำงาน (ตัดวงจรทันทีหากหมดอายุหรือถูกระงับ)
+    var lic = checkCentralLicense_();
+    if (!lic.valid) {
+      console.error('[LICENSE DENIED] Serial: ' + CONFIG.CLIENT_ID + ' Reason: ' + lic.reason);
+      try {
+        var dataEarly = JSON.parse(e.postData.contents);
+        var evtEarly = (dataEarly.events && dataEarly.events[0]) || null;
+        if (evtEarly && evtEarly.replyToken) {
+          replyText_(evtEarly.replyToken, '⛔ [ระบบถูกระงับการทำงาน]\nสัมปทานใบอนุญาต (' + CONFIG.CLIENT_ID + ') ' +
+            (lic.reason === 'LICENSE_EXPIRED' ? 'หมดอายุการใช้งาน' : 'ถูกระงับสิทธิ์ชั่วคราว') +
+            '\nกรุณาติดต่อ DUII FACTORY เพื่อต่อสัญญา');
+        }
+      } catch (eSub) {}
+      return okOut_();
+    }
+
     var data = JSON.parse(e.postData.contents);
     var events = data.events || [];
     console.log('[DOPOST] ' + CORE_VERSION + ' events=' + events.length);
