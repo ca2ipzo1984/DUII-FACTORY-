@@ -9,12 +9,10 @@
   <meta name="theme-color" content="#0d1117">
   <style>
     /* บังคับซ่อน Modal ป้องกันปัญหาเลเยอร์ลอยค้างบังหน้าจอ */
-    #editorModal.hidden,
-    #editorModal[style*="display: none"] {
+    #editorModal.hidden {
       display: none !important;
     }
-    #duiiChatWindow.hidden,
-    #duiiChatWindow[style*="display: none"] {
+    #duiiChatWindow.hidden {
       display: none !important;
     }
     .fab-avatar-img {
@@ -23,6 +21,12 @@
       border-radius: 50%;
       object-fit: cover;
       display: block;
+      pointer-events: none;
+      user-select: none;
+    }
+    .duii-fab * {
+      pointer-events: none !important;
+      user-select: none !important;
     }
   </style>
 </head>
@@ -254,14 +258,14 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย" onclick="toggleDuiiChat(event)">
+  <div class="duii-fab" id="duiiFab" role="button" tabindex="0" title="เปิดหน้าต่างแชทดุ่ย" aria-label="เปิดหน้าต่างแชทไอ้ดุ่ย" onclick="window.toggleDuiiChat(event)">
     <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
     <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
   <!-- DUII LIVE CHAT WINDOW (ซ่อนตั้งต้นเด็ดขาด) -->
-  <div class="duii-chat-window hidden" id="duiiChatWindow" style="display: none !important;">
+  <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
         <img src="avatar.png" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'">
@@ -272,10 +276,10 @@
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <!-- ปุ่มเปิด/ปิดกระดาษโน้ต 📝 -->
-        <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
+        <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="window.toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
         <button type="button" class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
         <!-- ปุ่มปิด ✖ พร้อม Direct Event Handler ปิดหน้าต่างทันที -->
-        <button type="button" class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
+        <button type="button" class="chat-close-btn" id="btnChatClose" onclick="window.closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
       </div>
     </div>
 
@@ -305,49 +309,70 @@
   <script src="modules.js"></script>
   <script src="app.js"></script>
 
-  <!-- DIRECT ACTION HANDLERS (รับประกันปุ่มปิด ✖ และปุ่มเปิดใช้งานได้แน่นอน 100%) -->
+  <!-- DIRECT ACTION HANDLERS (รับประกันปุ่มเปิด/ปิดแชท และสมุดโน้ต ทำงานได้ 100% ปราศจาก Event Collision) -->
   <script>
-    function toggleDuiiChat(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+    window.toggleDuiiChat = function(e) {
+      if (e) {
+        if (typeof e.preventDefault === "function") e.preventDefault();
+        if (typeof e.stopPropagation === "function") e.stopPropagation();
+      }
       const win = document.getElementById("duiiChatWindow");
       if (!win) return;
-      const isHidden = (win.style.display === "none" || win.classList.contains("hidden"));
+      const isHidden = win.classList.contains("hidden") || 
+                       win.style.display === "none" || 
+                       window.getComputedStyle(win).display === "none";
       if (isHidden) {
-        win.style.setProperty("display", "flex", "important");
         win.classList.remove("hidden");
+        win.style.setProperty("display", "flex", "important");
+        const input = document.getElementById("chatInput");
+        if (input) setTimeout(() => input.focus(), 60);
       } else {
-        win.style.setProperty("display", "none", "important");
         win.classList.add("hidden");
+        win.style.setProperty("display", "none", "important");
       }
-    }
+    };
 
-    function closeDuiiChat(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+    window.closeDuiiChat = function(e) {
+      if (e) {
+        if (typeof e.preventDefault === "function") e.preventDefault();
+        if (typeof e.stopPropagation === "function") e.stopPropagation();
+      }
       const win = document.getElementById("duiiChatWindow");
       if (win) {
-        win.style.setProperty("display", "none", "important");
         win.classList.add("hidden");
+        win.style.setProperty("display", "none", "important");
       }
-    }
+    };
 
-    function toggleNoteDrawer(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+    window.toggleNoteDrawer = function(e) {
+      if (e) {
+        if (typeof e.preventDefault === "function") e.preventDefault();
+        if (typeof e.stopPropagation === "function") e.stopPropagation();
+      }
       const drawer = document.getElementById("chatNoteDrawer");
       if (drawer) {
-        drawer.style.display = (drawer.style.display === "none" || !drawer.style.display) ? "block" : "none";
+        const isHidden = (drawer.style.display === "none" || !drawer.style.display || window.getComputedStyle(drawer).display === "none");
+        drawer.style.display = isHidden ? "block" : "none";
+        if (isHidden) {
+          const noteArea = document.getElementById("chatNoteArea");
+          if (noteArea) setTimeout(() => noteArea.focus(), 60);
+        }
       }
-    }
+    };
 
-    function closeEditorModal(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+    window.closeEditorModal = function(e) {
+      if (e) {
+        if (typeof e.preventDefault === "function") e.preventDefault();
+        if (typeof e.stopPropagation === "function") e.stopPropagation();
+      }
       const modal = document.getElementById("editorModal");
       if (modal) {
-        modal.style.setProperty("display", "none", "important");
         modal.classList.add("hidden");
+        modal.style.setProperty("display", "none", "important");
       }
-    }
+    };
 
-    function openModuleEditor(moduleId) {
+    window.openModuleEditor = function(moduleId) {
       const modal = document.getElementById("editorModal");
       const textarea = document.getElementById("editorTextarea");
       const title = document.getElementById("editorTitle");
@@ -358,10 +383,17 @@
         textarea.value = mod.codeSnippet || "";
       }
       if (modal) {
-        modal.style.setProperty("display", "flex", "important");
         modal.classList.remove("hidden");
+        modal.style.setProperty("display", "flex", "important");
       }
-    }
+    };
+
+    // Alias สำหรับการเรียกแบบไม่ใส่ window.
+    var toggleDuiiChat = window.toggleDuiiChat;
+    var closeDuiiChat = window.closeDuiiChat;
+    var toggleNoteDrawer = window.toggleNoteDrawer;
+    var closeEditorModal = window.closeEditorModal;
+    var openModuleEditor = window.openModuleEditor;
   </script>
 </body>
 </html>

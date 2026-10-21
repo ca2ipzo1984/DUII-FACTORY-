@@ -1260,23 +1260,35 @@ function initDuiiChatCopilot() {
 
   if (!fab || !chatWin) return;
 
-  fab.addEventListener("click", (e) => {
-    e.preventDefault();
-    chatWin.classList.toggle("hidden");
-    if (!chatWin.classList.contains("hidden")) {
-      chatWin.style.setProperty("display", "flex", "important");
-      if (chatInput) chatInput.focus();
-    } else {
-      chatWin.style.setProperty("display", "none", "important");
+  // เชื่อมต่อ Event แบบ Single Source of Truth ป้องกัน Event Collision เด็ดขาด
+  fab.onclick = (e) => {
+    if (typeof window.toggleDuiiChat === "function") {
+      window.toggleDuiiChat(e);
     }
-  });
+  };
+
+  fab.onkeydown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      if (typeof window.toggleDuiiChat === "function") {
+        window.toggleDuiiChat(e);
+      }
+    }
+  };
 
   if (closeBtn) {
-    closeBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      chatWin.classList.add("hidden");
-      chatWin.style.setProperty("display", "none", "important");
-    });
+    closeBtn.onclick = (e) => {
+      if (typeof window.closeDuiiChat === "function") {
+        window.closeDuiiChat(e);
+      }
+    };
+  }
+
+  if (btnToggleNote) {
+    btnToggleNote.onclick = (e) => {
+      if (typeof window.toggleNoteDrawer === "function") {
+        window.toggleNoteDrawer(e);
+      }
+    };
   }
 
   if (noteArea) {
@@ -1294,11 +1306,7 @@ function initDuiiChatCopilot() {
     });
   }
 
-  if (btnToggleNote && noteDrawer) {
-    btnToggleNote.addEventListener("click", () => {
-      noteDrawer.style.display = (noteDrawer.style.display === "none" || !noteDrawer.style.display) ? "block" : "none";
-    });
-  }
+
 
   if (btnClearNote && noteArea) {
     btnClearNote.addEventListener("click", () => {
