@@ -13,6 +13,13 @@
 // ==============================================================================
 const DEFAULT_TARGET_ENDPOINT = "https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec";
 const MASTER_LICENSE_SPREADSHEET_ID = "10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo";
+// 🛡️ Global Live Chat Bridge - ป้องกัน ReferenceError ก่อน DOM พร้อมทำงาน
+window.appendMessageToChat = function(arg1, arg2, id) {
+  if (typeof window.appendMsg === "function") {
+    return window.appendMsg(arg1, arg2, id);
+  }
+};
+
 
 let activeModules = (typeof FACTORY_REGISTRY !== 'undefined') ? [...FACTORY_REGISTRY] : [];
 const mandatoryModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
@@ -29,6 +36,13 @@ let editingModuleId = null;
 // 🛡️ ZERO-COPY KEY SYNC & SQUAD POOL ENGINE (DIO STANDARD)
 // ==============================================================================
 let activeKeyIndex = 0;
+const squadRoleKeyIndices = {
+  chief: 0,
+  inspector: 0,
+  scout: 0,
+  triage: 0,
+  welder: 0
+};
 
 function getAllAvailableGeminiKeys() {
   const keys = [];
@@ -66,29 +80,39 @@ function getAllAvailableGeminiKeys() {
   return keys;
 }
 
-function getNextGeminiKey() {
-  const pool = getAllAvailableGeminiKeys();
-  if (!pool.length) return "";
-  const key = pool[activeKeyIndex % pool.length];
-  activeKeyIndex++;
-  return String(key || "").replace(/\s+/g, "");
-}
-
-// ฟังก์ชันดึงคีย์แยกตามหน้าที่ของขุนพลแต่ละนาย
+// ฟังก์ชันดึงคีย์แยกตามหน้าที่ของขุนพลแต่ละนาย (Squad Role Pools)
 function getSquadMemberKeys(role) {
   try {
     const raw = localStorage.getItem("DUII_SQUAD_KEYS");
     if (!raw) return getAllAvailableGeminiKeys();
     const squad = JSON.parse(raw);
-    if (role === 'inspector') return squad.inspector || [];
-    if (role === 'scout') return squad.scout || [];
-    if (role === 'triage') return squad.triage || [];
-    if (role === 'welder') return squad.welder || [];
-    if (role === 'chief') return squad.allKeys || [];
+    const norm = String(role || "chief").toLowerCase().trim();
+    if (norm === 'inspector') return (squad.inspector && squad.inspector.length) ? squad.inspector : getAllAvailableGeminiKeys();
+    if (norm === 'scout') return (squad.scout && squad.scout.length) ? squad.scout : getAllAvailableGeminiKeys();
+    if (norm === 'triage') return (squad.triage && squad.triage.length) ? squad.triage : getAllAvailableGeminiKeys();
+    if (norm === 'welder') return (squad.welder && squad.welder.length) ? squad.welder : getAllAvailableGeminiKeys();
+    if (norm === 'chief') return (squad.chief && squad.chief.length) ? squad.chief : (squad.allKeys || getAllAvailableGeminiKeys());
     return squad.allKeys || getAllAvailableGeminiKeys();
   } catch (e) {
     return getAllAvailableGeminiKeys();
   }
+}
+
+// 🎯 ปรับปรุง getNextGeminiKey: หมุนเวียนคีย์ (Round-Robin Failover) ตาม Role ของตัวละครที่กำลังเรียกใช้
+function getNextGeminiKey(role = "chief") {
+  const normRole = String(role || "chief").toLowerCase().trim();
+  let pool = getSquadMemberKeys(normRole);
+  if (!Array.isArray(pool) || pool.length === 0) {
+    pool = getAllAvailableGeminiKeys();
+  }
+  if (!pool.length) return "";
+
+  if (squadRoleKeyIndices[normRole] === undefined) {
+    squadRoleKeyIndices[normRole] = 0;
+  }
+  const key = pool[squadRoleKeyIndices[normRole] % pool.length];
+  squadRoleKeyIndices[normRole]++;
+  return String(key || "").trim().replace(/\s+/g, "");
 }
 
 // สร้างข้อความกำกับสำหรับ Note Drawer 📝
@@ -152,7 +176,7 @@ function updateSquadBadgeUI(status, count, isCached = false) {
   }
 }
 
-// 🚀 ฟังก์ชันหลัก: ซิงก์คีย์ 15 ดอกอัตโนมัติแบบ Zero-Copy Key Sync
+// 🚀 ฟังก์ชันหลัก: ซิงก์คีย์ 15 ดอกอัตโนมัติแบบ Zero-Copy Key Sync (DIO STANDARD)
 async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
   updateSquadBadgeUI("syncing", 0);
 
@@ -165,7 +189,7 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
       const cachedSquad = localStorage.getItem("DUII_SQUAD_KEYS");
       if (cachedSquad) {
         const parsed = JSON.parse(cachedSquad);
-        if (Array.isArray(parsed.allKeys) && parsed.allKeys.length >= 12) {
+        if (Array.isArray(parsed.allKeys) && parsed.allKeys.length > 0) {
           rawKeysFound = parsed.allKeys;
           updateSquadBadgeUI("success", rawKeysFound.length, true);
         }
@@ -176,11 +200,12 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
   // หากยังไม่มีคีย์ หรือเป็นการสั่ง forceRefresh ให้ยิงไปดึงจาก Bridge Endpoint
   if (rawKeysFound.length === 0 || forceRefresh) {
     try {
-      // กลยุทธ์ที่ 1: ยิง GET action=get_squad_keys
+      // กลยุทธ์ที่ 1: ดึงจาก Bridge URL
       const targetGetUrl = syncEndpoint + (syncEndpoint.includes("?") ? "&" : "?") + "action=get_squad_keys&t=" + Date.now();
       let res = await fetch(targetGetUrl, { redirect: "follow" }).catch(() => null);
       let text = res ? await res.text().catch(() => "") : "";
 
+      // ดึงคีย์ตรงจากข้อความ (Plaintext)
       let matches = text.match(/(?:AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{40,})/g);
       if (matches && matches.length > 0) {
         matches.forEach(k => {
@@ -189,7 +214,34 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
         });
       }
 
-      // กลยุทธ์ที่ 2: ถ้า GET ยังไม่พบคีย์ ให้ยิง POST
+      // กลยุทธ์ที่ 2: ถอดรหัส Base64 Chunks ใน Payload จาก Bridge (Zero-Copy Secret Stripping)
+      try {
+        const unescaped = text.replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+        const chunkRegex = /const\s+(_[A-Za-z0-9_]+)\s*=\s*\\*["']([A-Za-z0-9+/=]+)\\*["']/g;
+        const chunkMap = {};
+        let chMatch;
+        while ((chMatch = chunkRegex.exec(unescaped)) !== null) {
+          chunkMap[chMatch[1]] = chMatch[2];
+        }
+        const b64Pairs = [
+          ['_P1', '_P2'],
+          ['_K2_A', '_K2_B'],
+          ['_K3_A', '_K3_B']
+        ];
+        b64Pairs.forEach(([a, b]) => {
+          if (chunkMap[a] && chunkMap[b]) {
+            try {
+              const decoded = atob(chunkMap[a] + chunkMap[b]);
+              const clean = decoded.trim().replace(/\s+/g, "");
+              if ((clean.startsWith("AQ.") || clean.startsWith("AIza")) && !rawKeysFound.includes(clean)) {
+                rawKeysFound.push(clean);
+              }
+            } catch(e) {}
+          }
+        });
+      } catch (decErr) {}
+
+      // กลยุทธ์ที่ 3: ถ้ายังไม่พบ ให้ยิง POST
       if (rawKeysFound.length === 0) {
         const postRes = await fetch(syncEndpoint, {
           method: "POST",
@@ -208,20 +260,20 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
           if (postMatches && postMatches.length > 0) {
             postMatches.forEach(k => {
               const clean = k.trim().replace(/\s+/g, "");
-              if (clean && !rawKeysFound.includes(clean)) rawKeysFound.push(clean);
+              if (!rawKeysFound.includes(clean)) rawKeysFound.push(clean);
             });
           }
         }
       }
 
-      // กลยุทธ์ที่ 3: ตรวจสอบจาก Note Drawer ที่มีอยู่เดิมในเครื่อง
+      // กลยุทธ์ที่ 4: ตรวจสอบจาก Note Drawer ที่มีอยู่เดิมในเครื่อง
       if (rawKeysFound.length === 0) {
         const existingNote = localStorage.getItem("DUII_CHAT_PINNED_NOTE") || "";
         const noteMatches = existingNote.match(/(?:AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{40,})/g);
         if (noteMatches && noteMatches.length > 0) {
           noteMatches.forEach(k => {
             const clean = k.trim().replace(/\s+/g, "");
-            if (clean && !rawKeysFound.includes(clean)) rawKeysFound.push(clean);
+            if (!rawKeysFound.includes(clean)) rawKeysFound.push(clean);
           });
         }
       }
@@ -230,15 +282,24 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
     }
   }
 
-  // จัดชุด Squad Pool 4 ขุนพล + ไอ้ดุ่ย
+  // จัดชุด 15 คีย์ Squad Pool (5 ขุนพล x 3 คีย์ต่อหน่วยงาน พร้อม Round-Robin Failover)
   if (rawKeysFound.length > 0) {
+    const assignPool = (startIdx) => {
+      const pool = [];
+      for (let i = 0; i < 3; i++) {
+        const k = rawKeysFound[(startIdx + i) % rawKeysFound.length];
+        pool.push(k);
+      }
+      return pool;
+    };
+
     const squad = {
-      inspector: rawKeysFound.slice(0, 3),   // ลุงจั่น (Inspector): 3 คีย์แรก
-      scout:     rawKeysFound.slice(3, 6),   // อ้ายหนานส่อง (Scout): 3 คีย์ถัดมา
-      triage:    rawKeysFound.slice(6, 9),   // บักจ่อย (Triage): 3 คีย์ถัดมา
-      welder:    rawKeysFound.slice(9, 12),  // บังบ่าว (Welder): 3 คีย์ถัดมา
-      chief:     rawKeysFound.slice(12, 15), // ไอ้ดุ่ย (Chief Copilot): 3 คีย์ยอดขุนพล
-      allKeys:   rawKeysFound,               // Master Pool รวมสำหรับบัญชาการ
+      chief:     assignPool(0),  // ไอ้ดุ่ย (Chief Copilot): Master Pool 3 คีย์ยอดขุนพล
+      inspector: assignPool(1),  // ลุงจั่น (Inspector): Inspector Pool 3 คีย์
+      scout:     assignPool(2),  // อ้ายหนานส่อง (Scout): Scout Pool 3 คีย์
+      triage:    assignPool(3),  // บักจ่อย (Triage): Triage Pool 3 คีย์
+      welder:    assignPool(4),  // บังบ่าว (Welder): Welder Pool 3 คีย์
+      allKeys:   rawKeysFound,   // Master Pool รวมสำหรับบัญชาการ
       syncedAt:  new Date().toISOString()
     };
 
@@ -253,11 +314,11 @@ async function autoSyncSquadKeysFromBridge(forceRefresh = false) {
     }
 
     updateSquadBadgeUI("success", rawKeysFound.length, false);
-    console.log(`[Zero-Copy Sync] ✅ ซิงก์คีย์ DIO SQUAD สำเร็จ: ${rawKeysFound.length}/15 คีย์`);
+    console.log(`[Zero-Copy Sync] ✅ ซิงก์คีย์ DIO SQUAD 15 คีย์สำเร็จ (${rawKeysFound.length} unique keys)`);
     return squad;
   } else {
     updateSquadBadgeUI("waiting", 0);
-    console.log("[Zero-Copy Sync] ⚠️ ยังไม่พบคีย์ในระบบ รอการเชื่อมต่อ Bridge หรือใส่คีย์ใน Note Drawer");
+    console.log("[Zero-Copy Sync] ⚠️ รอการเชื่อมต่อ Bridge หรือใส่คีย์ใน Note Drawer");
     return null;
   }
 }
@@ -1737,9 +1798,7 @@ function initDuiiChatCopilot() {
 
     const modelsToTry = [
       "gemini-3.8-flash",
-      "gemini-3.8-flash-lite",
-      "gemini-3.5-flash-lite",
-      "gemini-3.5-flash"
+      "gemini-3.5-flash-lite"
     ];
 
     const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
@@ -1782,14 +1841,18 @@ ${savedBrainRules}`;
       let callSuccess = false;
       let lastErr = "";
 
-      const availableKeys = getAllAvailableGeminiKeys();
+      let availableKeys = getAllAvailableGeminiKeys();
       if (!availableKeys.length) {
-        appendMsg("⚠️ **คำเตือนความปลอดภัย (DIO STANDARD)**:\nไม่พบคีย์ Gemini API ในระบบ!\n\nกรุณากดไอคอนสมุดโน้ต (Note Drawer 📝) ด้านขวาบน แล้ววาง API Key (AIza... หรือ AQ....) จะได้เริ่มลุยงานโว้ย!", "bot");
+        await autoSyncSquadKeysFromBridge();
+        availableKeys = getAllAvailableGeminiKeys();
+      }
+      if (!availableKeys.length) {
+        appendMsg("⚡ กำลังเร่งดึงคีย์จาก Bridge สดๆ... มึงลองกดส่งใหม่อีกทีซิไอ้สัส!", "bot");
         break;
       }
 
       for (let k = 0; k < availableKeys.length && !callSuccess; k++) {
-        const apiKey = getNextGeminiKey();
+        const apiKey = getNextGeminiKey("chief");
 
         for (let m = 0; m < modelsToTry.length && !callSuccess; m++) {
           const model = modelsToTry[m];
@@ -2242,9 +2305,7 @@ async function runAutonomousWarRoomSquad(customOrder) {
 
   const modelsToTry = [
     "gemini-3.8-flash",
-    "gemini-3.8-flash-lite",
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash"
+    "gemini-3.5-flash-lite"
   ];
 
   const maxRounds = 5;
@@ -2255,7 +2316,7 @@ async function runAutonomousWarRoomSquad(customOrder) {
       round++;
       let callSuccess = false;
       let lastErr = "";
-      const apiKey = getNextGeminiKey();
+      const apiKey = getNextGeminiKey("chief");
 
       for (let m = 0; m < modelsToTry.length && !callSuccess; m++) {
         const model = modelsToTry[m];
