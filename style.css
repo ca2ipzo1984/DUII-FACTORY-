@@ -1,5 +1,5 @@
 /* ==============================================================================
- * DUII FACTORY // MASTER STYLESHEET (DIO STANDARD DARKROOM)
+ * DUII FACTORY // MASTER STYLESHEET (ISO 9009 DARKROOM & WAR ROOM MULTI-AGENT)
  * Full Responsive Layout, Pinned Note Drawer, Neon Glow & High-Z Windows
  * ============================================================================== */
 
@@ -13,12 +13,14 @@
   --border-color: #30363d;
   --text-main: #e6edf3;
   --text-muted: #8b949e;
-  --accent-orange: #f59e0b;
-  --accent-cyan: #38bdf8;
-  --accent-red: #ef4444;
-  --accent-green: #238636;
-  --accent-green-hover: #2ea043;
-  --accent-purple: #8957e5;
+  
+  /* DIO SQUAD NEON COLOR THEMES */
+  --accent-orange: #f59e0b; /* 👑 ไอ้ดุ่ย */
+  --accent-cyan: #38bdf8;   /* 🔭 อ้ายหนานส่อง */
+  --accent-green: #10b981;  /* 🩺 บักจ่อย ซอยขาด */
+  --accent-purple: #a855f7; /* ⚡ บังบ่าว หัวจ่าย */
+  --accent-red: #ef4444;    /* 🔍 ลุงจั่น ปีกหิน */
+  
   --accent-blue: #1f6feb;
 }
 
@@ -533,7 +535,7 @@ body {
 }
 
 /* ==============================================================================
- * 4. FLOATING PC-WINDOW COPILOT & NOTE DRAWER
+ * 4. FLOATING PC-WINDOW COPILOT & NOTE DRAWER (WAR ROOM ENHANCED)
  * ============================================================================== */
 .hidden { display: none !important; }
 
@@ -546,13 +548,20 @@ body {
   border-radius: 50% !important;
   background: #000 !important;
   border: 2px solid var(--accent-orange) !important;
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
   z-index: 999999 !important;
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.7) !important;
   transition: transform 0.2s, box-shadow 0.2s;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+}
+
+.duii-fab * {
+  pointer-events: none !important;
 }
 
 .duii-fab:hover {
@@ -560,11 +569,12 @@ body {
   box-shadow: 0 0 28px rgba(245, 158, 11, 0.9);
 }
 
-.fab-avatar {
+.fab-avatar-img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  display: block;
 }
 
 .fab-badge {
@@ -584,23 +594,23 @@ body {
   position: fixed !important;
   bottom: 92px !important;
   right: 20px !important;
-  width: 380px !important;
-  height: 540px !important;
+  width: 440px !important;
+  height: 580px !important;
   max-width: calc(100vw - 32px) !important;
   max-height: calc(100vh - 120px) !important;
-  background: #11161f !important;
+  background: #0d1117 !important;
   border: 2px solid var(--accent-orange) !important;
   border-radius: 14px !important;
-  display: flex !important;
+  display: flex;
   flex-direction: column !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.95), 0 0 25px rgba(245, 158, 11, 0.3) !important;
   z-index: 1000000 !important;
   overflow: hidden !important;
 }
 
 .chat-header {
   padding: 10px 14px;
-  background: #090d14;
+  background: #010409;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -660,23 +670,6 @@ body {
   gap: 6px;
 }
 
-.note-drawer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.btn-clear-note {
-  background: transparent;
-  border: none;
-  color: var(--accent-red);
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
 #chatNoteArea {
   width: 100%;
   height: 80px;
@@ -698,37 +691,98 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   background: #090d14;
 }
 
-.chat-msg { display: flex; max-width: 88%; }
+.chat-msg {
+  display: flex;
+  max-width: 90%;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .chat-msg.bot  { align-self: flex-start; }
 .chat-msg.user { align-self: flex-end; }
 
 .msg-bubble {
-  padding: 9px 13px;
+  padding: 10px 14px;
   border-radius: 8px;
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  line-height: 1.48;
+  word-break: break-word;
+  position: relative;
 }
 
-.chat-msg.bot .msg-bubble {
-  background: #161c26;
-  color: #e2e8f0;
-  border: 1px solid #30363d;
-  border-left: 3px solid var(--accent-orange);
-}
-
+/* User Message */
 .chat-msg.user .msg-bubble {
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #000;
   font-weight: 700;
+  border-bottom-right-radius: 2px;
+}
+
+/* ==============================================================================
+ * 🌟 WAR ROOM: 5 SQUAD OFFICERS COLOR THEMES & BADGES
+ * ============================================================================== */
+.chat-msg.bot .msg-bubble {
+  background: #161b22;
+  color: #e2e8f0;
+  border: 1px solid #30363d;
+}
+
+/* 1. 👑 ไอ้ดุ่ย (Chief) - Neon Orange */
+.chat-msg.bot.duii .msg-bubble {
+  border-left: 3.5px solid var(--accent-orange);
+  box-shadow: -4px 0 14px rgba(245, 158, 11, 0.15);
+}
+.duii .officer-tag { color: var(--accent-orange); }
+
+/* 2. 🔭 อ้ายหนานส่อง (Scout - ภาคเหนือ) - Neon Cyan */
+.chat-msg.bot.nan_song .msg-bubble {
+  border-left: 3.5px solid var(--accent-cyan);
+  box-shadow: -4px 0 14px rgba(56, 189, 248, 0.15);
+}
+.nan_song .officer-tag { color: var(--accent-cyan); }
+
+/* 3. 🩺 บักจ่อย ซอยขาด (Triage - ภาคอีสาน) - Neon Green */
+.chat-msg.bot.bak_joy .msg-bubble {
+  border-left: 3.5px solid var(--accent-green);
+  box-shadow: -4px 0 14px rgba(16, 185, 129, 0.15);
+}
+.bak_joy .officer-tag { color: var(--accent-green); }
+
+/* 4. ⚡ บังบ่าว หัวจ่าย (Welder - ภาคใต้) - Neon Purple */
+.chat-msg.bot.bang_bao .msg-bubble {
+  border-left: 3.5px solid var(--accent-purple);
+  box-shadow: -4px 0 14px rgba(168, 85, 247, 0.15);
+}
+.bang_bao .officer-tag { color: var(--accent-purple); }
+
+/* 5. 🔍 ลุงจั่น ปีกหิน (Inspector - ส่วนกลาง) - Neon Red */
+.chat-msg.bot.lung_jan .msg-bubble {
+  border-left: 3.5px solid var(--accent-red);
+  box-shadow: -4px 0 14px rgba(239, 68, 68, 0.15);
+}
+.lung_jan .officer-tag { color: var(--accent-red); }
+
+/* Officer Tag Label */
+.officer-tag {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 .chat-footer {
   padding: 10px;
-  background: #090d14;
+  background: #010409;
   border-top: 1px solid var(--border-color);
   display: flex;
   gap: 6px;
@@ -739,9 +793,9 @@ body {
   background: #161c26;
   border: 1px solid var(--border-color);
   color: #fff;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   outline: none;
 }
 
@@ -750,14 +804,14 @@ body {
   border: none;
   color: #000;
   font-weight: 800;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
 /* ==============================================================================
- * 5. RESPONSIVE (จอมือถือและแท็บเล็ต)
+ * 5. RESPONSIVE
  * ============================================================================== */
 @media (max-width: 1024px) {
   .main-cockpit { grid-template-columns: 280px 320px 1fr; }
@@ -776,211 +830,4 @@ body {
     bottom: 84px !important;
     height: 70vh !important;
   }
-}
-
-/* ==============================================================================
- * 6. RECON WAR ROOM & SCOUT TERMINAL STYLES (DIO STANDARD)
- * ============================================================================== */
-.scout-chat-bubble {
-  position: relative;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: fadeIn 0.25s ease-in-out;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.scout-chat-bubble:hover {
-  transform: translateY(-1px);
-}
-
-/* 👑 ไอ้ดุ่ย (Chief Commander) - สีทองอำพัน (Amber Gold) */
-.scout-chat-bubble.chief {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(22, 27, 34, 0.96) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  border-left: 5px solid #f59e0b;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.14);
-}
-.scout-chat-bubble.chief .scout-agent-badge {
-  background: rgba(245, 158, 11, 0.22);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.5);
-}
-.scout-chat-bubble.chief .scout-action-tag {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fde68a;
-  border: 1px solid rgba(245, 158, 11, 0.45);
-}
-
-/* 🔭 อ้ายหนานส่อง (Lead Scout) - สีฟ้าไซเบอร์เรดาร์ (Cyber Cyan / Sky Blue) */
-.scout-chat-bubble.scout {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(22, 27, 34, 0.96) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  border-left: 5px solid #38bdf8;
-  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.14);
-}
-.scout-chat-bubble.scout .scout-agent-badge {
-  background: rgba(56, 189, 248, 0.22);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.5);
-}
-.scout-chat-bubble.scout .scout-action-tag {
-  background: rgba(56, 189, 248, 0.25);
-  color: #bae6fd;
-  border: 1px solid rgba(56, 189, 248, 0.45);
-}
-
-/* 🔍 ลุงจั่น (Security Inspector) - สีเขียวเอเมอรัลด์ความปลอดภัย (Safety Emerald) */
-.scout-chat-bubble.inspector {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.12) 0%, rgba(22, 27, 34, 0.96) 100%);
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  border-left: 5px solid #22c55e;
-  box-shadow: 0 4px 18px rgba(74, 222, 128, 0.14);
-}
-.scout-chat-bubble.inspector .scout-agent-badge {
-  background: rgba(74, 222, 128, 0.22);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.5);
-}
-.scout-chat-bubble.inspector .scout-action-tag {
-  background: rgba(74, 222, 128, 0.25);
-  color: #bbf7d0;
-  border: 1px solid rgba(74, 222, 128, 0.45);
-}
-
-/* 🩺 บักจ่อย (Triage Officer) - สีแดงกุหลาบนีออนวินิจฉัย (Neon Rose / Crimson) */
-.scout-chat-bubble.triage {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.12) 0%, rgba(22, 27, 34, 0.96) 100%);
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  border-left: 5px solid #ef4444;
-  box-shadow: 0 4px 18px rgba(248, 113, 113, 0.14);
-}
-.scout-chat-bubble.triage .scout-agent-badge {
-  background: rgba(248, 113, 113, 0.22);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.5);
-}
-.scout-chat-bubble.triage .scout-action-tag {
-  background: rgba(248, 113, 113, 0.25);
-  color: #fecaca;
-  border: 1px solid rgba(248, 113, 113, 0.45);
-}
-
-/* ⚡ บังบ่าว (Chassis Welder) - สีม่วงประกายไฟอาร์ก (Electric Arc Violet) */
-.scout-chat-bubble.welder {
-  background: linear-gradient(135deg, rgba(192, 132, 252, 0.12) 0%, rgba(22, 27, 34, 0.96) 100%);
-  border: 1px solid rgba(192, 132, 252, 0.4);
-  border-left: 5px solid #a855f7;
-  box-shadow: 0 4px 18px rgba(192, 132, 252, 0.14);
-}
-.scout-chat-bubble.welder .scout-agent-badge {
-  background: rgba(192, 132, 252, 0.22);
-  color: #c084fc;
-  border: 1px solid rgba(192, 132, 252, 0.5);
-}
-.scout-chat-bubble.welder .scout-action-tag {
-  background: rgba(192, 132, 252, 0.25);
-  color: #e9d5ff;
-  border: 1px solid rgba(192, 132, 252, 0.45);
-}
-
-/* 👑 มึง (Commander) - สีเขียวเมทริกซ์สั่งการรบ (Matrix Commander Green) */
-.scout-chat-bubble.supreme {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.18) 0%, rgba(13, 25, 18, 0.98) 100%);
-  border: 1px solid rgba(52, 211, 153, 0.5);
-  border-left: 5px solid #10b981;
-  box-shadow: 0 4px 22px rgba(52, 211, 153, 0.2);
-}
-.scout-chat-bubble.supreme .scout-agent-badge {
-  background: rgba(52, 211, 153, 0.28);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.6);
-  font-weight: 800;
-}
-.scout-chat-bubble.supreme .scout-action-tag {
-  background: rgba(52, 211, 153, 0.32);
-  color: #a7f3d0;
-  border: 1px solid rgba(52, 211, 153, 0.6);
-}
-
-.scout-bubble-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-}
-.scout-agent-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  letter-spacing: 0.3px;
-}
-.scout-agent-role {
-  font-size: 0.65rem;
-  opacity: 0.85;
-  font-weight: normal;
-}
-.scout-action-tag {
-  display: inline-block;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-.scout-bubble-text {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: #e6edf3;
-  word-break: break-word;
-}
-.scout-bubble-text strong {
-  color: #fff;
-  font-weight: 700;
-}
-.scout-bubble-text code {
-  background: rgba(0, 0, 0, 0.35);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.scout-loot-card {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-}
-.scout-loot-card:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.12);
-  transform: translateY(-2px);
-}
-.loot-badge-sss {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  font-size: 0.65rem;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
 }
