@@ -3,30 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler</title>
+  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler & Harvest Lab</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#0d1117">
   <style>
     /* บังคับซ่อน Modal ป้องกันปัญหาเลเยอร์ลอยค้างบังหน้าจอ */
-    #editorModal.hidden {
+    #editorModal.hidden,
+    #editorModal[style*="display: none"] {
       display: none !important;
     }
-    #duiiChatWindow.hidden {
-      display: none !important;
-    }
+    
     .fab-avatar-img {
       width: 100%;
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
       display: block;
-      pointer-events: none;
-      user-select: none;
-    }
-    .duii-fab * {
-      pointer-events: none !important;
-      user-select: none !important;
     }
   </style>
 </head>
@@ -36,21 +29,19 @@
   <header class="factory-header">
     <div style="display:flex; align-items:center;">
       <span class="brand-title">DUII FACTORY</span>
-      <span class="tag-iso">DIO STANDARD</span>
+      <span class="tag-iso">ISO 9009</span>
     </div>
 
     <!-- TOP NAVIGATION -->
     <nav class="nav-tabs">
       <button type="button" class="nav-btn active" data-tab="tab-factory">📦 คลังโมดูล & ประกอบบอท</button>
+      <button type="button" class="nav-btn" data-tab="tab-scout">🧪 แล็บเก็บเกี่ยวโมดูล</button>
       <button type="button" class="nav-btn" data-tab="tab-harvest">💎 Harvest / แยกโค้ด</button>
       <button type="button" class="nav-btn" data-tab="tab-doctor">🩺 Doctor / วินิจฉัย</button>
-      <button type="button" class="nav-btn" data-tab="tab-scout" style="color:#58a6ff; font-weight:bold;">🐸 ทีมส่องกบ (Scout War Room)</button>
     </nav>
 
     <!-- HEADER RIGHT ACTIONS -->
     <div style="display:flex; align-items:center; gap:8px;">
-      <button type="button" class="btn-preset" onclick="switchToScoutWarRoom()" style="background:rgba(88,166,255,0.15); border:1px solid rgba(88,166,255,0.4); color:#58a6ff; font-weight:bold;">🐸 วอร์รูมส่องกบ</button>
-      <span class="badge-count" id="squadKeyBadge" style="font-size:0.75rem; background:rgba(35, 134, 54, 0.2); color:#3fb950; border:1px solid #238636; font-weight:bold; cursor:pointer;" title="คลิกเพื่อซิงก์คีย์ DIO SQUAD อัตโนมัติ (Zero-Copy Sync)" onclick="autoSyncSquadKeysFromBridge(true)">🟢 DIO SQUAD KEYS: SYNCING...</span>
       <span class="badge-count" id="syncStatusText" style="font-size:0.75rem;">พร้อมทำงาน</span>
       <button type="button" class="btn-preset btn-ecommerce" id="btnSyncDrive">🔄 ซิงก์คลัง Drive</button>
     </div>
@@ -119,11 +110,11 @@
             <button type="button" class="sub-tab-btn" data-subtab="view-readme">📖 คู่มือ (README)</button>
             <button type="button" class="sub-tab-btn" data-subtab="view-props">🔑 Properties</button>
           </div>
-          <span class="line-badge" id="lineCountBadge">LINES: 0 (DIO STANDARD)</span>
+          <span class="line-badge" id="lineCountBadge">LINES: 0 (ISO 9009)</span>
         </div>
 
         <div class="sub-view active" id="view-code" style="flex-direction:column; height:100%;">
-          <textarea class="code-editor-area" id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท 3 ไฟล์' เพื่อผลิตโค้ดมาตรฐาน Trinity DIO STANDARD..."></textarea>
+          <textarea class="code-editor-area" id="compiledCode" spellcheck="false" placeholder="กดปุ่ม 'ประกอบบอท 3 ไฟล์' เพื่อผลิตโค้ดมาตรฐาน Trinity ISO 9009..."></textarea>
           <div style="display:flex; gap:8px; padding:8px 12px; background:#161b22; border-top:1px solid var(--border-color);">
             <button type="button" class="btn-action secondary" onclick="copyCompiledCode()">📋 คัดลอกโค้ด</button>
             <button type="button" class="btn-action secondary" onclick="downloadAllIndividualGsFiles()">💾 ดาวน์โหลดแยก 3 ไฟล์ (.gs)</button>
@@ -138,6 +129,82 @@
           <textarea class="code-editor-area" id="propertiesChecklist" spellcheck="false" readonly></textarea>
         </div>
       </section>
+
+    </div>
+  </main>
+
+  <!-- TAB: AUTONOMOUS HARVEST LAB (ห้องปฏิบัติการเก็บเกี่ยวโมดูลอัตโนมัติ) -->
+  <main class="tab-content" id="tab-scout">
+    <div style="padding:18px; width:100%; height:100%; overflow-y:auto; display:flex; flex-direction:column; gap:14px;">
+      
+      <!-- HEADLINE ACTION BAR -->
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#161b22; border:1px solid #30363d; border-left:4px solid var(--accent-cyan); padding:14px 18px; border-radius:8px; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h2 style="font-size:1.1rem; color:#fff; display:flex; align-items:center; gap:8px;">
+            🧪 ห้องปฏิบัติการเก็บเกี่ยวโมดูลอัตโนมัติ (Module Harvest Lab)
+          </h2>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+            ควบคุมฝูงบอท 4 ขุนพลออกสแกน คัดแยก และสลักโมดูลสดเข้าคลังกลางอัตโนมัติ (ISO 9009 DIO Standard)
+          </p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-preset btn-ecommerce" onclick="runAutonomousHarvestMission()" style="padding:8px 18px; font-size:0.82rem; font-weight:bold;">
+            🚀 ปล่อยบอทออกเก็บเกี่ยวทันที
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 STATIONS COCKPIT GRID -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+        
+        <!-- Station 1: Nan Song -->
+        <div style="background:#0d1117; border:1px solid #30363d; border-top:3px solid var(--accent-cyan); border-radius:8px; padding:12px;">
+          <div style="font-size:0.82rem; font-weight:bold; color:var(--accent-cyan); margin-bottom:4px;">🔭 สถานีสแกนเรดาร์ (หนานส่อง)</div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:8px;">คุ้ยหาฟังก์ชัน GAS/JS สดใหม่จากแหล่ง Drive & GitHub</div>
+          <div id="status-scout" style="background:#010409; border:1px solid #21262d; border-radius:4px; padding:8px; font-family:monospace; font-size:0.72rem; color:#38bdf8; min-height:56px;">
+            ● เรดาร์สแตนด์บาย พร้อมกวาดพิกัด...
+          </div>
+        </div>
+
+        <!-- Station 2: Bak Joy -->
+        <div style="background:#0d1117; border:1px solid #30363d; border-top:3px solid var(--accent-green); border-radius:8px; padding:12px;">
+          <div style="font-size:0.82rem; font-weight:bold; color:var(--accent-green); margin-bottom:4px;">🩺 แท่นผ่าตัดคัดแยก (บักจ่อย)</div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:8px;">สับขยะโค้ดทิ้ง ห่อหุ้มโครงสร้าง IIFE ปลอดภัย</div>
+          <div id="status-triage" style="background:#010409; border:1px solid #21262d; border-radius:4px; padding:8px; font-family:monospace; font-size:0.72rem; color:#10b981; min-height:56px;">
+            ● มีดสับโค้ดคมกริบ รอรับชิ้นงานสด...
+          </div>
+        </div>
+
+        <!-- Station 3: Bang Bao -->
+        <div style="background:#0d1117; border:1px solid #30363d; border-top:3px solid var(--accent-purple); border-radius:8px; padding:12px;">
+          <div style="font-size:0.82rem; font-weight:bold; color:var(--accent-purple); margin-bottom:4px;">⚡ สายพานเชื่อมต่อ (บังบ่าว)</div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:8px;">สลัก Gemini Tool Schema และเชื่อมห่อกล่องโมดูล</div>
+          <div id="status-welder" style="background:#010409; border:1px solid #21262d; border-radius:4px; padding:8px; font-family:monospace; font-size:0.72rem; color:#a855f7; min-height:56px;">
+            ● หัวจ่ายเทอร์โบพร้อมเชื่อม Function Schema...
+          </div>
+        </div>
+
+        <!-- Station 4: Lung Jan -->
+        <div style="background:#0d1117; border:1px solid #30363d; border-top:3px solid var(--accent-red); border-radius:8px; padding:12px;">
+          <div style="font-size:0.82rem; font-weight:bold; color:var(--accent-red); margin-bottom:4px;">🔍 ด่านตรวจรับรอง DIO (ลุงจั่น)</div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:8px;">ตรวจสอบความปลอดภัย ตีตราอนุมัติเข้า In-Memory Vault</div>
+          <div id="status-inspector" style="background:#010409; border:1px solid #21262d; border-radius:4px; padding:8px; font-family:monospace; font-size:0.72rem; color:#ef4444; min-height:56px;">
+            ● ประจำการคุมมาตรฐาน ไม่ผ่านเกณฑ์สับทิ้งทันที...
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LIVE HARVEST STREAM CONSOLE -->
+      <div style="background:#090d14; border:1px solid #30363d; border-radius:8px; display:flex; flex-direction:column; flex:1; min-height:220px; overflow:hidden;">
+        <div style="padding:8px 14px; background:#161b22; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.8rem; font-weight:bold; color:#e6edf3;">📡 บันทึกสายพานการผลิตสด (Live Pipeline Log)</span>
+          <span id="harvestCounter" style="font-size:0.72rem; color:var(--accent-cyan); font-family:monospace;">เก็บเกี่ยวสำเร็จ: 0 ชิ้น</span>
+        </div>
+        <div id="harvestLogConsole" style="flex:1; padding:12px; font-family:'Fira Code', monospace; font-size:0.74rem; color:#7ee787; overflow-y:auto; line-height:1.5; background:#010409;">
+          [SYSTEM] ห้องปฏิบัติการพร้อมทำงาน กดปุ่ม 'ปล่อยบอทออกเก็บเกี่ยวทันที' หรือพิมพ์สั่งงานผ่าน Live Chat ไอ้ดุ่ยได้เลย
+        </div>
+      </div>
 
     </div>
   </main>
@@ -162,87 +229,6 @@
     </div>
   </main>
 
-  <!-- TAB: SCOUT WAR ROOM (🐸 ศูนย์บัญชาการทีมส่องกบ) -->
-  <main class="tab-content" id="tab-scout" style="flex-direction:column; width:100%; height:100%; background:var(--bg-main);">
-    
-    <!-- SUBHEADER / MISSION CONTROL DECK -->
-    <div style="background:#0d1117; padding:12px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:1.5rem;">🐸</span>
-        <div>
-          <div style="font-weight:800; font-size:1rem; color:#58a6ff; display:flex; align-items:center; gap:8px;">
-            DIO SQUAD // ศูนย์บัญชาการทีมส่องกบ (RECON WAR ROOM)
-            <span class="tag-iso" style="background:rgba(88,166,255,0.2); color:#58a6ff; border-color:rgba(88,166,255,0.4);">RECON MISSION</span>
-          </div>
-          <div style="font-size:0.75rem; color:var(--text-muted);">
-            ส่องกบไซเบอร์: ลาดตระเวนหาโมดูล/สกิลขั้นเทพ คัดเฉพาะของระดับ "เยด ล้ำว่ะ" ลูทเข้าคลังสายพานผลิตทันที
-          </div>
-        </div>
-      </div>
-
-      <form id="scoutTargetForm" onsubmit="event.preventDefault(); runFrogScoutMission();" style="display:flex; align-items:center; gap:10px; flex:1; max-width:650px; justify-content:flex-end; margin:0;">
-        <input type="text" id="scoutTargetInput" value="โมดูลบอท GAS และ LINE ขั้นเทพ ล้ำยุค ต้นทุน 0 บาท มีประโยชน์สูง" placeholder="ระบุภารกิจส่องกบ..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();runFrogScoutMission();}">
-        <button type="submit" class="btn-action success" id="btnDeployScoutSquad" style="width:auto; padding:8px 18px; font-weight:bold; white-space:nowrap; background:#238636; border:1px solid #2ea043; cursor:pointer;">
-          🚀 ปล่อยทีมส่องกบออกล่า
-        </button>
-      </form>
-    </div>
-
-    <!-- MAIN SCOUT COCKPIT: DUAL PANE -->
-    <div style="flex:1; display:flex; overflow:hidden;">
-      
-      <!-- LEFT PANE: LIVE AGENT CHAT & TIMELINE (55%) -->
-      <section style="flex:1.2; display:flex; flex-direction:column; border-right:1px solid var(--border-color); background:#0b0f17; overflow:hidden;">
-        
-        <!-- AGENT STATUS BAR -->
-        <div style="background:#111620; padding:10px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; flex-wrap:wrap;">
-            <span style="color:var(--text-muted); font-weight:bold;">ขุนพลประจำการ:</span>
-            <span class="badge-agent" style="background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">👑 ไอ้ดุ่ย (Chief)</span>
-            <span class="badge-agent" style="background:rgba(56,189,248,0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">🔭 อ้ายหนานส่อง (Scout)</span>
-            <span class="badge-agent" style="background:rgba(74,222,128,0.18); color:#4ade80; border:1px solid rgba(74,222,128,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">🔍 ลุงจั่น (Inspector)</span>
-            <span class="badge-agent" style="background:rgba(248,113,113,0.18); color:#f87171; border:1px solid rgba(248,113,113,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">🩺 บักจ่อย (Triage)</span>
-            <span class="badge-agent" style="background:rgba(192,132,252,0.18); color:#c084fc; border:1px solid rgba(192,132,252,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">⚡ บังบ่าว (Welder)</span>
-            <span class="badge-agent" style="background:rgba(52,211,153,0.18); color:#34d399; border:1px solid rgba(52,211,153,0.45); padding:3px 8px; border-radius:6px; font-size:0.72rem; font-weight:bold;">👑 มึง (Commander)</span>
-          </div>
-          <span id="scoutStageBadge" style="font-size:0.75rem; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); padding:3px 10px; border-radius:12px; font-weight:bold;">
-            🟢 พร้อมออกปฏิบัติการ
-          </span>
-        </div>
-
-        <!-- CHAT FEED CONTAINER -->
-        <div id="scoutChatFeed" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;">
-          <!-- Chat bubbles will stream here -->
-        </div>
-
-        <!-- QUICK CHAT INPUT FOR COMMANDER -->
-        <form id="scoutChatForm" onsubmit="event.preventDefault(); sendScoutManualOrder();" style="padding:10px 14px; background:#0d1117; border-top:1px solid var(--border-color); display:flex; gap:8px; margin:0;">
-          <input type="text" id="scoutChatInput" placeholder="พิมพ์สั่งการทีมส่องกบเพิ่มเติมได้ที่นี่..." style="flex:1; background:#161b22; border:1px solid #30363d; color:#fff; padding:8px 12px; border-radius:6px; font-size:0.8rem;" onkeydown="if(event.key==='Enter'||event.keyCode===13){event.preventDefault();sendScoutManualOrder();}">
-          <button type="submit" class="btn-action primary" style="width:auto; padding:8px 16px; font-size:0.8rem;">สั่งการ</button>
-        </form>
-      </section>
-
-      <!-- RIGHT PANE: LOOTED VAULT / คลังของล้ำที่ล่ามาได้ (45%) -->
-      <section style="flex:1; display:flex; flex-direction:column; background:#0d1117; overflow:hidden;">
-        <div style="background:#111620; padding:10px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-weight:bold; font-size:0.85rem; color:#e6edf3;">🏆 คลังของล้ำที่ส่องกบมาได้ (LOOTED VAULT)</span>
-            <span id="lootedCountBadge" class="badge-count" style="font-size:0.7rem; background:#238636; color:#fff;">พบ 6 โมดูลระดับ SSS</span>
-          </div>
-          <button type="button" class="btn-preset" onclick="lootAllModulesToFactory()" style="font-size:0.7rem; padding:3px 8px; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.4); color:#38bdf8; cursor:pointer;">
-            📥 ลูททั้งหมดเข้าคลังโรงงาน
-          </button>
-        </div>
-
-        <!-- LOOT LIST CONTAINER -->
-        <div id="scoutLootContainer" style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px;">
-          <!-- Discovered module cards will render here -->
-        </div>
-      </section>
-
-    </div>
-  </main>
-
   <!-- MODAL: CODE EDITOR (ซ่อนตั้งต้นเด็ดขาด ไม่เกะกะบังหน้าจอ) -->
   <div id="editorModal" class="hidden" style="display: none !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:9999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
@@ -259,13 +245,13 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
-  <div class="duii-fab" id="duiiFab" role="button" tabindex="0" title="เปิดหน้าต่างแชทดุ่ย" aria-label="เปิดหน้าต่างแชทไอ้ดุ่ย" onclick="window.toggleDuiiChat(event)">
+  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
     <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
     <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
-  <!-- DUII LIVE CHAT WINDOW (ซ่อนตั้งต้นเด็ดขาด) -->
+  <!-- DUII LIVE CHAT WINDOW (Command Center รวมศูนย์) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
@@ -277,31 +263,30 @@
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <!-- ปุ่มเปิด/ปิดกระดาษโน้ต 📝 -->
-        <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="window.toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
+        <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
         <button type="button" class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
         <!-- ปุ่มปิด ✖ พร้อม Direct Event Handler ปิดหน้าต่างทันที -->
-        <button type="button" class="chat-close-btn" id="btnChatClose" onclick="window.closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
+        <button type="button" class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
       </div>
     </div>
 
     <!-- PINNED NOTE DRAWER (สมุดโน้ต) -->
     <div class="chat-note-drawer" id="chatNoteDrawer" style="display: none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <span style="font-size:0.7rem; color:var(--accent-cyan); font-weight:bold;">📝 SQUAD KEY VAULT & NOTE DRAWER</span>
-        <button type="button" class="btn-preset" onclick="autoSyncSquadKeysFromBridge(true)" style="padding:2px 6px; font-size:0.65rem; background:#21262d; border:1px solid #30363d; color:#fff; cursor:pointer;">🔄 Sync Keys</button>
-      </div>
-      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:120px; background:#161b22; color:#fff; border:1px solid #30363d; border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box; font-family:monospace;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
+      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid #30363d; border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API (AIza...)..."></textarea>
       <button type="button" class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
     </div>
 
     <div class="chat-body" id="chatBody">
-      <div class="chat-msg bot">
-        <div class="msg-bubble">กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY DIO STANDARD มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลย!</div>
+      <div class="chat-msg bot duii">
+        <div class="msg-bubble">
+          <span class="officer-tag" style="color:var(--accent-orange);">👑 ไอ้ดุ่ย (Chief)</span>
+          กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY ISO 9009 มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน สั่งปล่อยแล็บเก็บเกี่ยวโมดูล หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลย!
+        </div>
       </div>
     </div>
 
     <div class="chat-footer">
-      <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน เช่น 'ประกอบบอทผับบาร์'..." autocomplete="off">
+      <input type="text" id="chatInput" placeholder="พิมพ์สั่งงาน เช่น 'ปล่อยบอทเก็บเกี่ยวโมดูล', 'ประกอบบอทผับบาร์'..." autocomplete="off">
       <button type="button" class="btn-send" id="btnChatSend">ส่ง</button>
     </div>
   </div>
@@ -310,70 +295,46 @@
   <script src="modules.js"></script>
   <script src="app.js"></script>
 
-  <!-- DIRECT ACTION HANDLERS (รับประกันปุ่มเปิด/ปิดแชท และสมุดโน้ต ทำงานได้ 100% ปราศจาก Event Collision) -->
+  <!-- DIRECT ACTION HANDLERS -->
   <script>
-    window.toggleDuiiChat = function(e) {
-      if (e) {
-        if (typeof e.preventDefault === "function") e.preventDefault();
-        if (typeof e.stopPropagation === "function") e.stopPropagation();
-      }
+    function toggleDuiiChat(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const win = document.getElementById("duiiChatWindow");
       if (!win) return;
-      const isHidden = win.classList.contains("hidden") || 
-                       win.style.display === "none" || 
-                       window.getComputedStyle(win).display === "none";
-      if (isHidden) {
-        win.classList.remove("hidden");
-        win.style.setProperty("display", "flex", "important");
-        const input = document.getElementById("chatInput");
-        if (input) setTimeout(() => input.focus(), 60);
-      } else {
-        win.classList.add("hidden");
-        win.style.setProperty("display", "none", "important");
+      win.classList.toggle("hidden");
+      if (!win.classList.contains("hidden")) {
+        const inp = document.getElementById("chatInput");
+        if (inp) setTimeout(() => inp.focus(), 100);
       }
-    };
+    }
 
-    window.closeDuiiChat = function(e) {
-      if (e) {
-        if (typeof e.preventDefault === "function") e.preventDefault();
-        if (typeof e.stopPropagation === "function") e.stopPropagation();
-      }
+    function closeDuiiChat(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const win = document.getElementById("duiiChatWindow");
       if (win) {
-        win.classList.add("hidden");
         win.style.setProperty("display", "none", "important");
+        win.classList.add("hidden");
       }
-    };
+    }
 
-    window.toggleNoteDrawer = function(e) {
-      if (e) {
-        if (typeof e.preventDefault === "function") e.preventDefault();
-        if (typeof e.stopPropagation === "function") e.stopPropagation();
-      }
+    function toggleNoteDrawer(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const drawer = document.getElementById("chatNoteDrawer");
       if (drawer) {
-        const isHidden = (drawer.style.display === "none" || !drawer.style.display || window.getComputedStyle(drawer).display === "none");
-        drawer.style.display = isHidden ? "block" : "none";
-        if (isHidden) {
-          const noteArea = document.getElementById("chatNoteArea");
-          if (noteArea) setTimeout(() => noteArea.focus(), 60);
-        }
+        drawer.style.display = (drawer.style.display === "none" || !drawer.style.display) ? "block" : "none";
       }
-    };
+    }
 
-    window.closeEditorModal = function(e) {
-      if (e) {
-        if (typeof e.preventDefault === "function") e.preventDefault();
-        if (typeof e.stopPropagation === "function") e.stopPropagation();
-      }
+    function closeEditorModal(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       const modal = document.getElementById("editorModal");
       if (modal) {
-        modal.classList.add("hidden");
         modal.style.setProperty("display", "none", "important");
+        modal.classList.add("hidden");
       }
-    };
+    }
 
-    window.openModuleEditor = function(moduleId) {
+    function openModuleEditor(moduleId) {
       const modal = document.getElementById("editorModal");
       const textarea = document.getElementById("editorTextarea");
       const title = document.getElementById("editorTitle");
@@ -384,17 +345,10 @@
         textarea.value = mod.codeSnippet || "";
       }
       if (modal) {
-        modal.classList.remove("hidden");
         modal.style.setProperty("display", "flex", "important");
+        modal.classList.remove("hidden");
       }
-    };
-
-    // Alias สำหรับการเรียกแบบไม่ใส่ window.
-    var toggleDuiiChat = window.toggleDuiiChat;
-    var closeDuiiChat = window.closeDuiiChat;
-    var toggleNoteDrawer = window.toggleNoteDrawer;
-    var closeEditorModal = window.closeEditorModal;
-    var openModuleEditor = window.openModuleEditor;
+    }
   </script>
 </body>
 </html>
