@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v8.5.0-PROD-WARROOM-BULLETPROOF-ENTER-KEY-DIO
+ * VERSION     : v9.0.0-PROD-WARROOM-BULLETPROOF-ENTER-KEY-GEMINI3X-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager &
  *               War Room Multi-Agent Autonomous Dispatcher (5 Squad Officers)
@@ -73,6 +73,14 @@ function getNextGeminiKey() {
   return String(key || "").replace(/[\r\n\s]/g, "");
 }
 
+// ลำดับโมเดลเกณฑ์ DIO STANDARD บังคับใช้ตระกูล 3.x เท่านั้น (ตัด 1.x/2.x ทิ้งเด็ดขาด)
+const DIO_GEMINI_3X_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.8-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash"
+];
+
 // ==============================================================================
 // 1. STATE & GLOBAL CONFIGURATION
 // ==============================================================================
@@ -90,7 +98,6 @@ let file3TestRunnerContent = "";
 let currentBotSerialId = "";
 let editingModuleId = null;
 
-// ป้องกันการกดยิงซ้ำขณะกำลังประมวลผล
 let isBotProcessing = false;
 
 // ลงทะเบียน Service Worker
@@ -723,7 +730,7 @@ window.runAiGenerateModule = async function() {
 
   if (apiKey) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -839,7 +846,7 @@ function routeOfficer(text) {
   return DIO_OFFICERS.duii;
 }
 
-// Global Message Appender
+// Global Message Appender (ผูกคลาสสี Neon แยก 5 ตัวละคร)
 function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ้ดุ่ย") {
   const chatBody = document.getElementById("chatBody");
   if (!chatBody) return;
@@ -852,7 +859,7 @@ function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ�
 }
 window.appendMessageToChat = appendMsg;
 
-// Global Send Handler เพื่อให้ปุ่ม Enter และปุ่มกดเรียกใช้ได้เสถียร 100%
+// Global Send Handler สำหรับ Live Chat ไอ้ดุ่ย (ตระกูล 3.x ล้วน)
 window.duiiHandleSend = async function() {
   if (isBotProcessing) return;
 
@@ -880,12 +887,6 @@ window.duiiHandleSend = async function() {
   const officer = routeOfficer(text);
   appendMsg(`💭 [${officer.name}] กำลังประมวลผลคำสั่ง...`, "bot", officer.id, officer.name);
 
-  // ลำดับโมเดลที่เรียกใช้งานตามลำดับ Failover
-  const modelsToTry = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash"
-  ];
-
   const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
 
   const systemInstruction = `${officer.systemPrompt}
@@ -907,14 +908,14 @@ ${savedBrainRules}`;
   let succeeded = false;
   let lastErrorDetail = "";
 
-  const maxKeyAttempts = Math.min(5, ALL_ACTIVE_KEYS.length || 1);
+  const userCustomKey = localStorage.getItem("DUII_GEMINI_KEY") || "";
+  const keyList = [userCustomKey, ...ALL_ACTIVE_KEYS].filter(k => k && k.trim());
 
-  for (let k = 0; k < maxKeyAttempts && !succeeded; k++) {
-    const apiKey = getNextGeminiKey();
-    if (!apiKey) continue;
+  for (let k = 0; k < keyList.length && !succeeded; k++) {
+    const apiKey = keyList[k].trim();
 
-    for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
-      const model = modelsToTry[m];
+    for (let m = 0; m < DIO_GEMINI_3X_MODELS.length && !succeeded; m++) {
+      const model = DIO_GEMINI_3X_MODELS[m];
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
       try {
@@ -952,7 +953,7 @@ ${savedBrainRules}`;
     appendMsg(reply, "bot", officer.id, officer.name);
     handleSparkChatAction(text + " " + reply);
   } else {
-    appendMsg(`⚠️ เชื่อมต่อ AI ไม่ผ่าน:\n${lastErrorDetail}\n(ลองตรวจดูคีย์ใน Note Drawer 📝 อีกครั้ง)`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
+    appendMsg(`⚠️ เชื่อมต่อ Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}\n(กรุณากดสมุดโน้ต 📝 ขวาบน แล้ววาง API Key จริงของมึง)`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
   }
 
   isBotProcessing = false;
@@ -1012,7 +1013,7 @@ function initDuiiChatCopilot() {
     if (savedNote && savedNote.trim()) {
       noteArea.value = savedNote;
     } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
+      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ล็อกเป้าเฉพาะตระกูล 3.x\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
       noteArea.value = defaultNoteText;
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
     }
@@ -1047,7 +1048,7 @@ function initDuiiChatCopilot() {
     });
   }
 
-  // ผูกปุ่มส่งและคีย์บอร์ด Enter ด้วย keydown (แก้ปัญหาปุ่ม Enter แข็ง)
+  // ผูกปุ่มส่งและคีย์บอร์ด Enter (แก้ปัญหาปุ่ม Enter แข็งในหน้า Live Chat)
   if (sendBtn) {
     sendBtn.onclick = (e) => {
       e.preventDefault();
@@ -1064,6 +1065,111 @@ function initDuiiChatCopilot() {
     };
   }
 }
+
+// ==============================================================================
+// 🐸 SCOUT WAR ROOM HANDLERS & ENTER KEY FIX (DIO STANDARD 100%)
+// ==============================================================================
+
+// 1. แก้บั๊กปุ่มสลับแท็บวอร์รูม (switchToScoutWarRoom is not defined)
+window.switchToScoutWarRoom = function() {
+  const scoutTabBtn = document.querySelector('[data-tab="tab-scout"]');
+  if (scoutTabBtn) {
+    scoutTabBtn.click();
+  } else {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    const tabScout = document.getElementById("tab-scout");
+    if (tabScout) tabScout.classList.add("active");
+  }
+};
+
+// 2. แก้บั๊กปุ่ม Enter แข็งในห้องวอร์รูมทีมส่องกบ (sendScoutManualOrder is not defined)
+window.sendScoutManualOrder = async function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const input = document.getElementById("scoutChatInput");
+  if (!input) return;
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+
+  if (typeof appendMsg === "function") {
+    appendMsg(text, "user");
+  }
+
+  const officer = (typeof routeOfficer === "function") ? routeOfficer(text) : { id: "nan_song", name: "🔭 อ้ายหนานส่อง (Scout - ภาคเหนือ)" };
+  
+  if (typeof appendMsg === "function") {
+    appendMsg(`💭 [${officer.name}] กำลังประมวลผลคำสั่งในวอร์รูม...`, "bot", officer.id, officer.name);
+  }
+
+  let reply = "";
+  let succeeded = false;
+  let lastErr = "";
+
+  const userCustomKey = localStorage.getItem("DUII_GEMINI_KEY") || "";
+  const keyList = [userCustomKey, ...ALL_ACTIVE_KEYS].filter(k => k && k.trim());
+
+  if (keyList.length === 0) {
+    if (typeof appendMsg === "function") {
+      appendMsg("⚠️ ไม่พบคีย์ที่ใช้งานได้! กรุณากดปุ่ม 🔑 หรือสมุดโน้ต 📝 เพื่อใส่ Gemini API Key จริง", "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
+    }
+    return;
+  }
+
+  for (let k = 0; k < keyList.length && !succeeded; k++) {
+    const curKey = keyList[k].trim();
+    for (let m = 0; m < DIO_GEMINI_3X_MODELS.length && !succeeded; m++) {
+      const model = DIO_GEMINI_3X_MODELS[m];
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": curKey
+          },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: text }] }],
+            systemInstruction: { parts: [{ text: (officer.systemPrompt || "ตอบสั้นกระชับ ตรงไปตรงมา สไตล์ช่างส่องกบ DIO") }] },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          reply = data.candidates[0].content.parts[0].text;
+          succeeded = true;
+        } else {
+          lastErr = `[${model}] HTTP ${res.status}: ${data?.error?.message || res.statusText}`;
+        }
+      } catch (err) {
+        lastErr = `[${model}] Network: ${err.message}`;
+      }
+    }
+  }
+
+  const chatBody = document.getElementById("chatBody");
+  if (chatBody && chatBody.lastElementChild) {
+    chatBody.lastElementChild.remove();
+  }
+
+  if (succeeded) {
+    if (typeof appendMsg === "function") {
+      appendMsg(reply, "bot", officer.id, officer.name);
+    }
+    if (typeof handleSparkChatAction === "function") {
+      handleSparkChatAction(text + " " + reply);
+    }
+  } else {
+    if (typeof appendMsg === "function") {
+      appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErr}\n👉 แนะนำให้เปิด Note Drawer 📝 แล้ววางคีย์ AIza... ตรงๆ`, "bot", "bak_joy", "🩺 บักจ่อย ซอยขาด");
+    }
+  }
+
+  setTimeout(() => input.focus(), 50);
+};
 
 // ==============================================================================
 // 9. DOCTOR & TABS HELPERS
