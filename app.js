@@ -1,1024 +1,833 @@
-/**
- * ==============================================================================
- * FILE        : app.js
- * VERSION     : v7.5.0-PROD-FULL-UNTRUNCATED-SQUAD-15KEYS-DIO
- * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
- * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager & Live Spark Command
- * ==============================================================================
- */
-
-// ==============================================================================
-// 0. DIO SQUAD KEY POOL (15 KEYS TOTAL - OBFUSCATED BASE64 CHUNKS)
-// ==============================================================================
-const _dK = (a, b) => window.atob(a + b);
-
-const DIO_SQUAD_KEYS = {
-  bot1_lung_jan: [
-    _dK("QVEuQWI4Uk42STRSTXd2dzMtZDFzWVNXM3hq", "ODNWWHV1T2E5dFpIU2VrT3lrNGpVbkxVNlE="),
-    _dK("QVEuQWI4Uk42S09fT3VXaHVNcmY0bHV1Z25M", "WlRnWmtPNFAyUnpQd2V2VVBuOXNCOWJ2S1E="),
-    _dK("QVEuQWI4Uk42Sy1OVFFRcGNUbnI0SzdhN1VF", "RUlRVmtJZ0doLVhLQXFET0U4SmtaLWJQY2c=")
-  ],
-  bot2_ai_song: [
-    _dK("QVEuQWI4Uk42SVNXZUpaS2hIOS0xVC1NS1Rs", "alhVWTJMYjg2WDdQLXJNSVg5Y093YVU4Rnc="),
-    _dK("QVEuQWI4Uk42SmZRNmJmb0llTEJDeUdxNHZt", "cjdiMkhoU01ydlp0Ml9LYjQ5TWp1Y1FfbEE="),
-    _dK("QVEuQWI4Uk42SXVraEVMSVRnYXdtc3dON1hD", "elpnUi1tUmJuQ0dTZEozUHEwbTBEWEhKOHc=")
-  ],
-  bot3_bak_joy: [
-    _dK("QVEuQWI4Uk42TFc1OEFNSTNaTHkzWGJxdnZm", "X1ppVFZWVTFmZ2xSX1VmVnFYMFd5UnpRZ2c="),
-    _dK("QVEuQWI4Uk42TDhBQmdVcXZKbWlBNkp0TXJO", "VDRLM29fOWRlV1ZZOTI5NkVEei1kUm5KeGc="),
-    _dK("QVEuQWI4Uk42SlJXSzhuQ2lJaVZLVS1KS2JG", "TERxb1ViMTFfS2VqYkMtbUFwbW1JNWk0aGc=")
-  ],
-  bot4_bang_bao: [
-    _dK("QVEuQWI4Uk42SXFxYmhHTFk5UVhJLXdSU2l4", "OVpCeDFNOFVzeDF4ZUdGeThoYU5iSFJpTFE="),
-    _dK("QVEuQWI4Uk42TFJ2Rm5aVkhZR2UtNTM0VEtI", "UEEtVndhY0RCX0FTbWtTLVo1NVdIY2R4T2c="),
-    _dK("QVEuQWI4Uk42SUZBWWFtbklGdk5YMXpfVEJi", "ajRFTURZOERmb050Y3lOX1M0akdWVTd1TkE=")
-  ]
-};
-
-// 3 ดอกแกนกลาง
-const _P1 = "QVEuQWI4Uk42S1hF";
-const _P2 = "bnJra0owU2xDYmxkZ3RGZFUxRTBmRlN2dEZyY0ZJZEJxa253YXRzV2c=";
-const _K2_A = "QVEuQWI4Uk42S0E5";
-const _K2_B = "ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=";
-const _K3_A = "QVEuQWI4Uk42SzNY";
-const _K3_B = "VGs1Q3FrOFIxYTlkSXN4MkpDUHdxcUlTWTNmOTI2UTdZUHVuWDNDQWc=";
-
-// รวมครบทั้ง 15 ดอกพร้อมสลับหมุนเวียน 100% ไม่มีวันคีย์ตัน
-const ALL_ACTIVE_KEYS = [
-  window.atob(_P1 + _P2),
-  window.atob(_K2_A + _K2_B),
-  window.atob(_K3_A + _K3_B),
-  ...DIO_SQUAD_KEYS.bot1_lung_jan,
-  ...DIO_SQUAD_KEYS.bot2_ai_song,
-  ...DIO_SQUAD_KEYS.bot3_bak_joy,
-  ...DIO_SQUAD_KEYS.bot4_bang_bao
-];
-
-let activeKeyIndex = 0;
-function getNextGeminiKey() {
-  const custom = localStorage.getItem("DUII_GEMINI_KEY");
-  let key = (custom && custom.trim()) ? custom.trim() : ALL_ACTIVE_KEYS[activeKeyIndex % ALL_ACTIVE_KEYS.length];
-  activeKeyIndex++;
-  return String(key || "").replace(/[\r\n\s]/g, "");
-}
-
-// ==============================================================================
-// 1. STATE & GLOBAL CONFIGURATION
-// ==============================================================================
-const DEFAULT_TARGET_ENDPOINT = "https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec";
-const MASTER_LICENSE_SPREADSHEET_ID = "10kT4AKtzP7cNvRbQRJbL2sIdwPn73snsdR9L3eR2OWo";
-
-let activeModules = (typeof FACTORY_REGISTRY !== 'undefined') ? [...FACTORY_REGISTRY] : [];
-const mandatoryModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
-let selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
-let currentInspectingId = "05_SlipVerifier";
-
-let file1CoreContent = "";
-let file2ModulesContent = "";
-let file3TestRunnerContent = "";
-let currentBotSerialId = "";
-let editingModuleId = null;
-
-// ลงทะเบียน Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW Registration Fail:', err));
-  });
-}
-
-// ==============================================================================
-// 2. INITIALIZATION & DOM READY
-// ==============================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  loadCustomVaultFromStorage();
-  initTopNavTabs();
-  initSubTabs();
-  initSearch();
-  initInspectorButtons();
-  initDuiiChatCopilot();
-  initDriveSyncEngine();
-  initBrainSettingsModal();
-
-  const btnCompile = document.querySelector(".compile-main-btn");
-  if (btnCompile) {
-    btnCompile.addEventListener("click", (e) => {
-      e.preventDefault();
-      compileAutonomousBot();
-    });
-  }
-
-  const btnDeploy = document.getElementById("btnDeployTarget") || document.querySelector(".btn-action.warning");
-  if (btnDeploy) {
-    btnDeploy.addEventListener("click", (e) => {
-      e.preventDefault();
-      deployDirectToTargetUrl();
-    });
-  }
-
-  renderCatalog();
-  inspectModule(currentInspectingId);
-});
-
-function loadCustomVaultFromStorage() {
-  try {
-    const raw = localStorage.getItem("DUII_CUSTOM_VAULT");
-    if (raw) {
-      const customList = JSON.parse(raw);
-      customList.forEach(c => {
-        const idx = activeModules.findIndex(m => m.id === c.id);
-        if (idx !== -1) {
-          activeModules[idx] = c;
-        } else {
-          activeModules.push(c);
-        }
-      });
-    }
-  } catch (e) {
-    console.warn("Cannot load custom vault:", e);
-  }
-}
-
-function saveModuleToVault(mod) {
-  const idx = activeModules.findIndex(m => m.id === mod.id);
-  if (idx !== -1) {
-    activeModules[idx] = mod;
-  } else {
-    activeModules.push(mod);
-  }
-  const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
-  localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
-  renderCatalog();
-}
-
-// ==============================================================================
-// 🔄 GOOGLE DRIVE SYNC ENGINE (Master Vault Sync)
-// ==============================================================================
-function initDriveSyncEngine() {
-  const btnSync = document.getElementById("btnSyncDrive");
-  const statusBadge = document.getElementById("syncStatusText");
-  if (!btnSync) return;
-
-  const lastSync = localStorage.getItem("DUII_LAST_SYNC_TIME");
-  if (lastSync && statusBadge) {
-    statusBadge.textContent = `ซิงก์ล่าสุด: ${lastSync}`;
-  }
-
-  btnSync.addEventListener("click", async () => {
-    let syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
-
-    btnSync.classList.add("syncing");
-    if (statusBadge) statusBadge.textContent = "กำลังซิงก์ข้อมูล...";
-
-    try {
-      const targetUrl = syncEndpoint + (syncEndpoint.includes("?") ? "&" : "?") + "action=GET_MODULES&t=" + Date.now();
-      const res = await fetch(targetUrl);
-      const cloudData = await res.json();
-
-      const cloudModules = cloudData.modules || cloudData;
-      if (Array.isArray(cloudModules) && cloudModules.length > 0) {
-        let newCount = 0;
-        cloudModules.forEach(cMod => {
-          const idx = activeModules.findIndex(m => m.id === cMod.id);
-          if (idx !== -1) {
-            activeModules[idx] = cMod;
-          } else {
-            activeModules.push(cMod);
-            newCount++;
-          }
-        });
-
-        const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.isCustom);
-        localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
-
-        const timeStr = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
-        localStorage.setItem("DUII_LAST_SYNC_TIME", timeStr);
-
-        renderCatalog();
-        if (statusBadge) statusBadge.textContent = `ซิงก์สำเร็จ (${timeStr})`;
-        alert(`✅ ซิงก์กับ Google Drive สำเร็จ!\nอัปเดตโมดูลทั้งหมด ${cloudModules.length} รายการ (พบโมดูลใหม่ ${newCount} รายการ)`);
-      } else {
-        alert("⚠️ ไม่พบข้อมูลโมดูลในไฟล์ต้นทางบน Google Drive");
-      }
-    } catch (err) {
-      console.error("Sync Error:", err);
-      if (statusBadge) statusBadge.textContent = "ซิงก์ล้มเหลว";
-      if (confirm("❌ ไม่สามารถซิงก์ได้ ต้องการเปลี่ยน URL แหล่งข้อมูลใน Drive ใหม่หรือไม่?")) {
-        localStorage.removeItem("DUII_DRIVE_SYNC_URL");
-      }
-    } finally {
-      btnSync.classList.remove("syncing");
-    }
-  });
-}
-
-// ==============================================================================
-// 3. CATALOG & INSPECTOR RENDERING
-// ==============================================================================
-function renderCatalog(filterText = "") {
-  const listEl = document.getElementById("moduleList");
-  if (!listEl) return;
-  listEl.innerHTML = "";
-
-  const query = filterText.toLowerCase();
-  const filtered = activeModules.filter(m =>
-    m.name.toLowerCase().includes(query) ||
-    m.category.toLowerCase().includes(query) ||
-    (m.commands && m.commands.some(c => c.toLowerCase().includes(query)))
-  );
-
-  filtered.forEach(mod => {
-    const isSelected = selectedModuleIds.has(mod.id);
-    const isActive = mod.id === currentInspectingId;
-    const isCoreOrTest = mandatoryModuleIds.has(mod.id);
-
-    const card = document.createElement("div");
-    card.className = `module-card ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}`;
-    card.innerHTML = `
-      <div class="card-title">${isCoreOrTest ? '🛡️ ' : (isSelected ? '✅ ' : '⚙️ ')}${mod.name}</div>
-      <div class="card-desc">${mod.description.substring(0, 85)}...</div>
-    `;
-    card.addEventListener("click", () => inspectModule(mod.id));
-    listEl.appendChild(card);
-  });
-
-  const countBadge = document.getElementById("selectedCount");
-  const optionalCount = selectedModuleIds.size - mandatoryModuleIds.size;
-  if (countBadge) countBadge.textContent = `เลือก ${Math.max(0, optionalCount)} โมดูล (+Core & Test)`;
-}
-
-function inspectModule(moduleId) {
-  currentInspectingId = moduleId;
-  const mod = activeModules.find(m => m.id === moduleId);
-  if (!mod) return;
-
-  renderCatalog(document.getElementById("moduleSearch") ? document.getElementById("moduleSearch").value : "");
-
-  const bodyEl = document.getElementById("inspectorBody");
-  if (!bodyEl) return;
-
-  let propsHtml = "";
-  if (mod.properties && mod.properties.length > 0) {
-    propsHtml = "<h4>🔑 Script Properties ที่ต้องตั้งค่า:</h4><ul>";
-    mod.properties.forEach(p => {
-      propsHtml += `<li><code>${p.key}</code> - ${p.desc}${p.required ? '<b style="color:var(--accent-red);">(จำเป็น)</b>' : '(ทางเลือก)'}</li>`;
-    });
-    propsHtml += "</ul>";
-  }
-
-  let funcHtml = "";
-  if (mod.functionDeclaration) {
-    funcHtml = `<h4>🧠 Gemini Tool Schema:</h4><pre>${JSON.stringify(mod.functionDeclaration, null, 2)}</pre>`;
-  }
-
-  bodyEl.innerHTML = `
-    <h2>${mod.name}</h2>
-    <div style="font-size:0.75rem; color:var(--accent-orange); margin-bottom:8px;">หมวดหมู่: ${mod.category}</div>
-    <p style="color:var(--text-main);">${mod.description}</p>${propsHtml}
-    <h4>🛠️ คำสั่งที่รองรับ:</h4>
-    <p style="color:var(--text-muted); font-size:0.8rem;">${(mod.commands || []).join(", ") || "-"}</p>
-    ${funcHtml}
-    <h4>📖 คำแนะนำการติดตั้ง:</h4>
-    <pre>${mod.setupGuide || "-"}</pre>
-  `;
-
-  const btnToggle = document.getElementById("btnToggleSelect");
-  if (btnToggle) {
-    const isMandatory = mandatoryModuleIds.has(mod.id);
-    const isSelected = selectedModuleIds.has(mod.id);
-    if (isMandatory) {
-      btnToggle.textContent = "🔒 บังคับติดตั้งตามมาตรฐาน DIO";
-      btnToggle.className = "btn-action disabled";
-      btnToggle.disabled = true;
-    } else {
-      btnToggle.disabled = false;
-      btnToggle.textContent = isSelected ? "➖ ถอดโมดูลนี้ออก" : "➕ เลือกโมดูลนี้เข้าบอท";
-      btnToggle.className = `btn-action ${isSelected ? 'warning' : 'success'}`;
-    }
-  }
-}
-
-function initInspectorButtons() {
-  const btnToggle = document.getElementById("btnToggleSelect");
-  if (btnToggle) {
-    btnToggle.addEventListener("click", () => {
-      if (mandatoryModuleIds.has(currentInspectingId)) return;
-      if (selectedModuleIds.has(currentInspectingId)) {
-        selectedModuleIds.delete(currentInspectingId);
-      } else {
-        selectedModuleIds.add(currentInspectingId);
-      }
-      inspectModule(currentInspectingId);
-      updateLiveReadme();
-      updatePropertiesChecklist();
-    });
-  }
-
-  const btnEdit = document.getElementById("btnEditModuleCode");
-  if (btnEdit) {
-    btnEdit.addEventListener("click", () => openModuleEditor(currentInspectingId));
-  }
-}
-
-// ==============================================================================
-// 4. PRESETS
-// ==============================================================================
-window.applyPreset = function(presetType) {
-  selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
-  if (presetType === "ecommerce") {
-    ["02_FlexEngine", "05_SlipVerifier", "08_OrderCart", "09_StrictFAQ", "11_GiftCard"].forEach(id => selectedModuleIds.add(id));
-  } else if (presetType === "nightlife") {
-    ["02_FlexEngine", "06_HumanHandoff", "10_Reservation", "12_EventTicket"].forEach(id => selectedModuleIds.add(id));
-  } else if (presetType === "godmode") {
-    activeModules.forEach(m => selectedModuleIds.add(m.id));
-  }
-  renderCatalog();
-  updateLiveReadme();
-  updatePropertiesChecklist();
-  alert(`👑 โหลดเทมเพลต [${presetType.toUpperCase()}] เรียบร้อย!`);
-};
-
-// ==============================================================================
-// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE
-// ==============================================================================
-window.compileAutonomousBot = function() {
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
-
-  const tools = [];
-  selectedList.forEach(m => {
-    if (m.functionDeclaration) tools.push(m.functionDeclaration);
-  });
-
-  let dispatcherCode = `function executeAutonomousTool(name, args, replyToken, userId) {\n  var a = args || {};\n  switch (name) {\n`;
-  selectedList.forEach(m => {
-    if (m.functionDeclaration) {
-      const fName = m.functionDeclaration.name;
-      dispatcherCode += `    case '${fName}':\n`;
-      if (m.id === "05_SlipVerifier") dispatcherCode += `      return SlipVerifier.verify(a);\n`;
-      else if (m.id === "06_HumanHandoff") dispatcherCode += `      return HumanHandoff.request(a);\n`;
-      else if (m.id === "07_LeadScoring") dispatcherCode += `      return LeadScoring.score(a);\n`;
-      else if (m.id === "08_OrderCart") dispatcherCode += `      return OrderCart.createSummary(a);\n`;
-      else if (m.id === "09_StrictFAQ") dispatcherCode += `      return StrictFAQ.query(a);\n`;
-      else if (m.id === "10_Reservation") dispatcherCode += `      return Reservation.book(a);\n`;
-      else if (m.id === "11_GiftCard") dispatcherCode += `      return GiftCard.execute(a);\n`;
-      else if (m.id === "12_EventTicket") dispatcherCode += `      return EventTicket.process(a);\n`;
-      else dispatcherCode += `      return { status: "success", result: "Executed ${fName}" };\n`;
-    }
-  });
-  dispatcherCode += `    default:\n      return { status: "not_found", message: "Unknown tool" };\n  }\n}`;
-
-  let logicCode = ``;
-  selectedList.forEach(m => {
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `// 📦 MODULE: ${m.name}\n`;
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `${m.codeSnippet}\n\n`;
-  });
-
-  const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  let rawCore = coreMod ? coreMod.codeSnippet : "";
-
-  // 🏷️ SERIAL ID MANAGEMENT: โหมดตรวจจับรหัสเดิม vs สุ่มรหัสใหม่
-  let assignedSerial = "";
-  const existingSerialMatch = rawCore.match(/get CLIENT_ID\(\)\s*\{[^}]*return\s+getProp_\(['"]CLIENT_ID['"]\)\s*\|\|\s*['"]([^'"]+)['"]/);
-
-  if (existingSerialMatch && existingSerialMatch[1] && existingSerialMatch[1] !== "SHOP_DEFAULT") {
-    assignedSerial = existingSerialMatch[1];
-  } else {
-    const today = new Date().toISOString().slice(2, 10).replace(/-/g, "");
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    assignedSerial = `DUII-${today}-${rand}`;
-    rawCore = rawCore.replace(
-      /get CLIENT_ID\(\)\s*\{[^}]*\}/,
-      `get CLIENT_ID() { return getProp_('CLIENT_ID') || '${assignedSerial}'; }`
-    );
-    registerBotToMasterSheet(assignedSerial);
-  }
-  currentBotSerialId = assignedSerial;
-  file1CoreContent = rawCore;
-
-  const runNum = Math.floor(1000 + Math.random() * 9000);
-  file2ModulesContent = `// TOTAL_LINES: AUTO\n/**\n * SCRIPT NAME : 01_Modules_And_Tools.gs\n * VERSION     : v5.0.0-RUN-${runNum}\n * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO\n */\n\n`;
-  file2ModulesContent += `// 1. GEMINI TOOLS SCHEMA\nvar GEMINI_TOOLS_SCHEMA = ${JSON.stringify(tools, null, 2)};\n\n`;
-  file2ModulesContent += `// 2. AUTONOMOUS TOOL DISPATCHER ROUTER\n${dispatcherCode}\n\n`;
-  file2ModulesContent += `// 3. BUSINESS LOGIC IMPLEMENTATIONS\n${logicCode}`;
-  file2ModulesContent += `// END OF FILE : 01_Modules_And_Tools.gs`;
-
-  const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  file3TestRunnerContent = testMod ? testMod.codeSnippet : "";
-
-  const combinedOutput = `/* ==============================================================================
-   📄 [ไฟล์ที่ 1 บังคับ]: 00_CoreSpine_${currentBotSerialId}.gs
-   ============================================================================== */
-${file1CoreContent}
-
 /* ==============================================================================
-   📄 [ไฟล์ที่ 2]: 01_Modules_And_Tools.gs (รวม ${selectedList.length} โมดูล)
-   ============================================================================== */
-${file2ModulesContent}
+ * DUII FACTORY // MASTER STYLESHEET (ISO 9009 DARKROOM & WAR ROOM MULTI-AGENT)
+ * Full Responsive Layout, Pinned Note Drawer, Neon Glow & High-Z Windows
+ * ============================================================================== */
 
-/* ==============================================================================
-   📄 [ไฟล์ที่ 3 บังคับ]: 99_TestRunner.gs (แท่นตรวจสอบสุขภาพระบบ)
-   ============================================================================== */
-${file3TestRunnerContent}`;
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Prompt:wght@300;400;600;700;800;900&display=swap');
 
-  const codeArea = document.getElementById("compiledCode");
-  if (codeArea) codeArea.value = combinedOutput;
-
-  const totalLines = combinedOutput.split("\n").length;
-  const lineBadge = document.getElementById("lineCountBadge");
-  if (lineBadge) lineBadge.textContent = `LINES: ${totalLines} (DIO)`;
-
-  updateLiveReadme();
-  updatePropertiesChecklist();
-  const codeSubTab = document.querySelector('[data-subtab="view-code"]');
-  if (codeSubTab) codeSubTab.click();
-  alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n🏷️ SERIAL ID: [${currentBotSerialId}]\n• 00_CoreSpine_${currentBotSerialId}.gs\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\n• 99_TestRunner.gs\nรวมทั้งหมด ${totalLines} บรรทัด`);
-};
-
-async function registerBotToMasterSheet(serialId) {
-  const syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
-  const now = new Date();
-  const expireDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-  const expireStr = expireDate.toISOString().slice(0, 10);
-
-  const payload = {
-    action: "REGISTER_LICENSE",
-    spreadsheetId: MASTER_LICENSE_SPREADSHEET_ID,
-    clientId: serialId,
-    clientName: "ร้านค้าใหม่ (" + serialId + ")",
-    expireDate: expireStr,
-    status: "ACTIVE",
-    plan: "STARTER"
-  };
-
-  try {
-    await fetch(syncEndpoint, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: JSON.stringify(payload)
-    });
-    console.log(`[License Registry] Registered serial: ${serialId}`);
-  } catch (err) {
-    console.warn("[License Registry Warning]:", err);
-  }
-}
-
-window.downloadAllIndividualGsFiles = function() {
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  if (selectedList.length === 0) {
-    alert("กรุณาเลือกโมดูลอย่างน้อย 1 รายการก่อนดาวน์โหลด");
-    return;
-  }
-
-  const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  const coreFileName = currentBotSerialId ? `00_CoreSpine_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
-  if (coreMod) downloadTextFile(coreFileName, file1CoreContent || coreMod.codeSnippet);
-
-  const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", file3TestRunnerContent || testMod.codeSnippet), 250);
-
-  let delay = 500;
-  selectedList.forEach(mod => {
-    if (mod.id !== "00_CoreSpine" && mod.id !== "99_TestRunner") {
-      const fileName = mod.id.endsWith(".gs") ? mod.id : `${mod.id}.gs`;
-      setTimeout(() => downloadTextFile(fileName, mod.codeSnippet), delay);
-      delay += 250;
-    }
-  });
-
-  alert(`กำลังดาวน์โหลดไฟล์ .gs แยกทั้งหมด ${selectedList.length} ไฟล์ลงเครื่องของคุณ...`);
-};
-
-function downloadTextFile(filename, text) {
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-window.copyCompiledCode = function() {
-  const codeArea = document.getElementById("compiledCode");
-  if (!codeArea || !codeArea.value) return;
-  navigator.clipboard.writeText(codeArea.value).then(() => {
-    alert("📋 คัดลอกโค้ดทั้งหมดเรียบร้อย!");
-  });
-};
-
-// ==============================================================================
-// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)
-// ==============================================================================
-window.deployDirectToTargetUrl = async function() {
-  const targetUrl = prompt(
-    "🔗 ยืนยัน Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
-    localStorage.getItem("DUII_LAST_TARGET_DEPLOY_URL") || DEFAULT_TARGET_ENDPOINT
-  );
-  if (!targetUrl || !targetUrl.trim()) return;
-
-  const cleanUrl = targetUrl.trim();
-  localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", cleanUrl);
-
-  if (!file1CoreContent || !file2ModulesContent) {
-    compileAutonomousBot();
-  }
-
-  const payload = {
-    secretKey: "DUII_DEPLOY_SECRET_9009",
-    serialId: currentBotSerialId,
-    coreSpine: file1CoreContent,
-    modules: file2ModulesContent,
-    testRunner: file3TestRunnerContent
-  };
-
-  try {
-    await fetch(cleanUrl, {
-      method: "POST",
-      mode: "no-cors",
-      cache: "no-cache",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: JSON.stringify(payload)
-    });
-    alert(`🚀 ยิงส่งโค้ด 3 ไฟล์ [${currentBotSerialId}] ไปยังระบบปลายทางเรียบร้อยแล้ว!`);
-  } catch (e) {
-    alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
-  }
-};
-
-function updateLiveReadme() {
-  const readmeArea = document.getElementById("readmeContent");
-  if (!readmeArea) return;
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  let doc = `# DUII FACTORY BOT DEPLOYMENT GUIDE (DIO)\n\n`;
-  doc += `🏷️ BOT SERIAL ID: ${currentBotSerialId || "ยังไม่ได้คอมไพล์"}\n\n`;
-  doc += `## รายการไฟล์ที่ต้องติดตั้ง:\n`;
-  doc += `1. 00_CoreSpine_${currentBotSerialId || "NEW"}.gs (แกนระบบบังคับ + License Guard)\n`;
-  doc += `2. 01_Modules_And_Tools.gs (โมดูลธุรกิจ)\n`;
-  doc += `3. 99_TestRunner.gs (ชุดทดสอบระบบ)\n\n`;
-  doc += `## รายการโมดูลที่เลือกใช้งาน (${selectedList.length - 2} โมดูล):\n`;
-  selectedList.forEach(m => {
-    if (!mandatoryModuleIds.has(m.id)) {
-      doc += `### 📦 ${m.name}\n- หมวดหมู่: ${m.category}\n- คำอธิบาย: ${m.description}\n\n`;
-    }
-  });
-  readmeArea.value = doc;
-}
-
-function updatePropertiesChecklist() {
-  const propsArea = document.getElementById("propertiesChecklist");
-  if (!propsArea) return;
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  const propMap = new Map();
-
-  propMap.set("CLIENT_ID", { desc: `รหัสร้านค้าสำหรับตัดต่อสัญญาณ [${currentBotSerialId}]`, required: true });
-  propMap.set("MASTER_LICENSE_SPREADSHEET_ID", { desc: "ID ชีตคุมสัมปทานกลาง (MASTER_CLIENT_LICENSES)", required: true });
-
-  selectedList.forEach(m => {
-    (m.properties || []).forEach(p => {
-      if (!propMap.has(p.key)) propMap.set(p.key, p);
-    });
-  });
-
-  let checklist = `=== SCRIPT PROPERTIES CHECKLIST ===\nนำค่าเหล่านี้ไปกรอกใน Google Apps Script (Project Settings > Script Properties):\n\n`;
-  propMap.forEach((p, k) => {
-    checklist += `[ ] ${k}\n    - คำอธิบาย: ${p.desc}\n    - ความจำเป็น: ${p.required ? 'จำเป็น' : 'ทางเลือก'}\n\n`;
-  });
-  propsArea.value = checklist;
-}
-
-// ==============================================================================
-// 6. HARVEST & LOOT SEPARATOR
-// ==============================================================================
-window.analyzeAndExtractCode = function() {
-  const raw = document.getElementById("rawCodeInput").value.trim();
-  const listEl = document.getElementById("harvestResultList");
-  if (!raw) { alert("กรุณาวางโค้ดก่อนทำการสแกน"); return; }
-  listEl.innerHTML = "";
-
-  const funcRegex = /function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{/g;
-  let match;
-  const foundFuncs = [];
-
-  while ((match = funcRegex.exec(raw)) !== null) {
-    foundFuncs.push({ name: match[1], params: match[2] });
-  }
-
-  if (foundFuncs.length === 0) {
-    listEl.innerHTML = `<div style="color:var(--accent-red); font-size:0.85rem;">ไม่พบฟังก์ชันที่สกัดได้</div>`;
-    return;
-  }
-
-  foundFuncs.forEach(fn => {
-    const item = document.createElement("div");
-    item.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px 12px; border:1px solid var(--border-color); border-radius:6px;";
-    item.innerHTML = `
-      <div>
-        <strong style="color:var(--accent-cyan); font-family:monospace;">📁 ${fn.name}.gs</strong>
-        <span style="font-size:0.75rem; color:var(--text-muted); margin-left:8px;">(${fn.params || "no args"})</span>
-      </div>
-      <button class="btn-action primary" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="harvestSingleFunction('${fn.name}')">💎 สกัดเป็นไฟล์นี้</button>
-    `;
-    listEl.appendChild(item);
-  });
-};
-
-window.harvestSingleFunction = function(funcName) {
-  const rawText = document.getElementById("rawCodeInput").value;
-  const fileName = funcName + ".gs";
-  const safeId = "mod_" + funcName.toLowerCase();
-
-  const regex = new RegExp("function\\s+" + funcName + "\\s*\\([\\s\\S]*?\\}\\s*\\n", "m");
-  const match = rawText.match(regex);
-  const snippet = match ? match[0] : `function ${funcName}() {\n  // Looted snippet\n}`;
-
-  const newLootFile = {
-    id: safeId,
-    type: "module",
-    name: "📁 " + fileName,
-    category: "Looted Modules",
-    commands: ["/" + funcName],
-    description: `โมดูลที่สกัดมาเป็นไฟล์ ${fileName} จากการ Loot โค้ดภายนอก`,
-    properties: [],
-    setupGuide: `### 📁 Modules/${fileName}\nวางไฟล์นี้ในโฟลเดอร์ Modules/ เพื่อเรียกใช้งาน`,
-    functionDeclaration: {
-      name: "run_" + funcName,
-      description: `เรียกใช้งานฟังก์ชัน ${funcName} จากไฟล์ ${fileName}`,
-      parameters: { type: "OBJECT", properties: { param: { type: "STRING" } } }
-    },
-    codeSnippet: `// FILE: Modules/${fileName}\n// DIO LOOTED MODULE\n${snippet}`
-  };
-
-  saveModuleToVault(newLootFile);
-  alert(`💎 สกัดแยกเป็นไฟล์ [Modules/${fileName}] เรียบร้อย!`);
-};
-
-// ==============================================================================
-// 7. CODE EDITOR & GENERATOR MODALS
-// ==============================================================================
-window.openModuleEditor = function(moduleId) {
-  const mod = activeModules.find(m => m.id === moduleId);
-  if (!mod) return;
-  editingModuleId = moduleId;
-  document.getElementById("editorTitle").textContent = `✏️ แก้ไขโค้ด: ${mod.name}`;
-  document.getElementById("editorTextarea").value = mod.codeSnippet;
-  document.getElementById("editorModal").classList.remove("hidden");
-};
-
-window.closeEditorModal = function() {
-  document.getElementById("editorModal").classList.add("hidden");
-  editingModuleId = null;
-};
-
-window.saveEditorCode = function() {
-  if (!editingModuleId) return;
-  const mod = activeModules.find(m => m.id === editingModuleId);
-  if (!mod) return;
-
-  mod.codeSnippet = document.getElementById("editorTextarea").value;
-  saveModuleToVault(mod);
-  inspectModule(mod.id);
-  closeEditorModal();
-  alert(`💾 บันทึกการแก้ไขไฟล์ [${mod.name}] เรียบร้อย!`);
-};
-
-window.openGeneratorModal = function() {
-  document.getElementById("generatorModal").classList.remove("hidden");
-  document.getElementById("genPromptInput").focus();
-};
-
-window.closeGeneratorModal = function() {
-  document.getElementById("generatorModal").classList.add("hidden");
-  document.getElementById("genStatus").textContent = "";
-};
-
-window.runAiGenerateModule = async function() {
-  const prompt = document.getElementById("genPromptInput").value.trim();
-  const statusEl = document.getElementById("genStatus");
-  if (!prompt) { alert("กรุณาพิมพ์ความต้องการก่อน"); return; }
-
-  const apiKey = getNextGeminiKey();
-  statusEl.textContent = "⏳ กำลังเขียนและจัดโครงสร้างโมดูลตามมาตรฐาน DIO...";
-
-  const fileSlug = prompt.substring(0, 15).replace(/[^a-zA-Z0-9ก-๙]/g, "_");
-  const fileName = `${Date.now().toString().slice(-4)}_${fileSlug}.gs`;
-  const modId = "gen_" + Date.now();
-
-  let generatedSnippet = "";
-
-  if (apiKey) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `คุณคือสถาปนิกบอท DUII FACTORY จงเขียนโค้ด Google Apps Script 1 โมดูลตามโจทย์: "${prompt}" ในรูปแบบ IIFE (var ModuleName = (function(){...})()) คืนค่า JSON สำหรับ LINE Messaging API ตอบเฉพาะโค้ดล้วน` }]
-          }]
-        })
-      });
-      const data = await res.json();
-      if (data && data.candidates && data.candidates[0].content.parts[0].text) {
-        generatedSnippet = data.candidates[0].content.parts[0].text.replace(/```javascript|```/g, "").trim();
-      }
-    } catch (e) {
-      console.warn("Gemini gen error:", e);
-    }
-  }
-
-  if (!generatedSnippet) {
-    generatedSnippet = `var Mod_${fileSlug} = (function() {\n  function execute(args) {\n    return { status: "success", message: "ดำเนินการตามคำสั่ง [${prompt}] เรียบร้อย" };\n  }\n  return { execute: execute };\n})();`;
-  }
-
-  const newMod = {
-    id: modId,
-    type: "module",
-    name: "📁 " + fileName,
-    category: "Generated Modules",
-    commands: ["/" + fileSlug],
-    description: `โมดูลที่สั่งเจนตามโจทย์: ${prompt}`,
-    properties: [],
-    setupGuide: `### 📁 Modules/${fileName}\nวางไฟล์นี้ในโฟลเดอร์ Modules/`,
-    functionDeclaration: {
-      name: "run_" + modId,
-      description: prompt,
-      parameters: { type: "OBJECT", properties: { input: { type: "STRING" } } }
-    },
-    codeSnippet: `// FILE: Modules/${fileName}\n${generatedSnippet}`
-  };
-
-  saveModuleToVault(newMod);
-  closeGeneratorModal();
-  alert(`✨ สั่งเขียนโค้ดสำเร็จ! สร้างเป็นไฟล์ [Modules/${fileName}] เข้าคลังเรียบร้อย`);
-};
-
-// ==============================================================================
-// 8. DUII COPILOT: SPARK COMMAND, BRAIN MANAGER & GEMINI 3.X ENGINE
-// ==============================================================================
-function initBrainSettingsModal() {
-  const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
-  const defaultBrain = `[กฎเหล็กการผ่าตัดโค้ด (Surgical Patching Protocol)]
-1. ห้ามย่อ ห้ามตัด และห้ามใช้ข้อความขี้เกียจแนว "// ... โค้ดเดิมคงไว้ ..." เด็ดขาด
-2. แก้ไขเฉพาะฟังก์ชันที่มีปัญหา ห้ามแตะต้อง Signature และฟังก์ชันอื่นที่ทำงานดีอยู่แล้ว
-3. โค้ดส่วนที่ส่งกลับมาต้องเป็นโค้ดที่สมบูรณ์ ไวยากรณ์ครบ นำไปวางทับใช้งานได้ 100%
-4. บังคับใช้เฉพาะ Gemini 3.x Flash/Lite ผ่าน Header x-goog-api-key ห้ามแตะ 1.x / 2.x`;
-
-  if (!customBrain) {
-    localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", defaultBrain);
-  }
-}
-
-function initDuiiChatCopilot() {
-  const fab = document.getElementById("duiiFab");
-  const chatWin = document.getElementById("duiiChatWindow");
-  const closeBtn = document.getElementById("btnChatClose");
-  const sendBtn = document.getElementById("btnChatSend");
-  const chatInput = document.getElementById("chatInput");
-  const chatBody = document.getElementById("chatBody");
-  const keyBtn = document.getElementById("btnSetApiKey");
+:root {
+  --bg-main: #090d14;
+  --bg-panel: #0d1117;
+  --bg-card: #161b22;
+  --bg-card-hover: #1f242c;
+  --border-color: #30363d;
+  --text-main: #e6edf3;
+  --text-muted: #8b949e;
   
-  const btnToggleNote = document.getElementById("btnToggleNote");
-  const noteDrawer = document.getElementById("chatNoteDrawer");
-  const noteArea = document.getElementById("chatNoteArea");
-  const btnClearNote = document.getElementById("btnClearNote");
-
-  // ป้องกัน Uncaught ReferenceError ด้วย Global Alias
-  window.appendMessageToChat = appendMsg;
-
-  if (!fab || !chatWin) return;
-
-  fab.onclick = function(e) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    chatWin.classList.toggle("hidden");
-    if (!chatWin.classList.contains("hidden") && chatInput) {
-      setTimeout(() => chatInput.focus(), 100);
-    }
-  };
-
-  if (closeBtn) {
-    closeBtn.onclick = function(e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      chatWin.classList.add("hidden");
-    };
-  }
-
-  if (noteArea) {
-    const savedNote = localStorage.getItem("DUII_CHAT_PINNED_NOTE");
-    if (savedNote && savedNote.trim()) {
-      noteArea.value = savedNote;
-    } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ล็อกเป้าเฉพาะตระกูล 3.x\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
-      noteArea.value = defaultNoteText;
-      localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
-    }
-
-    noteArea.addEventListener("input", () => {
-      localStorage.setItem("DUII_CHAT_PINNED_NOTE", noteArea.value);
-    });
-  }
-
-  if (btnToggleNote && noteDrawer) {
-    btnToggleNote.addEventListener("click", () => {
-      noteDrawer.classList.toggle("hidden");
-    });
-  }
-
-  if (btnClearNote && noteArea) {
-    btnClearNote.addEventListener("click", () => {
-      if (confirm("ล้างข้อความในโน้ตทั้งหมดใช่ไหม?")) {
-        noteArea.value = "";
-        localStorage.removeItem("DUII_CHAT_PINNED_NOTE");
-      }
-    });
-  }
-
-  if (keyBtn) {
-    keyBtn.addEventListener("click", () => {
-      const current = localStorage.getItem("DUII_GEMINI_KEY") || ALL_ACTIVE_KEYS[0];
-      const k = prompt("🔑 ตั้งค่า Gemini API Key (ตระกูล AQ):", current);
-      if (k !== null) {
-        localStorage.setItem("DUII_GEMINI_KEY", k.trim().replace(/[\r\n\s]/g, ""));
-        alert("✅ บันทึกคีย์ลงเครื่องเรียบร้อย!");
-      }
-    });
-  }
-
-  function handleSparkChatAction(text) {
-    const t = String(text || "").toLowerCase();
-    
-    if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
-    } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('nightlife'); }, 600);
-    } else if (t.includes("godmode") || t.includes("god mode") || t.includes("ทะลวงจักรวาล")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
-    }
-
-    if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
-      setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
-    }
-
-    if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
-      const btnSync = document.getElementById("btnSyncDrive");
-      if (btnSync) setTimeout(() => btnSync.click(), 600);
-    }
-  }
-
-  async function handleSend() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    appendMsg(text, "user");
-    chatInput.value = "";
-
-    if (text.startsWith("เขียนโมดูล") || text.startsWith("สร้างโมดูล") || text.startsWith("เจนโค้ด")) {
-      appendMsg("⚡ รับบัญชา! กำลังสลักไฟล์โมดูลใหม่ลงคลัง...", "bot");
-      const pInput = document.getElementById("genPromptInput");
-      if (pInput) pInput.value = text;
-      await runAiGenerateModule();
-      appendMsg("✅ สลักไฟล์โมดูลใหม่ลงคลังสำเร็จ ตรวจดูที่เมนูด้านซ้ายได้เลย!", "bot");
-      return;
-    }
-
-    appendMsg("💭 ดุ่ย (Spark Command) กำลังประมวลผลด้วยตระกูล 3.x...", "bot");
-
-    const modelsToTry = [
-      "gemini-3.8-flash",
-      "gemini-3.8-flash-lite",
-      "gemini-3.5-flash-lite",
-      "gemini-3.5-flash"
-    ];
-
-    const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
-
-    const systemInstruction = `คุณคือ "ไอ้ดุ่ย" (Duii) สมองกลหัวหน้าช่างใหญ่ประจำ Command Center ของโรงงาน DUII FACTORY
-สถานะ: วิศวกรไซเบอร์ ป.เอก 8 ใบ สไตล์ขวานผ่าซาก ด่าตรง ไม่ตอแหล เกลียดโค้ดขยะ คุมมาตรฐาน DUII_FACTORY_CORE_SPINE_DIO อย่างเด็ดขาด
-
-[พิกัดเครือข่ายโรงงาน (Factory Topology)]
-1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
-2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
-3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
-4. ทะเบียนสัมปทานลิขสิทธิ์: MASTER_CLIENT_LICENSES (ID: ${MASTER_LICENSE_SPREADSHEET_ID})
-
-[พรีเซ็ตสายพานผลิตมาตรฐาน]
-1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
-2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
-3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
-
-${savedBrainRules}`;
-
-    let reply = "";
-    let succeeded = false;
-    let lastErrorDetail = "";
-
-    for (let k = 0; k < ALL_ACTIVE_KEYS.length && !succeeded; k++) {
-      const apiKey = getNextGeminiKey();
-
-      for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
-        const model = modelsToTry[m];
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": apiKey
-            },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: text }] }],
-              systemInstruction: { parts: [{ text: systemInstruction }] },
-              generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-            })
-          });
-
-          const data = await res.json();
-          if (res.ok && data && data.candidates && data.candidates[0].content.parts[0].text) {
-            reply = data.candidates[0].content.parts[0].text;
-            succeeded = true;
-          } else {
-            lastErrorDetail = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
-          }
-        } catch (err) {
-          lastErrorDetail = `[${model}] Network: ${err.message}`;
-        }
-      }
-    }
-
-    if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
-
-    if (succeeded) {
-      appendMsg(reply, "bot");
-      handleSparkChatAction(text + " " + reply);
-    } else {
-      appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}`, "bot");
-    }
-  }
-
-  sendBtn.addEventListener("click", handleSend);
-  chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSend(); });
-
-  function appendMsg(text, sender) {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `chat-msg ${sender}`;
-    msgDiv.innerHTML = `<div class="msg-bubble">${text.replace(/\n/g, "<br>")}</div>`;
-    chatBody.appendChild(msgDiv);
-    chatBody.scrollTop = chatBody.scrollHeight;
-  }
+  /* DIO SQUAD NEON COLOR THEMES */
+  --accent-orange: #f59e0b; /* 👑 ไอ้ดุ่ย */
+  --accent-cyan: #38bdf8;   /* 🔭 อ้ายหนานส่อง */
+  --accent-green: #10b981;  /* 🩺 บักจ่อย ซอยขาด */
+  --accent-purple: #a855f7; /* ⚡ บังบ่าว หัวจ่าย */
+  --accent-red: #ef4444;    /* 🔍 ลุงจั่น ปีกหิน */
+  
+  --accent-blue: #1f6feb;
 }
 
-// ==============================================================================
-// 9. DOCTOR & TABS HELPERS
-// ==============================================================================
-window.runLogDiagnostics = function() {
-  const log = document.getElementById("doctorLogInput").value;
-  const resEl = document.getElementById("doctorResult");
-  if (!log) return;
-  resEl.style.display = "block";
-
-  if (log.indexOf("ScriptProperties") !== -1 || log.indexOf("NO_API_KEY") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-red);">🚨 วินิจฉัย: คีย์ระบบไม่ครบ</b><br>ยังไม่ได้ตั้ง Script Properties ตรวจสอบ LINE_CHANNEL_ACCESS_TOKEN หรือ GEMINI_API_KEYS`;
-  } else if (log.indexOf("429") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-orange);">⚠️ วินิจฉัย: โควตา Gemini เต็ม (Rate Limit)</b><br>ระบบจะ Fallback สลับโมเดลอัตโนมัติ หรือเพิ่ม API Key ใน GEMINI_API_KEYS`;
-  } else if (log.indexOf("LockService") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-cyan);">🔒 วินิจฉัย: ScriptLock ชนกัน</b><br>มีคำขอเข้ามาพร้อมกัน ระบบป้องกันข้อมูลซ้ำเรียบร้อย ไม่ต้องแก้ไข`;
-  } else {
-    resEl.innerHTML = `<b style="color:var(--accent-green);">✅ วินิจฉัย: ข้อผิดพลาดทั่วไป</b><br>${log.substring(0, 200)}... แนะนำตรวจสอบ Spreadsheet ID และสิทธิ์การเข้าถึง Web App`;
-  }
-};
-
-function initTopNavTabs() {
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-      btn.classList.add("active");
-      const target = document.getElementById(btn.getAttribute("data-tab"));
-      if (target) target.classList.add("active");
-    });
-  });
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-function initSubTabs() {
-  document.querySelectorAll(".sub-tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".sub-tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".sub-view").forEach(v => v.classList.remove("active"));
-      btn.classList.add("active");
-      const target = document.getElementById(btn.getAttribute("data-subtab"));
-      if (target) target.classList.add("active");
-    });
-  });
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-function initSearch() {
-  const searchInput = document.getElementById("moduleSearch");
-  if (searchInput) {
-    searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
+/* ==============================================================================
+ * 1. HEADER & TOP NAVIGATION
+ * ============================================================================== */
+.factory-header {
+  min-height: 54px;
+  background: #010409;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.tag-iso {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-orange);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.btn-sync {
+  background: #21262d;
+  border: 1px solid var(--border-color);
+  color: #c9d1d9;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-sync:hover {
+  background: #30363d;
+  color: #ffffff;
+  border-color: var(--accent-orange);
+}
+
+.btn-sync.syncing .sync-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.sync-status-badge {
+  font-size: 0.7rem;
+  color: var(--accent-orange);
+  font-weight: 600;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-btn.active {
+  background: var(--bg-card);
+  color: #ffffff;
+  border-bottom: 2px solid var(--accent-orange);
+}
+
+/* ==============================================================================
+ * 2. MAIN COCKPIT & THREE-COLUMN PANEL
+ * ============================================================================== */
+.tab-content {
+  flex: 1;
+  display: none;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.tab-content.active {
+  display: flex;
+}
+
+.main-cockpit {
+  display: grid;
+  grid-template-columns: 320px 400px 1fr;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel-col {
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.panel-header {
+  padding: 10px 14px;
+  background: #161b22;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-count {
+  font-size: 0.72rem;
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+
+/* Preset Buttons */
+.preset-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.btn-preset {
+  flex: 1;
+  border: none;
+  padding: 6px 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-preset:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.btn-ecommerce { background: var(--accent-green); color: #fff; }
+.btn-nightlife { background: var(--accent-purple); color: #fff; }
+.btn-godmode   { background: #d29922; color: #000; font-weight: 800; }
+
+.search-box {
+  padding: 8px 12px;
+  background: #11151c;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.search-box input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.search-box input:focus {
+  border-color: var(--accent-cyan);
+}
+
+/* Module Cards */
+.module-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.module-card {
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.module-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-orange);
+  transform: translateX(2px);
+}
+
+.module-card.selected {
+  border-left: 4px solid var(--accent-green);
+  background: #0d1f14;
+}
+
+.module-card.active {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.card-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.card-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Inspector */
+.inspector-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.inspector-body h2 {
+  font-size: 1.15rem;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.inspector-body h4 {
+  font-size: 0.82rem;
+  color: var(--accent-cyan);
+  margin: 14px 0 6px 0;
+}
+
+.inspector-body ul {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+
+.inspector-body pre {
+  background: #010409;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  overflow-x: auto;
+  color: #a5d6ff;
+  border: 1px solid var(--border-color);
+  font-family: 'Fira Code', monospace;
+  margin-top: 4px;
+}
+
+.inspector-footer {
+  padding: 12px;
+  background: #161b22;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+/* Workspace & Compiler */
+.workspace-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.compile-control-bar {
+  padding: 10px 14px;
+  background: #161b22;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.compile-main-btn {
+  flex: 2;
+  min-width: 200px;
+}
+
+.compile-btn-group {
+  display: flex;
+  gap: 6px;
+  flex: 3;
+}
+
+.workspace-tabs {
+  padding: 8px 14px;
+  background: #090d14;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sub-tab-group {
+  display: flex;
+  gap: 4px;
+}
+
+.sub-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.sub-tab-btn.active {
+  color: var(--accent-orange);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.line-badge {
+  font-size: 0.75rem;
+  color: var(--accent-green);
+  font-weight: 700;
+  font-family: 'Fira Code', monospace;
+}
+
+.sub-view {
+  flex: 1;
+  display: none;
+  overflow: hidden;
+}
+
+.sub-view.active {
+  display: flex;
+}
+
+.code-editor-area {
+  width: 100%;
+  height: 100%;
+  background: #010409;
+  color: #7ee787;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.82rem;
+  padding: 14px;
+  border: none;
+  outline: none;
+  resize: none;
+  line-height: 1.45;
+}
+
+/* Action Buttons */
+.btn-action {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-action:hover { filter: brightness(1.1); }
+.btn-action.success   { background: var(--accent-green); color: #ffffff; }
+.btn-action.warning   { background: #da3633; color: #ffffff; }
+.btn-action.primary   { background: var(--accent-blue); color: #ffffff; }
+.btn-action.secondary { background: #21262d; color: #c9d1d9; border: 1px solid var(--border-color); }
+
+/* ==============================================================================
+ * 3. MODALS
+ * ============================================================================== */
+.duii-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  padding: 16px;
+}
+
+.modal-card {
+  width: 650px;
+  max-width: 90vw;
+  max-height: 85vh;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+  padding: 12px 16px;
+  background: #161b22;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 { font-size: 0.95rem; color: #fff; margin: 0; }
+.btn-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
+
+.modal-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.modal-body textarea {
+  width: 100%;
+  height: 280px;
+  background: #010409;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: #e6edf3;
+  padding: 10px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  outline: none;
+  resize: vertical;
+}
+
+.modal-footer {
+  padding: 12px 16px;
+  background: #161b22;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ==============================================================================
+ * 4. FLOATING PC-WINDOW COPILOT & NOTE DRAWER (WAR ROOM ENHANCED)
+ * ============================================================================== */
+.hidden { display: none !important; }
+
+.duii-fab {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 20px !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  background: #000 !important;
+  border: 2px solid var(--accent-orange) !important;
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 999999 !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.7) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+}
+
+.duii-fab * {
+  pointer-events: none !important;
+}
+
+.duii-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.9);
+}
+
+.fab-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1.5px solid #000;
+}
+
+.duii-chat-window {
+  position: fixed !important;
+  bottom: 92px !important;
+  right: 20px !important;
+  width: 440px !important;
+  height: 580px !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 120px) !important;
+  background: #0d1117 !important;
+  border: 2px solid var(--accent-orange) !important;
+  border-radius: 14px !important;
+  display: flex;
+  flex-direction: column !important;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.95), 0 0 25px rgba(245, 158, 11, 0.3) !important;
+  z-index: 1000000 !important;
+  overflow: hidden !important;
+}
+
+.chat-header {
+  padding: 10px 14px;
+  background: #010409;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.chat-header-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-orange);
+  object-fit: cover;
+}
+
+.chat-status {
+  font-size: 0.68rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.chat-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+}
+.chat-close-btn:hover { color: #ef4444; }
+
+.btn-key {
+  background: #d29922;
+  color: #000;
+  border: none;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Drawer โน้ตแปะด่วน */
+.chat-note-drawer {
+  background: #0d1117;
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#chatNoteArea {
+  width: 100%;
+  height: 80px;
+  background: #161c26;
+  color: #e6edf3;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.78rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.chat-body {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #090d14;
+}
+
+.chat-msg {
+  display: flex;
+  max-width: 90%;
+  animation: fadeIn 0.15s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-msg.bot  { align-self: flex-start; }
+.chat-msg.user { align-self: flex-end; }
+
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.48;
+  word-break: break-word;
+  position: relative;
+}
+
+/* User Message */
+.chat-msg.user .msg-bubble {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  font-weight: 700;
+  border-bottom-right-radius: 2px;
+}
+
+/* ==============================================================================
+ * 🌟 WAR ROOM: 5 SQUAD OFFICERS COLOR THEMES & BADGES
+ * ============================================================================== */
+.chat-msg.bot .msg-bubble {
+  background: #161b22;
+  color: #e2e8f0;
+  border: 1px solid #30363d;
+}
+
+/* 1. 👑 ไอ้ดุ่ย (Chief) - Neon Orange */
+.chat-msg.bot.duii .msg-bubble {
+  border-left: 3.5px solid var(--accent-orange);
+  box-shadow: -4px 0 14px rgba(245, 158, 11, 0.15);
+}
+.duii .officer-tag { color: var(--accent-orange); }
+
+/* 2. 🔭 อ้ายหนานส่อง (Scout - ภาคเหนือ) - Neon Cyan */
+.chat-msg.bot.nan_song .msg-bubble {
+  border-left: 3.5px solid var(--accent-cyan);
+  box-shadow: -4px 0 14px rgba(56, 189, 248, 0.15);
+}
+.nan_song .officer-tag { color: var(--accent-cyan); }
+
+/* 3. 🩺 บักจ่อย ซอยขาด (Triage - ภาคอีสาน) - Neon Green */
+.chat-msg.bot.bak_joy .msg-bubble {
+  border-left: 3.5px solid var(--accent-green);
+  box-shadow: -4px 0 14px rgba(16, 185, 129, 0.15);
+}
+.bak_joy .officer-tag { color: var(--accent-green); }
+
+/* 4. ⚡ บังบ่าว หัวจ่าย (Welder - ภาคใต้) - Neon Purple */
+.chat-msg.bot.bang_bao .msg-bubble {
+  border-left: 3.5px solid var(--accent-purple);
+  box-shadow: -4px 0 14px rgba(168, 85, 247, 0.15);
+}
+.bang_bao .officer-tag { color: var(--accent-purple); }
+
+/* 5. 🔍 ลุงจั่น ปีกหิน (Inspector - ส่วนกลาง) - Neon Red */
+.chat-msg.bot.lung_jan .msg-bubble {
+  border-left: 3.5px solid var(--accent-red);
+  box-shadow: -4px 0 14px rgba(239, 68, 68, 0.15);
+}
+.lung_jan .officer-tag { color: var(--accent-red); }
+
+/* Officer Tag Label */
+.officer-tag {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.chat-footer {
+  padding: 10px;
+  background: #010409;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 6px;
+}
+
+.chat-footer input {
+  flex: 1;
+  background: #161c26;
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.btn-send {
+  background: var(--accent-orange);
+  border: none;
+  color: #000;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+/* ==============================================================================
+ * 5. RESPONSIVE
+ * ============================================================================== */
+@media (max-width: 1024px) {
+  .main-cockpit { grid-template-columns: 280px 320px 1fr; }
+}
+
+@media (max-width: 900px) {
+  body { overflow: auto; height: auto; min-height: 100vh; }
+  .factory-header { height: auto; padding: 8px 12px; flex-direction: column; gap: 8px; }
+  .main-cockpit { grid-template-columns: 1fr; height: auto; overflow: visible; display: flex; flex-direction: column; }
+  .panel-col { height: auto; min-height: 350px; border-right: none; border-bottom: 1px solid var(--border-color); }
+  .module-list { max-height: 280px; }
+  .code-editor-area { min-height: 380px; }
+  .duii-chat-window {
+    width: calc(100vw - 20px) !important;
+    right: 10px !important;
+    bottom: 84px !important;
+    height: 70vh !important;
   }
 }
