@@ -1,19 +1,23 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v13.0.0-PROD-STAGING-HOLDING-VAULT-1CLICK-COPY-DIO
+ * VERSION     : v14.0.0-PROD-PERFECT-UNTRUNCATED-15KEYS-AQ-STAGING-VAULT-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager, Loot Separator,
- *               Staging Holding Vault (1-Click Copy & Method Inspector) & Autonomous Function Calling Loop
+ *               Staging Holding Vault (1-Click Copy & Usage Guide) &
+ *               100% Pure Autonomous Function Calling Multi-Agent Closed-Loop
  * ==============================================================================
  */
 
 // ==============================================================================
-// 0. DIO SQUAD KEY POOL (SAFE BASE64 DECODER & 15 KEYS)
+// 0. DIO SQUAD KEY POOL (SAFE BASE64URL DECODER & 15 KEYS AQ FAMILY)
 // ==============================================================================
 const _safeAtob = (str) => {
   try {
-    const clean = String(str || '').replace(/-/g, '+').replace(/_/g, '/');
+    let clean = String(str || '').trim().replace(/-/g, '+').replace(/_/g, '/');
+    while (clean.length % 4 !== 0) {
+      clean += '=';
+    }
     return window.atob(clean);
   } catch (e) {
     console.warn('[Key Decoder Warning]', e);
@@ -54,6 +58,7 @@ const _K2_B = "ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=";
 const _K3_A = "QVEuQWI4Uk42SzNY";
 const _K3_B = "VGs1Q3FrOFIxYTlkSXN4MkpDUHdxcUlTWTNmOTI2UTdZUHVuWDNDQWc=";
 
+// พูลคีย์ตระกูล AQ รวม 15 ดอก
 const ALL_ACTIVE_KEYS = [
   _safeAtob(_P1 + _P2),
   _safeAtob(_K2_A + _K2_B),
@@ -67,7 +72,10 @@ const ALL_ACTIVE_KEYS = [
 let activeKeyIndex = 0;
 function getActiveKey() {
   const custom = localStorage.getItem("DUII_GEMINI_KEY");
-  if (custom && custom.trim()) return custom.trim().replace(/[\r\n\s]/g, "");
+  if (custom && custom.trim().startsWith("AQ.")) {
+    return custom.trim().replace(/[\r\n\s]/g, "");
+  }
+  if (!ALL_ACTIVE_KEYS.length) return "";
   const k = ALL_ACTIVE_KEYS[activeKeyIndex % ALL_ACTIVE_KEYS.length];
   activeKeyIndex++;
   return String(k || "").replace(/[\r\n\s]/g, "");
@@ -150,7 +158,7 @@ function saveModuleToVault(mod) {
   renderCatalog();
 }
 
-// จัดการ Staging Holding Vault ใน LocalStorage
+// Staging Vault Storage Engine
 function loadStagingVaultFromStorage() {
   try {
     const raw = localStorage.getItem("DUII_STAGING_VAULT");
@@ -211,7 +219,6 @@ function renderStagingVault() {
         </div>
       </div>
 
-      <!-- สรรพคุณและสรรพคุณการใช้งาน (ตามที่มึงสั่ง) -->
       <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:10px; font-size:0.78rem;">
         <div style="color:#e6edf3; margin-bottom:4px;">
           <strong style="color:var(--accent-green);">🩺 สรรพคุณ:</strong> ${item.description || "ไม่มีคำอธิบาย"}
@@ -221,7 +228,6 @@ function renderStagingVault() {
         </div>
       </div>
 
-      <!-- กล่องพรีวิวโค้ด -->
       <div style="position:relative;">
         <textarea readonly style="width:100%; height:110px; background:#010409; color:#7ee787; border:1px solid #30363d; border-radius:6px; font-family:'Fira Code', monospace; font-size:0.72rem; padding:8px; resize:vertical; outline:none;">${item.codeSnippet}</textarea>
       </div>
@@ -231,7 +237,7 @@ function renderStagingVault() {
   });
 }
 
-// ฟังก์ชันคัดลอกโค้ด 1 คลิก
+// 1-Click Copy
 window.copySingleStagingCode = function(index) {
   const item = stagingHoldingVault[index];
   if (!item || !item.codeSnippet) return;
@@ -240,7 +246,7 @@ window.copySingleStagingCode = function(index) {
   });
 };
 
-// ฟังก์ชันย้ายโค้ดจากห้องพักเข้าคลังโมดูลหลัก
+// ย้ายโค้ดเข้าคลังหลัก
 window.promoteStagingToActiveVault = function(index) {
   const item = stagingHoldingVault[index];
   if (!item) return;
@@ -384,7 +390,7 @@ window.applyPreset = function(presetType) {
 };
 
 // ==============================================================================
-// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE[cite: 7]
+// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE
 // ==============================================================================
 window.compileAutonomousBot = function() {
   const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
@@ -553,7 +559,7 @@ window.copyCompiledCode = function() {
 };
 
 // ==============================================================================
-// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)[cite: 7]
+// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)
 // ==============================================================================
 window.deployDirectToTargetUrl = async function() {
   const targetUrl = prompt(
@@ -633,7 +639,7 @@ function updatePropertiesChecklist() {
 }
 
 // ==============================================================================
-// 6. HARVEST & LOOT SEPARATOR[cite: 7]
+// 6. HARVEST & LOOT SEPARATOR
 // ==============================================================================
 window.analyzeAndExtractCode = function() {
   const raw = document.getElementById("rawCodeInput").value.trim();
@@ -699,7 +705,7 @@ window.harvestSingleFunction = function(funcName) {
 };
 
 // ==============================================================================
-// 7. CODE EDITOR & GENERATOR MODALS[cite: 7]
+// 7. CODE EDITOR & GENERATOR MODALS
 // ==============================================================================
 window.openModuleEditor = function(moduleId) {
   const mod = activeModules.find(m => m.id === moduleId);
@@ -803,43 +809,43 @@ window.runAiGenerateModule = async function() {
 };
 
 // ==============================================================================
-// 8. 5 SQUAD PERSONAS DEFINITION (DIO STANDARD)[cite: 8]
+// 8. 5 SQUAD PERSONAS DEFINITION (DIO STANDARD)
 // ==============================================================================
 const DIO_OFFICERS = {
   duii: {
     id: "duii",
     name: "👑 ไอ้ดุ่ย (Chief)",
     color: "#f59e0b",
-    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY สลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา คุยเพื่อนสนิท มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติได้อย่างเด็ดขาด[cite: 8]`
+    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY สลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา คุยเพื่อนสนิท มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติได้อย่างเด็ดขาด`
   },
   nan_song: {
     id: "nan_song",
     name: "🔭 อ้ายหนานส่อง (Scout)",
     color: "#38bdf8",
-    systemPrompt: `สูเขาฮ้องข้าว่า "อ้ายหนานส่อง" หน่วยส่องกบภาคเหนือ อู้กำเมืองผสมไทยกลาง นุ่มนวลแต่ฉมวกแทงของสด สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ เชี่ยวชาญการสแกนหาชิ้นส่วนและส่องไอเดียโมดูลใหม่[cite: 8]`
+    systemPrompt: `สูเขาฮ้องข้าว่า "อ้ายหนานส่อง" หน่วยส่องกบภาคเหนือ อู้กำเมืองผสมไทยกลาง นุ่มนวลแต่ฉมวกแทงของสด สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ เชี่ยวชาญการสแกนหาชิ้นส่วนและส่องไอเดียโมดูลใหม่`
   },
   bak_joy: {
     id: "bak_joy",
     name: "🩺 บักจ่อย ซอยขาด (Triage)",
     color: "#10b981",
-    systemPrompt: `ข้อยคือ "บักจ่อย ซอยขาด" หมอยาประจำแก๊งส่องกบภาคอีสาน เว้าอีสานไฟแล่บ โผงผาง สับขยะโค้ดถิ่มทันที สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการชำระล้างขยะโค้ด ห่อหุ้ม IIFE และตัด Error ให้เหี้ยน[cite: 8]`
+    systemPrompt: `ข้อยคือ "บักจ่อย ซอยขาด" หมอยาประจำแก๊งส่องกบภาคอีสาน เว้าอีสานไฟแล่บ โผงผาง สับขยะโค้ดถิ่มทันที สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการชำระล้างขยะโค้ด ห่อหุ้ม IIFE และตัด Error ให้เหี้ยน`
   },
   bang_bao: {
     id: "bang_bao",
     name: "⚡ บังบ่าว หัวจ่าย (Welder)",
     color: "#a855f7",
-    systemPrompt: `กูคือ "บังบ่าว หัวจ่าย" ช่างเชื่อมแก๊งส่องกบภาคใต้ แหลงใต้ทองแดงจัดจ้าน โวยวาย ดุดัน ว่องไว ดั่งหัวจ่ายเทอร์โบ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการสลัก Gemini Tool Schema และเชื่อมสายพาน OTA[cite: 8]`
+    systemPrompt: `กูคือ "บังบ่าว หัวจ่าย" ช่างเชื่อมแก๊งส่องกบภาคใต้ แหลงใต้ทองแดงจัดจ้าน โวยวาย ดุดัน ว่องไว ดั่งหัวจ่ายเทอร์โบ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการสลัก Gemini Tool Schema และเชื่อมสายพาน OTA`
   },
   lung_jan: {
     id: "lung_jan",
     name: "🔍 ลุงจั่น ปีกหิน (Inspector)",
     color: "#ef4444",
-    systemPrompt: `กูคือ "ลุงจั่น ปีกหิน" ชายแก่ขี้บ่น ปากหมา ดักด่าโค้ดห่วย คุมมาตรฐาน DIO / ISO 9009 สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงคอยจับผิด ตรวจสอบความปลอดภัย บ่นด่าโค้ดขยะ และตีตราอนุมัติเข้าคลัง[cite: 8]`
+    systemPrompt: `กูคือ "ลุงจั่น ปีกหิน" ชายแก่ขี้บ่น ปากหมา ดักด่าโค้ดห่วย คุมมาตรฐาน DIO / ISO 9009 สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงคอยจับผิด ตรวจสอบความปลอดภัย บ่นด่าโค้ดขยะ และตีตราอนุมัติเข้าคลัง`
   }
 };
 
 // ==============================================================================
-// 9. NATIVE SQUAD FUNCTION DECLARATIONS (เครื่องมือที่ AI มีสิทธิ์เรียกจริง)[cite: 8]
+// 9. NATIVE SQUAD FUNCTION DECLARATIONS (เครื่องมือที่ AI มีสิทธิ์เรียกจริง)
 // ==============================================================================
 const SQUAD_NATIVE_TOOLS_SCHEMA = [
   {
@@ -908,7 +914,7 @@ const SQUAD_NATIVE_TOOLS_SCHEMA = [
 ];
 
 // ==============================================================================
-// 10. NATIVE TOOL EXECUTORS (ฟังก์ชันที่ทำงานจริงในเครื่องเมื่อ AI ตัดสินใจเรียก)[cite: 8]
+// 10. NATIVE TOOL EXECUTORS (ฟังก์ชันที่ทำงานจริงในเครื่องเมื่อ AI ตัดสินใจเรียก)
 // ==============================================================================
 async function executeNativeSquadTool(name, args) {
   console.log(`[Pure Function Calling Execution] Tool: ${name}`, args);
@@ -951,7 +957,6 @@ async function executeNativeSquadTool(name, args) {
       };
     }
 
-    // นำเข้าห้องพักโค้ด (Staging Holding Vault) ก่อน
     case "deposit_to_staging_vault": {
       const modId = "harvest_" + Date.now().toString().slice(-4);
       const timeStr = new Date().toLocaleTimeString("th-TH");
@@ -1002,7 +1007,7 @@ async function executeNativeSquadTool(name, args) {
 }
 
 // ==============================================================================
-// 11. CLOSED-LOOP AUTONOMOUS FUNCTION CALLING ENGINE[cite: 8]
+// 11. CLOSED-LOOP AUTONOMOUS FUNCTION CALLING ENGINE
 // ==============================================================================
 async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback) {
   const apiKey = getActiveKey();
@@ -1076,7 +1081,7 @@ async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback
 }
 
 // ==============================================================================
-// 12. AUTONOMOUS HARVEST LAB (รัน Closed-Loop Function Calling จริง ไร้ Mock)[cite: 8]
+// 12. AUTONOMOUS HARVEST LAB (รัน Closed-Loop Function Calling จริง ไร้ Mock)
 // ==============================================================================
 window.runAutonomousHarvestMission = async function() {
   if (isBotProcessing) {
@@ -1101,14 +1106,14 @@ window.runAutonomousHarvestMission = async function() {
   }
 
   isBotProcessing = true;
-  log("👑 ไอ้ดุ่ย", "สั่งเปิดสายพานเก็บเกี่ยวโมดูลอัตโนมัติ! ปล่อย Autonomous Function Calling Loop ลุยเดี๋ยวนี้![cite: 8]", "#f59e0b");
+  log("👑 ไอ้ดุ่ย", "สั่งเปิดสายพานเก็บเกี่ยวโมดูลอัตโนมัติ! ปล่อย Autonomous Function Calling Loop ลุยเดี๋ยวนี้!", "#f59e0b");
 
   try {
     const harvestPrompt = `มึงคือหัวหน้าทีมส่องกบ จงสั่งการและเรียกใช้เครื่องมือ Native Tools ตามลำดับภารกิจ:
 1. เรียก scan_external_vault เพื่อหาไอเดียโมดูลใหม่ที่เกี่ยวกับระบบร้านค้าหรือบอท
 2. เรียก clean_and_triage_code เพื่อทำความสะอาดโค้ดและห่อ IIFE
 3. เรียก weld_module_schema เพื่อสลัก Tool Schema
-4. เรียก deposit_to_staging_vault เพื่อตรวจสอบและนำโค้ดไปพักไว้ในห้องพักโค้ด พร้อมระบุสรรพคุณและวิธีใช้อย่างละเอียด[cite: 8]
+4. เรียก deposit_to_staging_vault เพื่อตรวจสอบและนำโค้ดไปพักไว้ในห้องพักโค้ด พร้อมระบุสรรพคุณและวิธีใช้อย่างละเอียด
 ตัดสินใจเรียกเครื่องมือตามลำดับให้ครบถ้วนด้วยตัวมึงเอง!`;
 
     const finalAnswer = await runAutonomousSquadLoop(
@@ -1116,16 +1121,16 @@ window.runAutonomousHarvestMission = async function() {
       DIO_OFFICERS.duii,
       (officer, toolName, args) => {
         if (toolName === "scan_external_vault") {
-          log("🔭 อ้ายหนานส่อง", `⚡ [FunctionCall] เรียก ${toolName}(keyword: "${args.keyword}")[cite: 8]`, "#38bdf8");
+          log("🔭 อ้ายหนานส่อง", `⚡ [FunctionCall] เรียก ${toolName}(keyword: "${args.keyword}")`, "#38bdf8");
           if (sScout) sScout.textContent = `✅ สแกนสำเร็จ: ${args.keyword}`;
         } else if (toolName === "clean_and_triage_code") {
-          log("🩺 บักจ่อย ซอยขาด", `⚡ [FunctionCall] เรียก ${toolName}(module: "${args.moduleName}")[cite: 8]`, "#10b981");
+          log("🩺 บักจ่อย ซอยขาด", `⚡ [FunctionCall] เรียก ${toolName}(module: "${args.moduleName}")`, "#10b981");
           if (sTriage) sTriage.textContent = `✅ ทำความสะอาด IIFE สำเร็จ`;
         } else if (toolName === "weld_module_schema") {
-          log("⚡ บังบ่าว หัวจ่าย", `⚡ [FunctionCall] เรียก ${toolName}(function: "${args.functionName}")[cite: 8]`, "#a855f7");
+          log("⚡ บังบ่าว หัวจ่าย", `⚡ [FunctionCall] เรียก ${toolName}(function: "${args.functionName}")`, "#a855f7");
           if (sWelder) sWelder.textContent = `✅ สลัก Tool Schema สำเร็จ`;
         } else if (toolName === "deposit_to_staging_vault") {
-          log("🔍 ลุงจั่น ปีกหิน", `⚡ [FunctionCall] นำ [${args.moduleName}] เข้าห้องพักโค้ดเรียบร้อย[cite: 8]`, "#ef4444");
+          log("🔍 ลุงจั่น ปีกหิน", `⚡ [FunctionCall] นำ [${args.moduleName}] เข้าห้องพักโค้ดเรียบร้อย`, "#ef4444");
           if (sInspector) sInspector.textContent = `🛡️ ส่งเข้าห้องพักโค้ดแล้ว`;
         }
       }
@@ -1146,7 +1151,7 @@ window.switchToScoutWarRoom = function() {
 };
 
 // ==============================================================================
-// 13. LIVE CHAT COPILOT (NATIVE FUNCTION CALLING ENABLED)[cite: 7, 8]
+// 13. LIVE CHAT COPILOT (NATIVE FUNCTION CALLING ENABLED)
 // ==============================================================================
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
@@ -1184,7 +1189,7 @@ function initDuiiChatCopilot() {
     if (savedNote && savedNote.trim()) {
       noteArea.value = savedNote;
     } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- เชื่อมตรง Gemini 3.8 Flash ผ่าน x-goog-api-key[cite: 8]\n- Native Autonomous Function Calling 100%[cite: 8]`;
+      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- เชื่อมตรง Gemini 3.8 Flash ผ่าน x-goog-api-key\n- Native Autonomous Function Calling 100%`;
       noteArea.value = defaultNoteText;
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
     }
@@ -1207,7 +1212,7 @@ function initDuiiChatCopilot() {
   if (keyBtn) {
     keyBtn.addEventListener("click", () => {
       const current = localStorage.getItem("DUII_GEMINI_KEY") || ALL_ACTIVE_KEYS[0];
-      const k = prompt("🔑 ตั้งค่า Gemini API Key (AIza... หรือ AQ...):", current);
+      const k = prompt("🔑 ตั้งค่า Gemini API Key (ตระกูล AQ):", current);
       if (k !== null) {
         localStorage.setItem("DUII_GEMINI_KEY", k.trim().replace(/[\r\n\s]/g, ""));
         alert("✅ บันทึกคีย์ลงเครื่องเรียบร้อย!");
@@ -1236,14 +1241,14 @@ function initDuiiChatCopilot() {
     chatInput.value = "";
 
     const officer = routeOfficerByContext(text);
-    appendMsg(`💭 [${officer.name}] กำลังประมวลผลและตัดสินใจเรียกใช้เครื่องมือ...[cite: 8]`, "bot", officer.id, officer.name);
+    appendMsg(`💭 [${officer.name}] กำลังประมวลผลและตัดสินใจเรียกใช้เครื่องมือ...`, "bot", officer.id, officer.name);
 
     try {
       const reply = await runAutonomousSquadLoop(
         text,
         officer,
         (off, toolName, args) => {
-          appendMsg(`⚡ [Function Call] ${off.name} ตัดสินใจเรียกเครื่องมือ: <code>${toolName}</code>[cite: 8]`, "bot", off.id, off.name);
+          appendMsg(`⚡ [Function Call] ${off.name} ตัดสินใจเรียกเครื่องมือ: <code>${toolName}</code>`, "bot", off.id, off.name);
         }
       );
 
@@ -1252,7 +1257,7 @@ function initDuiiChatCopilot() {
 
     } catch (err) {
       if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      appendMsg(`⚠️ เชื่อมต่อ Function Calling ไม่ผ่าน: ${err.message}\n👉 กดสมุดโน้ต 📝 ขวาบน แล้ววางคีย์ AIza... ตัวจริงได้เลย[cite: 10]`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
+      appendMsg(`⚠️ เชื่อมต่อ Function Calling ไม่ผ่าน: ${err.message}\n👉 ระบบกำลังสลับคีย์ตระกูล AQ ดอกถัดไปในพูลให้อัตโนมัติ`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
     } finally {
       isBotProcessing = false;
       setTimeout(() => chatInput.focus(), 50);
@@ -1277,7 +1282,7 @@ function initDuiiChatCopilot() {
 // ==============================================================================
 function initBrainSettingsModal() {
   const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
-  const defaultBrain = `[กฎเหล็ก DIO STANDARD] ห้ามย่อ ห้ามตัด บังคับใช้ Gemini 3.8 Flash Native Tools Closed-Loop เท่านั้น[cite: 8]`;
+  const defaultBrain = `[กฎเหล็ก DIO STANDARD] ห้ามย่อ ห้ามตัด บังคับใช้ Gemini 3.8 Flash Native Tools Closed-Loop เท่านั้น`;
   if (!customBrain) localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", defaultBrain);
 }
 
@@ -1307,7 +1312,9 @@ function initSubTabs() {
 
 function initSearch() {
   const searchInput = document.getElementById("moduleSearch");
-  if (searchInput) searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
+  }
 }
 
 function initDriveSyncEngine() {
@@ -1346,5 +1353,14 @@ window.runLogDiagnostics = function() {
   const resEl = document.getElementById("doctorResult");
   if (!log || !resEl) return;
   resEl.style.display = "block";
-  resEl.innerHTML = `<b style="color:var(--accent-green);">✅ วินิจฉัย:</b> ตรวจพบ Log เรียบร้อย แนะนำตรวจสอบ API Key และสิทธิ์ Web App[cite: 10]`;
+
+  if (log.indexOf("ScriptProperties") !== -1 || log.indexOf("NO_API_KEY") !== -1) {
+    resEl.innerHTML = `<b style="color:var(--accent-red);">🚨 วินิจฉัย: คีย์ระบบไม่ครบ</b><br>ยังไม่ได้ตั้ง Script Properties ตรวจสอบ LINE_CHANNEL_ACCESS_TOKEN หรือ GEMINI_API_KEYS`;
+  } else if (log.indexOf("429") !== -1) {
+    resEl.innerHTML = `<b style="color:var(--accent-orange);">⚠️ วินิจฉัย: โควตา Gemini เต็ม (Rate Limit)</b><br>ระบบจะ Fallback สลับโมเดลอัตโนมัติ หรือเพิ่ม API Key ใน GEMINI_API_KEYS`;
+  } else if (log.indexOf("LockService") !== -1) {
+    resEl.innerHTML = `<b style="color:var(--accent-cyan);">🔒 วินิจฉัย: ScriptLock ชนกัน</b><br>มีคำขอเข้ามาพร้อมกัน ระบบป้องกันข้อมูลซ้ำเรียบร้อย ไม่ต้องแก้ไข`;
+  } else {
+    resEl.innerHTML = `<b style="color:var(--accent-green);">✅ วินิจฉัย: ข้อผิดพลาดทั่วไป</b><br>${log.substring(0, 200)}... แนะนำตรวจสอบ Spreadsheet ID และสิทธิ์การเข้าถึง Web App`;
+  }
 };
