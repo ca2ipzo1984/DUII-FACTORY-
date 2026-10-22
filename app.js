@@ -11,7 +11,7 @@
  */
 
 // ==============================================================================
-// 0. DIO SQUAD KEY POOL (SAFE BASE64 HELPER & AQ FAMILY 15 SQUAD KEYS)
+// 0. DIO SQUAD KEY POOL (ZERO-COPY SYNC, FALLBACK B64 & 15 VERIFIED AQ KEYS)
 // ==============================================================================
 const _safeAtob = (str) => {
   try {
@@ -37,6 +37,14 @@ const _safeAtob = (str) => {
 
 const _dK = (a, b) => _safeAtob(a + b);
 
+// 3 คีย์ AQ แท้สำรองฉุกเฉิน (Base64) ถอดรหัสทันทีเมื่อเปิดหน้าเว็บ ไม่บล็อกการคุย
+const FALLBACK_B64_KEYS = [
+  "QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8ybERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E=",
+  "QVEuQWI4Uk42SXQ2UVA3SEJMMS0zSDA5TTlEQUhfVjBYbEZVelpKOUdRc1NYR3FoeHpHNWc=",
+  "QVEuQWI4Uk42SmpKSHNUOEJ5a0pGTkVlNlZDNFVjMG5FaVViMl9YQml6R3ZnNWpwM2FPYmc="
+].map(k => _safeAtob(k));
+
+// พูลคีย์แยก 5 สถานีขุนพล (สถานีละ 3 ดอก รวม 15 ดอกเต็มพิกัด)
 const DIO_SQUAD_KEYS = {
   squad_1: [
     _dK("QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8y", "bERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E="),
@@ -73,6 +81,36 @@ const ALL_ACTIVE_KEYS = [
   ...DIO_SQUAD_KEYS.squad_5
 ];
 
+// จัดสรรคีย์ลง 5 Squad Role (ดุ่ย, ลุงจั่น, อ้ายหนาน, บักจ่อย, บังบ่าว) พร้อม Round-Robin Failover
+const DIO_SQUAD_ROLES = {
+  duii: "squad_1",       // 👑 ไอ้ดุ่ย (Chief)
+  lung_jan: "squad_2",   // 🔍 ลุงจั่น (Inspector)
+  nan_song: "squad_3",   // 🔭 อ้ายหนานส่อง (Scout)
+  bak_joy: "squad_4",    // 🩺 บักจ่อย (Doctor)
+  bang_bao: "squad_5"    // ⚡ บังบ่าว (Welder)
+};
+
+const officerKeyIndices = {
+  duii: 0,
+  lung_jan: 0,
+  nan_song: 0,
+  bak_joy: 0,
+  bang_bao: 0
+};
+
+function getOfficerKey(officerId) {
+  const custom = localStorage.getItem("DUII_GEMINI_KEY");
+  if (custom && custom.trim().startsWith("AQ.")) {
+    return custom.trim().replace(/[\r\n\s]/g, "");
+  }
+  const squadKeyName = DIO_SQUAD_ROLES[officerId] || "squad_1";
+  const squad = DIO_SQUAD_KEYS[squadKeyName] || ALL_ACTIVE_KEYS;
+  if (!squad || !squad.length) return getActiveKey();
+  const idx = (officerKeyIndices[officerId] || 0) % squad.length;
+  officerKeyIndices[officerId] = idx + 1;
+  return squad[idx] || getActiveKey();
+}
+
 let activeKeyIndex = 0;
 function getActiveKey() {
   const custom = localStorage.getItem("DUII_GEMINI_KEY");
@@ -80,11 +118,49 @@ function getActiveKey() {
     return custom.trim().replace(/[\r\n\s]/g, "");
   }
   if (!ALL_ACTIVE_KEYS.length) {
-    return _dK("QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8y", "bERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E=");
+    return FALLBACK_B64_KEYS[0] || _dK("QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8y", "bERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E=");
   }
   const k = ALL_ACTIVE_KEYS[activeKeyIndex % ALL_ACTIVE_KEYS.length];
   activeKeyIndex = (activeKeyIndex + 1) % ALL_ACTIVE_KEYS.length;
   return String(k || "").replace(/[\r\n\s]/g, "");
+}
+
+// URL ของ Apps Script Bridge ดึงคีย์สด
+const SQUAD_BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzG5AAw7XACxZE6cNZPXvDQ3LOBNcF7wCMsfriQ6HJ4ZHWNFA_T4Oc5YsaQGIHt13Kq/exec";
+
+function updateSquadKeyStatusUI(isReady, count) {
+  const syncBadge = document.getElementById("syncStatusText");
+  if (syncBadge) {
+    syncBadge.textContent = isReady ? `🟢 DIO SQUAD READY (${count || ALL_ACTIVE_KEYS.length}/15)` : "🟡 DIO SQUAD KEYS: WAITING (0/15)";
+    syncBadge.style.color = isReady ? "var(--accent-green)" : "var(--accent-orange)";
+  }
+}
+
+// ดึงคีย์สดจาก Bridge แบบ Non-blocking ถอดรหัส Fallback ทันทีเมื่อเปิดหน้าเว็บ
+async function initSquadKeyPool() {
+  updateSquadKeyStatusUI(true, ALL_ACTIVE_KEYS.length);
+
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 3500);
+    const targetUrl = SQUAD_BRIDGE_URL + (SQUAD_BRIDGE_URL.includes("?") ? "&" : "?") + "action=GET_KEYS&t=" + Date.now();
+    const res = await fetch(targetUrl, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.keys) && data.keys.length > 0) {
+        data.keys.forEach(k => {
+          if (typeof k === "string" && k.startsWith("AQ.") && !ALL_ACTIVE_KEYS.includes(k)) {
+            ALL_ACTIVE_KEYS.push(k);
+          }
+        });
+        updateSquadKeyStatusUI(true, ALL_ACTIVE_KEYS.length);
+      }
+    }
+  } catch (_) {
+    // Bridge ส่งค่าช้าหรือว่าง ให้ใช้ Fallback ทันที ห้ามบล็อกการแชต
+    updateSquadKeyStatusUI(true, ALL_ACTIVE_KEYS.length);
+  }
 }
 
 // ลำดับโมเดล Failover อัตโนมัติ (ลอง 3.8 Flash ก่อน ถ้าเจอ 503 หรือ Timeout ให้สลับ 3.5 ทันทีแบบไร้รอยต่อ)
@@ -634,8 +710,12 @@ window.deployDirectToTargetUrl = async function() {
   if (btn) btn.textContent = "📡 กำลังยิง OTA...";
 
   try {
+    const deploySecrets = ["DUII_DEPLOY_SECRET_DIO", "DUII_DEPLOY_SECRET_9009"];
+    let chosenSecret = localStorage.getItem("DUII_DEPLOY_SECRET") || deploySecrets[0];
     const payload = {
       action: "DEPLOY_BOT_SOURCE",
+      secretKey: chosenSecret,
+      deploySecret: chosenSecret,
       serialId: currentBotSerialId,
       files: [
         { name: "00_CoreSpine.gs", content: file1CoreContent },
@@ -709,7 +789,7 @@ const DIO_OFFICERS = {
     id: "duii",
     name: "👑 ไอ้ดุ่ย (Chief)",
     color: "#f59e0b",
-    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY สลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีคำว่านายหัวหรือสุภาพเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติตามคำสั่งของเพื่อนร่วมงาน ตอบสั้น กระชับ กวนตีน ฉลาดเป็นกรด`
+    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY นักเลงสลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา สรรพนาม มึง/กู/ไอ้สัส ห้ามมีครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติตามคำสั่งของเพื่อนร่วมงาน ตอบสั้น กระชับ กวนตีน ฉลาดเป็นกรด โต้ตอบตามจริง ไม่วนลูป ไม่พูดซ้ำ`
   },
   nan_song: {
     id: "nan_song",
@@ -923,7 +1003,7 @@ async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback
 
     // หมุนเวียนคีย์และสลับโมเดลอัตโนมัติ (3.8 Flash -> 3.5 Flash)
     for (let k = 0; k < 3 && !callSuccess; k++) {
-      const apiKey = getActiveKey();
+      const apiKey = getOfficerKey(officer?.id) || getActiveKey();
       if (!apiKey) continue;
 
       for (let m = 0; m < GEMINI_MODELS_FAILOVER.length && !callSuccess; m++) {

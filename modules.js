@@ -34,7 +34,7 @@ const FACTORY_REGISTRY = [
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  */
 
-var CORE_VERSION = 'v5.2.0-NEVER-SILENT-BAKJOI';
+var CORE_VERSION = 'v5.0.0-NEVER-SILENT';
 
 function getProp_(key) {
   var v = PropertiesService.getScriptProperties().getProperty(key);
@@ -1066,6 +1066,13 @@ function debugLiveWebhook() {
       var lock = LockService.getScriptLock();
       lock.tryLock(8000);
       var status = "verified";
+      var targetLast4 = getProp_('SLIP_RECEIVER_LAST4') || getProp_('TARGET_ACCOUNT_LAST4') || '';
+      if (targetLast4 && d.receiver_account) {
+        var cleanAcc = String(d.receiver_account).replace(/\D/g, '');
+        if (cleanAcc.length >= 4 && cleanAcc.slice(-4) !== targetLast4.slice(-4)) {
+          status = "account_mismatch";
+        }
+      }
       try {
         var rows = sh.getDataRange().getValues();
         for (var r = 1; r < rows.length; r++) {
@@ -1114,10 +1121,15 @@ function debugLiveWebhook() {
     CacheService.getScriptCache().remove("hh_" + userId);
     return true;
   }
+  function detectAnger(text) {
+    var p = /โกรธ|โมโห|ห่วย|ช้ามาก|หลอกลวง|แย่มาก|ไม่พอใจ|สวะ|สัส|ควาย|ฟ้อง|สคบ|ติดต่อพนักงาน|คุยกับคน|ขอคน/i;
+    return p.test(String(text || ''));
+  }
   function request(args) {
     var userId = CURRENT_USER_;
-    var level = (args && args.urgent_level) || "medium";
     var reason = (args && args.reason) || "ลูกค้าขอคุยกับเจ้าหน้าที่";
+    var isAnger = detectAnger(reason);
+    var level = (args && args.urgent_level) || (isAnger ? "high" : "medium");
     var min = level === "high" ? 120 : 30;
     pause(userId, min);
     var target = CONFIG.ADMIN_GROUP_ID || CONFIG.TARGET_USER_ID;
@@ -1157,7 +1169,7 @@ function debugLiveWebhook() {
       }
     },
     codeSnippet: `var LeadScoring = (function () {
-  var SHEET = "Lead_Scores";
+  var SHEET = "Leads";
   var HEADER = ["Timestamp", "Name", "Phone", "Interest", "Score", "Tier", "User_ID"];
   function score(args) {
     var a = args || {};
@@ -1166,7 +1178,7 @@ function debugLiveWebhook() {
     var n = Number(a.need_score) || 15;
     var t = Number(a.timeline_score) || 15;
     var total = Math.min(100, b + au + n + t);
-    var tier = total >= 70 ? "Hot" : (total >= 40 ? "Warm" : "Cold");
+    var tier = total >= 70 ? "HOT" : (total >= 40 ? "WARM" : "COLD");
     var ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     var sh = ss.getSheetByName(SHEET) || ss.insertSheet(SHEET);
     if (sh.getLastRow() === 0) { sh.appendRow(HEADER); sh.setFrozenRows(1); }
@@ -1279,7 +1291,7 @@ function debugLiveWebhook() {
       }
     },
     codeSnippet: `var Reservation = (function () {
-  var SHEET = "Reservations";
+  var SHEET = "Bookings";
   var HEADER = ["Booking_ID", "Date", "Time", "Customer", "Guests", "Status", "Created_At", "User_ID"];
   function book(args) {
     var a = args || {};

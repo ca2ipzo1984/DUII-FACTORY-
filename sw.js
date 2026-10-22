@@ -1,5 +1,5 @@
 // sw.js - Service Worker for Offline Caching (DIO STANDARD Compliant)
-const CACHE_NAME = 'duii-factory-v7.2.0-AUTONOMOUS-TOOLS-DIO_STANDARD';
+const CACHE_NAME = 'duii-factory-v10.0.0-PROD-LOCKED-DIO';
 const ASSETS = [
   './index.html',
   './style.css',
