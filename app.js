@@ -1,7 +1,7 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v8.0.0-PROD-WARROOM-AUTONOMOUS-DISPATCHER-DIO
+ * VERSION     : v8.5.0-PROD-WARROOM-BULLETPROOF-ENTER-KEY-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager &
  *               War Room Multi-Agent Autonomous Dispatcher (5 Squad Officers)
@@ -9,9 +9,19 @@
  */
 
 // ==============================================================================
-// 0. DIO SQUAD KEY POOL (15 KEYS TOTAL - OBFUSCATED BASE64 CHUNKS)
+// 0. DIO SQUAD KEY POOL (SAFE BASE64 DECODER & 15 KEYS)
 // ==============================================================================
-const _dK = (a, b) => window.atob(a + b);
+const _safeAtob = (str) => {
+  try {
+    const clean = String(str || '').replace(/-/g, '+').replace(/_/g, '/');
+    return window.atob(clean);
+  } catch (e) {
+    console.warn('[Key Decoder Warning]', e);
+    return '';
+  }
+};
+
+const _dK = (a, b) => _safeAtob(a + b);
 
 const DIO_SQUAD_KEYS = {
   bot1_lung_jan: [
@@ -44,16 +54,16 @@ const _K2_B = "ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=";
 const _K3_A = "QVEuQWI4Uk42SzNY";
 const _K3_B = "VGs1Q3FrOFIxYTlkSXN4MkpDUHdxcUlTWTNmOTI2UTdZUHVuWDNDQWc=";
 
-// รวมครบทั้ง 15 ดอกพร้อมสลับหมุนเวียน 100% ไม่มีวันคีย์ตัน
+// รวมครบทั้ง 15 ดอกพร้อมสลับหมุนเวียน 100%
 const ALL_ACTIVE_KEYS = [
-  window.atob(_P1 + _P2),
-  window.atob(_K2_A + _K2_B),
-  window.atob(_K3_A + _K3_B),
+  _safeAtob(_P1 + _P2),
+  _safeAtob(_K2_A + _K2_B),
+  _safeAtob(_K3_A + _K3_B),
   ...DIO_SQUAD_KEYS.bot1_lung_jan,
   ...DIO_SQUAD_KEYS.bot2_ai_song,
   ...DIO_SQUAD_KEYS.bot3_bak_joy,
   ...DIO_SQUAD_KEYS.bot4_bang_bao
-];
+].filter(Boolean);
 
 let activeKeyIndex = 0;
 function getNextGeminiKey() {
@@ -79,6 +89,9 @@ let file2ModulesContent = "";
 let file3TestRunnerContent = "";
 let currentBotSerialId = "";
 let editingModuleId = null;
+
+// ป้องกันการกดยิงซ้ำขณะกำลังประมวลผล
+let isBotProcessing = false;
 
 // ลงทะเบียน Service Worker
 if ('serviceWorker' in navigator) {
@@ -710,7 +723,7 @@ window.runAiGenerateModule = async function() {
 
   if (apiKey) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -809,7 +822,6 @@ const DIO_OFFICERS = {
   }
 };
 
-// เลือกตัวละครอัตโนมัติตามบริบทคำสั่ง
 function routeOfficer(text) {
   const t = String(text || "").toLowerCase();
   if (t.includes("error") || t.includes("บั๊ก") || t.includes("พัง") || t.includes("ล็อก") || t.includes("ตาย") || t.includes("ตรวจ") || t.includes("ซ่อม")) {
@@ -827,22 +839,156 @@ function routeOfficer(text) {
   return DIO_OFFICERS.duii;
 }
 
+// Global Message Appender
+function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ้ดุ่ย") {
+  const chatBody = document.getElementById("chatBody");
+  if (!chatBody) return;
+  const msgDiv = document.createElement("div");
+  msgDiv.className = `chat-msg ${sender} ${officerId}`;
+  const headerHtml = sender === "bot" ? `<span class="officer-tag">${officerName}</span>` : "";
+  msgDiv.innerHTML = `<div class="msg-bubble">${headerHtml}${text.replace(/\n/g, "<br>")}</div>`;
+  chatBody.appendChild(msgDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+window.appendMessageToChat = appendMsg;
+
+// Global Send Handler เพื่อให้ปุ่ม Enter และปุ่มกดเรียกใช้ได้เสถียร 100%
+window.duiiHandleSend = async function() {
+  if (isBotProcessing) return;
+
+  const chatInput = document.getElementById("chatInput");
+  const chatBody = document.getElementById("chatBody");
+  if (!chatInput) return;
+
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  isBotProcessing = true;
+  appendMsg(text, "user");
+  chatInput.value = "";
+
+  if (text.startsWith("เขียนโมดูล") || text.startsWith("สร้างโมดูล") || text.startsWith("เจนโค้ด")) {
+    appendMsg("⚡ รับบัญชา! กำลังสลักไฟล์โมดูลใหม่ลงคลัง...", "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
+    const pInput = document.getElementById("genPromptInput");
+    if (pInput) pInput.value = text;
+    await runAiGenerateModule();
+    appendMsg("✅ สลักไฟล์โมดูลใหม่ลงคลังสำเร็จ ตรวจดูที่เมนูด้านซ้ายได้เลย!", "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
+    isBotProcessing = false;
+    return;
+  }
+
+  const officer = routeOfficer(text);
+  appendMsg(`💭 [${officer.name}] กำลังประมวลผลคำสั่ง...`, "bot", officer.id, officer.name);
+
+  // ลำดับโมเดลที่เรียกใช้งานตามลำดับ Failover
+  const modelsToTry = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+  ];
+
+  const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
+
+  const systemInstruction = `${officer.systemPrompt}
+
+[พิกัดเครือข่ายโรงงาน (Factory Topology)]
+1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
+2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
+3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
+4. ทะเบียนสัมปทานลิขสิทธิ์: MASTER_CLIENT_LICENSES (ID: ${MASTER_LICENSE_SPREADSHEET_ID})
+
+[พรีเซ็ตสายพานผลิตมาตรฐาน]
+1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
+2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
+3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
+
+${savedBrainRules}`;
+
+  let reply = "";
+  let succeeded = false;
+  let lastErrorDetail = "";
+
+  const maxKeyAttempts = Math.min(5, ALL_ACTIVE_KEYS.length || 1);
+
+  for (let k = 0; k < maxKeyAttempts && !succeeded; k++) {
+    const apiKey = getNextGeminiKey();
+    if (!apiKey) continue;
+
+    for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
+      const model = modelsToTry[m];
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: text }] }],
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data && data.candidates && data.candidates[0].content.parts[0].text) {
+          reply = data.candidates[0].content.parts[0].text;
+          succeeded = true;
+        } else {
+          lastErrorDetail = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
+        }
+      } catch (err) {
+        lastErrorDetail = `[${model}] Network: ${err.message}`;
+      }
+    }
+  }
+
+  if (chatBody && chatBody.lastElementChild) {
+    chatBody.lastElementChild.remove();
+  }
+
+  if (succeeded) {
+    appendMsg(reply, "bot", officer.id, officer.name);
+    handleSparkChatAction(text + " " + reply);
+  } else {
+    appendMsg(`⚠️ เชื่อมต่อ AI ไม่ผ่าน:\n${lastErrorDetail}\n(ลองตรวจดูคีย์ใน Note Drawer 📝 อีกครั้ง)`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
+  }
+
+  isBotProcessing = false;
+  if (chatInput) setTimeout(() => chatInput.focus(), 50);
+};
+
+function handleSparkChatAction(text) {
+  const t = String(text || "").toLowerCase();
+  if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
+    setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
+  } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
+    setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('nightlife'); }, 600);
+  } else if (t.includes("godmode") || t.includes("god mode") || t.includes("ทะลวงจักรวาล")) {
+    setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
+  }
+  if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
+    setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
+  }
+  if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
+    const btnSync = document.getElementById("btnSyncDrive");
+    if (btnSync) setTimeout(() => btnSync.click(), 600);
+  }
+}
+
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
   const chatWin = document.getElementById("duiiChatWindow");
   const closeBtn = document.getElementById("btnChatClose");
   const sendBtn = document.getElementById("btnChatSend");
   const chatInput = document.getElementById("chatInput");
-  const chatBody = document.getElementById("chatBody");
   const keyBtn = document.getElementById("btnSetApiKey");
   
   const btnToggleNote = document.getElementById("btnToggleNote");
   const noteDrawer = document.getElementById("chatNoteDrawer");
   const noteArea = document.getElementById("chatNoteArea");
   const btnClearNote = document.getElementById("btnClearNote");
-
-  // เชื่อม Global Alias ป้องกัน ReferenceError
-  window.appendMessageToChat = appendMsg;
 
   if (!fab || !chatWin) return;
 
@@ -866,11 +1012,10 @@ function initDuiiChatCopilot() {
     if (savedNote && savedNote.trim()) {
       noteArea.value = savedNote;
     } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ล็อกเป้าเฉพาะตระกูล 3.x\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
+      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- ยิงผ่าน Header x-goog-api-key\n- โฟลเดอร์แท่นส่งออก: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O`;
       noteArea.value = defaultNoteText;
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
     }
-
     noteArea.addEventListener("input", () => {
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", noteArea.value);
     });
@@ -902,129 +1047,21 @@ function initDuiiChatCopilot() {
     });
   }
 
-  function handleSparkChatAction(text) {
-    const t = String(text || "").toLowerCase();
-    
-    if (t.includes("e-commerce") || t.includes("พ่อค้าแม่ค้า") || t.includes("ออนไลน์")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('ecommerce'); }, 600);
-    } else if (t.includes("nightlife") || t.includes("ผับ") || t.includes("บาร์") || t.includes("ร้านอาหาร")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('nightlife'); }, 600);
-    } else if (t.includes("godmode") || t.includes("god mode") || t.includes("ทะลวงจักรวาล")) {
-      setTimeout(() => { if (typeof window.applyPreset === 'function') window.applyPreset('godmode'); }, 600);
-    }
-
-    if (t.includes("ประกอบบอท") || t.includes("คอมไพล์") || t.includes("compile") || t.includes("เดินสายพาน")) {
-      setTimeout(() => { if (typeof window.compileAutonomousBot === 'function') window.compileAutonomousBot(); }, 1200);
-    }
-
-    if (t.includes("ซิงก์") || t.includes("sync drive") || t.includes("ดึงโมดูล")) {
-      const btnSync = document.getElementById("btnSyncDrive");
-      if (btnSync) setTimeout(() => btnSync.click(), 600);
-    }
+  // ผูกปุ่มส่งและคีย์บอร์ด Enter ด้วย keydown (แก้ปัญหาปุ่ม Enter แข็ง)
+  if (sendBtn) {
+    sendBtn.onclick = (e) => {
+      e.preventDefault();
+      window.duiiHandleSend();
+    };
   }
 
-  async function handleSend() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    appendMsg(text, "user");
-    chatInput.value = "";
-
-    if (text.startsWith("เขียนโมดูล") || text.startsWith("สร้างโมดูล") || text.startsWith("เจนโค้ด")) {
-      appendMsg("⚡ รับบัญชา! กำลังสลักไฟล์โมดูลใหม่ลงคลัง...", "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
-      const pInput = document.getElementById("genPromptInput");
-      if (pInput) pInput.value = text;
-      await runAiGenerateModule();
-      appendMsg("✅ สลักไฟล์โมดูลใหม่ลงคลังสำเร็จ ตรวจดูที่เมนูด้านซ้ายได้เลย!", "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
-      return;
-    }
-
-    // 🎯 WAR ROOM DISPATCHER: สลับ Officer รับหน้าเสื่อ
-    const officer = routeOfficer(text);
-    appendMsg(`💭 [${officer.name}] กำลังประมวลผลคำสั่ง...`, "bot", officer.id, officer.name);
-
-    const modelsToTry = [
-      "gemini-3.8-flash",
-      "gemini-3.8-flash-lite",
-      "gemini-3.5-flash-lite",
-      "gemini-3.5-flash"
-    ];
-
-    const savedBrainRules = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT") || "";
-
-    const systemInstruction = `${officer.systemPrompt}
-
-[พิกัดเครือข่ายโรงงาน (Factory Topology)]
-1. คลังโมดูลดิบ: DUII_MODULES_VAULT (ID: 1zuOU2UfYqfDiy5quv67AA6t5bMGjEKVb)
-2. คลังพิมพ์เขียว PWA: 🌟PWA DUII FACTORY (ID: 12G5jgroA66TYK2Z3j-3I60Bds7jzw0py)
-3. แท่นส่งออกสายพานผลิต: DUII_BOT_OUTPUT (ID: 15P7dxpKft73NlRG7d0613cLrbcNjnb-O)
-4. ทะเบียนสัมปทานลิขสิทธิ์: MASTER_CLIENT_LICENSES (ID: ${MASTER_LICENSE_SPREADSHEET_ID})
-
-[พรีเซ็ตสายพานผลิตมาตรฐาน]
-1. พ่อค้าแม่ค้าออนไลน์ (E-Commerce): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 07_LeadScoring + 08_OrderCart + 09_StrictFAQ
-2. ผับ บาร์ ร้านอาหาร (Nightlife & Dining): 00_CoreSpine + 01_AsyncBuffer + 02_FlexEngine + 05_SlipVerifier + 06_HumanHandoff + 10_Reservation + 11_GiftCard
-3. ทะลวงจักรวาล (God Mode): รวมครบ 00 ถึง 12 ครบทุก Schema
-
-${savedBrainRules}`;
-
-    let reply = "";
-    let succeeded = false;
-    let lastErrorDetail = "";
-
-    for (let k = 0; k < ALL_ACTIVE_KEYS.length && !succeeded; k++) {
-      const apiKey = getNextGeminiKey();
-
-      for (let m = 0; m < modelsToTry.length && !succeeded; m++) {
-        const model = modelsToTry[m];
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": apiKey
-            },
-            body: JSON.stringify({
-              contents: [{ role: "user", parts: [{ text: text }] }],
-              systemInstruction: { parts: [{ text: systemInstruction }] },
-              generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-            })
-          });
-
-          const data = await res.json();
-          if (res.ok && data && data.candidates && data.candidates[0].content.parts[0].text) {
-            reply = data.candidates[0].content.parts[0].text;
-            succeeded = true;
-          } else {
-            lastErrorDetail = `[${model}] HTTP ${res.status}: ${(data.error && data.error.message) || res.statusText}`;
-          }
-        } catch (err) {
-          lastErrorDetail = `[${model}] Network: ${err.message}`;
-        }
+  if (chatInput) {
+    chatInput.onkeydown = (e) => {
+      if (e.key === "Enter" || e.keyCode === 13) {
+        e.preventDefault();
+        window.duiiHandleSend();
       }
-    }
-
-    if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
-
-    if (succeeded) {
-      appendMsg(reply, "bot", officer.id, officer.name);
-      handleSparkChatAction(text + " " + reply);
-    } else {
-      appendMsg(`⚠️ ยิง Gemini 3.x ไม่ผ่าน:\n${lastErrorDetail}`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
-    }
-  }
-
-  sendBtn.addEventListener("click", handleSend);
-  chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleSend(); });
-
-  // ฟังก์ชันพ่นแชตแยก Class Officer และ Tag ประจำตัว
-  function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ้ดุ่ย") {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = `chat-msg ${sender} ${officerId}`;
-    const headerHtml = sender === "bot" ? `<span class="officer-tag">${officerName}</span>` : "";
-    msgDiv.innerHTML = `<div class="msg-bubble">${headerHtml}${text.replace(/\n/g, "<br>")}</div>`;
-    chatBody.appendChild(msgDiv);
-    chatBody.scrollTop = chatBody.scrollHeight;
+    };
   }
 }
 
