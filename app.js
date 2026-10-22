@@ -1,16 +1,17 @@
 /**
  * ==============================================================================
  * FILE        : app.js
- * VERSION     : v14.0.0-PROD-PERFECT-UNTRUNCATED-15KEYS-AQ-STAGING-VAULT-DIO
+ * VERSION     : v14.1.0-PROD-100PERCENT-PURE-MULTI-AGENT-DIO
  * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO
  * DESCRIPTION : Controller, Auto-Serial Provisioner, License Manager, Loot Separator,
- *               Staging Holding Vault (1-Click Copy & Usage Guide) &
+ *               Staging Holding Vault (1-Click Copy & Usage Guide),
+ *               Dedicated Agent Chat Boxes (5 Squad Stations) &
  *               100% Pure Autonomous Function Calling Multi-Agent Closed-Loop
  * ==============================================================================
  */
 
 // ==============================================================================
-// 0. DIO SQUAD KEY POOL (SAFE BASE64URL DECODER & 15 KEYS AQ FAMILY)
+// 0. DIO SQUAD KEY POOL (SAFE BASE64 HELPER & AQ FAMILY 15 SQUAD KEYS)
 // ==============================================================================
 const _safeAtob = (str) => {
   try {
@@ -18,7 +19,16 @@ const _safeAtob = (str) => {
     while (clean.length % 4 !== 0) {
       clean += '=';
     }
-    return window.atob(clean);
+    if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+      return window.atob(clean);
+    }
+    if (typeof atob === 'function') {
+      return atob(clean);
+    }
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(clean, 'base64').toString('utf8');
+    }
+    return '';
   } catch (e) {
     console.warn('[Key Decoder Warning]', e);
     return '';
@@ -28,46 +38,40 @@ const _safeAtob = (str) => {
 const _dK = (a, b) => _safeAtob(a + b);
 
 const DIO_SQUAD_KEYS = {
-  bot1_lung_jan: [
-    _dK("QVEuQWI4Uk42STRSTXd2dzMtZDFzWVNXM3hq", "ODNWWHV1T2E5dFpIU2VrT3lrNGpVbkxVNlE="),
-    _dK("QVEuQWI4Uk42S09fT3VXaHVNcmY0bHV1Z25M", "WlRnWmtPNFAyUnpQd2V2VVBuOXNCOWJ2S1E="),
-    _dK("QVEuQWI4Uk42Sy1OVFFRcGNUbnI0SzdhN1VF", "RUlRVmtJZ0doLVhLQXFET0U4SmtaLWJQY2c=")
+  squad_1: [
+    _dK("QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8y", "bERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E="),
+    _dK("QVEuQWI4Uk42SXQ2UVA3SEJMMS0zSDA5TTlE", "QUhfVjBYbEZVelpKOUdRc1NYR3FoeHpHNWc="),
+    _dK("QVEuQWI4Uk42SmpKSHNUOEJ5a0pGTkVlNlZD", "NFVjMG5FaVViMl9YQml6R3ZnNWpwM2FPYmc=")
   ],
-  bot2_ai_song: [
-    _dK("QVEuQWI4Uk42SVNXZUpaS2hIOS0xVC1NS1Rs", "alhVWTJMYjg2WDdQLXJNSVg5Y093YVU4Rnc="),
-    _dK("QVEuQWI4Uk42SmZRNmJmb0llTEJDeUdxNHZt", "cjdiMkhoU01ydlp0Ml9LYjQ5TWp1Y1FfbEE="),
-    _dK("QVEuQWI4Uk42SXVraEVMSVRnYXdtc3dON1hD", "elpnUi1tUmJuQ0dTZEozUHEwbTBEWEhKOHc=")
+  squad_2: [
+    _dK("QVEuQWI4Uk42SWhSOWM2NFVhVmlUcDROcmZX", "elJSZEpHRjB5VVI4NWJkcjIwdEhYbUpmYlE="),
+    _dK("QVEuQWI4Uk42TGlRTWNwcndhOWs4bVlEeGVK", "VEtUczRfUWtOZngtVWFqSEdfSm9mR3ZJU3c="),
+    _dK("QVEuQWI4Uk42SmpKSHNUOEJ5a0pGTkVlNlZD", "NFVjMG5FaVViMl9YQml6R3ZnNWpwM2FPYmc=")
   ],
-  bot3_bak_joy: [
-    _dK("QVEuQWI4Uk42TFc1OEFNSTNaTHkzWGJxdnZm", "X1ppVFZWVTFmZ2xSX1VmVnFYMFd5UnpRZ2c="),
-    _dK("QVEuQWI4Uk42TDhBQmdVcXZKbWlBNkp0TXJO", "VDRLM29fOWRlV1ZZOTI5NkVEei1kUm5KeGc="),
-    _dK("QVEuQWI4Uk42SlJXSzhuQ2lJaVZLVS1KS2JG", "TERxb1ViMTFfS2VqYkMtbUFwbW1JNWk0aGc=")
+  squad_3: [
+    _dK("QVEuQWI4Uk42TEk0VHBuLW9pQ0NzSGw5V3h2", "TENvSllBcHpJUWtvby1LcGRRR2p3OWRqTWc="),
+    _dK("QVEuQWI4Uk42SV9mMkRFSjZYOGN0MEotWF8z", "Qnp2LWpjQjVmUXBxWkJKY3h2enlXVWxQZ1E="),
+    _dK("QVEuQWI4Uk42TE9LSExsX052MjlfbVdha2Nx", "MnZwdVc5ZWFHdk11U3lydnB6TFVhZEpwc3c=")
   ],
-  bot4_bang_bao: [
-    _dK("QVEuQWI4Uk42SXFxYmhHTFk5UVhJLXdSU2l4", "OVpCeDFNOFVzeDF4ZUdGeThoYU5iSFJpTFE="),
-    _dK("QVEuQWI4Uk42TFJ2Rm5aVkhZR2UtNTM0VEtI", "UEEtVndhY0RCX0FTbWtTLVo1NVdIY2R4T2c="),
-    _dK("QVEuQWI4Uk42SUZBWWFtbklGdk5YMXpfVEJi", "ajRFTURZOERmb050Y3lOX1M0akdWVTd1TkE=")
+  squad_4: [
+    _dK("QVEuQWI4Uk42TGU1S21LTnFuVDVra0pxc0Nt", "WjhhQXNyNUVlT1MyYlh2eURxN1VldUZTOXc="),
+    _dK("QVEuQWI4Uk42S29JdHl6Mi13UVloTmh5bnRw", "YjZBM0xRc09MMzV4ZTVnRXhTUTZtdDZDVnc="),
+    _dK("QVEuQWI4Uk42S1NaWmVteC1qbXIxUVF6RjVm", "MThlbFJhaDluUjNwUmY1N2pVSzRyd0RmeFE=")
+  ],
+  squad_5: [
+    _dK("QVEuQWI4Uk42S0x0UDg1MG0zUFhqTWVhdDM1", "cUt6X1BHWTRzTEdYWU5aU2dWd0VFbHRTWmc="),
+    _dK("QVEuQWI4Uk42SS16TDlXdnhmbklDRXJQVHhD", "bVpQbm9oVXA4SmhQekFuVkYxZHhKXzlmUVE="),
+    _dK("QVEuQWI4Uk42STNwVGhtUGZieEh1TlN5cUFw", "WFBWQTVsSEg4VjhjQjgybG5oeFpqaGwyQ1E=")
   ]
 };
 
-// 3 ดอกแกนกลาง
-const _P1 = "QVEuQWI4Uk42S1hF";
-const _P2 = "bnJra0owU2xDYmxkZ3RGZFUxRTBmRlN2dEZyY0ZJZEJxa253YXRzV2c=";
-const _K2_A = "QVEuQWI4Uk42S0E5";
-const _K2_B = "ZC1JNlJqaUtPbEFvZkhwNTlqQ1dVSjhwVEg1MlJ1QnFLNmlsMkRNTGc=";
-const _K3_A = "QVEuQWI4Uk42SzNY";
-const _K3_B = "VGs1Q3FrOFIxYTlkSXN4MkpDUHdxcUlTWTNmOTI2UTdZUHVuWDNDQWc=";
-
-// พูลคีย์ตระกูล AQ รวม 15 ดอก
 const ALL_ACTIVE_KEYS = [
-  _safeAtob(_P1 + _P2),
-  _safeAtob(_K2_A + _K2_B),
-  _safeAtob(_K3_A + _K3_B),
-  ...DIO_SQUAD_KEYS.bot1_lung_jan,
-  ...DIO_SQUAD_KEYS.bot2_ai_song,
-  ...DIO_SQUAD_KEYS.bot3_bak_joy,
-  ...DIO_SQUAD_KEYS.bot4_bang_bao
-].filter(Boolean);
+  ...DIO_SQUAD_KEYS.squad_1,
+  ...DIO_SQUAD_KEYS.squad_2,
+  ...DIO_SQUAD_KEYS.squad_3,
+  ...DIO_SQUAD_KEYS.squad_4,
+  ...DIO_SQUAD_KEYS.squad_5
+];
 
 let activeKeyIndex = 0;
 function getActiveKey() {
@@ -75,13 +79,21 @@ function getActiveKey() {
   if (custom && custom.trim().startsWith("AQ.")) {
     return custom.trim().replace(/[\r\n\s]/g, "");
   }
-  if (!ALL_ACTIVE_KEYS.length) return "";
+  if (!ALL_ACTIVE_KEYS.length) {
+    return _dK("QVEuQWI4Uk42SmZESkxMRlhDZjh2LUx3aU8y", "bERKNXktclpCRWNHMEMxTDl1bVBIajVQS1E=");
+  }
   const k = ALL_ACTIVE_KEYS[activeKeyIndex % ALL_ACTIVE_KEYS.length];
-  activeKeyIndex++;
+  activeKeyIndex = (activeKeyIndex + 1) % ALL_ACTIVE_KEYS.length;
   return String(k || "").replace(/[\r\n\s]/g, "");
 }
 
-const PRIMARY_MODEL = "gemini-3.8-flash";
+// ลำดับโมเดล Failover อัตโนมัติ (ลอง 3.8 Flash ก่อน ถ้าเจอ 503 หรือ Timeout ให้สลับ 3.5 ทันทีแบบไร้รอยต่อ)
+const GEMINI_MODELS_FAILOVER = [
+  "gemini-3.8-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash-preview"
+];
 
 // ==============================================================================
 // 1. STATE & GLOBAL CONFIGURATION
@@ -104,6 +116,20 @@ let currentBotSerialId = "";
 let editingModuleId = null;
 let isBotProcessing = false;
 
+// 🛡️ Global Live Chat Bridge - ป้องกัน ReferenceError ทุกกรณี
+function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ้ดุ่ย") {
+  const chatBody = document.getElementById("chatBody");
+  if (!chatBody) return;
+  const msgDiv = document.createElement("div");
+  msgDiv.className = `chat-msg ${sender} ${officerId}`;
+  const headerHtml = sender === "bot" ? `<span class="officer-tag">${officerName}</span>` : "";
+  msgDiv.innerHTML = `<div class="msg-bubble">${headerHtml}${text.replace(/\n/g, "<br>")}</div>`;
+  chatBody.appendChild(msgDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+window.appendMsg = appendMsg;
+window.appendMessageToChat = appendMsg;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW Fail:', err));
@@ -121,6 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initSearch();
   initInspectorButtons();
   initDuiiChatCopilot();
+  initHarvestOfficerChat();
+  initDoctorOfficerChat();
   initDriveSyncEngine();
   initBrainSettingsModal();
 
@@ -150,702 +178,567 @@ function loadCustomVaultFromStorage() {
   }
 }
 
-function saveModuleToVault(mod) {
-  const idx = activeModules.findIndex(m => m.id === mod.id);
-  if (idx !== -1) activeModules[idx] = mod; else activeModules.push(mod);
-  const customs = activeModules.filter(m => m.id.startsWith("mod_") || m.id.startsWith("gen_") || m.id.startsWith("harvest_") || m.isCustom);
-  localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customs));
-  renderCatalog();
+function saveCustomVaultToStorage() {
+  try {
+    const customOnly = activeModules.filter(m => m.isCustom);
+    localStorage.setItem("DUII_CUSTOM_VAULT", JSON.stringify(customOnly));
+  } catch (e) {
+    console.warn("Save custom vault error:", e);
+  }
 }
 
-// Staging Vault Storage Engine
+// ==============================================================================
+// 3. 🏛️ STAGING HOLDING VAULT: การจัดการห้องพักโค้ด + สรรพคุณ + 1-Click Copy
+// ==============================================================================
 function loadStagingVaultFromStorage() {
   try {
     const raw = localStorage.getItem("DUII_STAGING_VAULT");
-    if (raw) stagingHoldingVault = JSON.parse(raw);
+    if (raw) {
+      stagingHoldingVault = JSON.parse(raw);
+    }
   } catch (e) {
+    console.warn("Staging vault load error:", e);
     stagingHoldingVault = [];
   }
 }
 
 function saveStagingVaultToStorage() {
-  localStorage.setItem("DUII_STAGING_VAULT", JSON.stringify(stagingHoldingVault));
-  renderStagingVault();
+  try {
+    localStorage.setItem("DUII_STAGING_VAULT", JSON.stringify(stagingHoldingVault));
+    renderStagingVault();
+  } catch (e) {
+    console.warn("Staging vault save error:", e);
+  }
 }
 
+function renderStagingVault() {
+  const container = document.getElementById("stagingCardsList");
+  const counterBadge = document.getElementById("harvestCounter");
+  if (!container) return;
+
+  if (counterBadge) {
+    counterBadge.textContent = `ในห้องพัก: ${stagingHoldingVault.length} ชิ้น`;
+  }
+
+  if (stagingHoldingVault.length === 0) {
+    container.innerHTML = `
+      <div id="stagingEmptyNotice" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.8rem; border:1px dashed #30363d; border-radius:6px;">
+        📭 ยังไม่มีโค้ดในห้องพัก กดปุ่ม <strong>'🚀 ปล่อยบอทออกเก็บเกี่ยวทันที'</strong> เพื่อให้บอทเริ่มสกัดโค้ดมาชุมนุมกันที่นี่
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  stagingHoldingVault.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.className = "staging-card";
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
+        <div>
+          <span style="font-size:0.88rem; font-weight:bold; color:var(--accent-orange);">📦 ${item.name}</span>
+          <span class="badge-officer" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d; margin-left:6px;">${item.category || "General"}</span>
+          <span style="font-size:0.7rem; color:var(--text-muted); margin-left:6px;">${item.timestamp || ""}</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn-action secondary" style="width:auto; padding:3px 10px; font-size:0.72rem;" onclick="copySingleStagingCode(${index})">📋 คัดลอกโค้ด</button>
+          <button type="button" class="btn-action success" style="width:auto; padding:3px 12px; font-size:0.72rem;" onclick="promoteStagingToActiveVault(${index})">➕ รับเข้าคลังหลัก</button>
+          <button type="button" class="btn-action warning" style="width:auto; padding:3px 8px; font-size:0.72rem;" onclick="deleteStagingItem(${index})">🗑️</button>
+        </div>
+      </div>
+
+      <!-- สรรพคุณ (Description) -->
+      <div style="background:#090d14; border:1px solid #21262d; border-left:3px solid var(--accent-cyan); border-radius:4px; padding:6px 10px; font-size:0.75rem; color:#e2e8f0;">
+        <strong style="color:var(--accent-cyan);">💡 สรรพคุณ:</strong> ${item.description || "โมดูลที่เก็บเกี่ยวได้จากระบบส่องกบ"}
+      </div>
+
+      <!-- วิธีเรียกใช้งาน (Usage Guide) -->
+      <div style="background:#090d14; border:1px solid #21262d; border-left:3px solid var(--accent-green); border-radius:4px; padding:6px 10px; font-size:0.75rem; color:#e2e8f0; font-family:'Fira Code', monospace;">
+        <strong style="color:var(--accent-green); font-family:'Prompt', sans-serif;">📖 วิธีใช้:</strong> ${item.usageGuide || `${item.name}.execute()`}
+      </div>
+
+      <!-- พรีวิวโค้ด -->
+      <details style="margin-top:2px;">
+        <summary style="font-size:0.72rem; color:var(--text-muted); cursor:pointer;">ดูโค้ดเต็ม (${(item.codeSnippet || "").length} ตัวอักษร)</summary>
+        <pre style="margin-top:6px; background:#010409; padding:8px 10px; border-radius:4px; font-family:'Fira Code', monospace; font-size:0.7rem; color:#85e89d; overflow-x:auto; max-height:160px; border:1px solid #21262d;">${item.codeSnippet || ""}</pre>
+      </details>
+    `;
+    container.appendChild(card);
+  });
+}
+
+window.copySingleStagingCode = function(index) {
+  const item = stagingHoldingVault[index];
+  if (!item || !item.codeSnippet) return;
+  navigator.clipboard.writeText(item.codeSnippet).then(() => {
+    alert(`📋 คัดลอกโค้ดโมดูล [${item.name}] ลงคลิปบอร์ดเรียบร้อย!`);
+  }).catch(() => {
+    const ta = document.createElement("textarea");
+    ta.value = item.codeSnippet;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    alert(`📋 คัดลอกโค้ดโมดูล [${item.name}] เรียบร้อย!`);
+  });
+};
+
+window.promoteStagingToActiveVault = function(index) {
+  const item = stagingHoldingVault[index];
+  if (!item) return;
+
+  const newModule = {
+    id: item.id || ("mod_" + Date.now()),
+    type: "module",
+    name: item.name.endsWith(".gs") ? item.name : `${item.name}.gs`,
+    category: item.category || "Custom Staged",
+    isCustom: true,
+    badgeText: "🔥 TIER S (เก็บเกี่ยว)",
+    whatItDoes: item.description,
+    badassFactor: "สกัดผ่านระบบ Multi-Agent พร้อมใช้ 100%",
+    properties: [],
+    functionDeclaration: item.functionDeclaration || {
+      name: "run_" + (item.id || "mod"),
+      description: item.description,
+      parameters: { type: "OBJECT", properties: { input: { type: "STRING" } } }
+    },
+    codeSnippet: item.codeSnippet
+  };
+
+  const existIdx = activeModules.findIndex(m => m.id === newModule.id);
+  if (existIdx !== -1) {
+    activeModules[existIdx] = newModule;
+  } else {
+    activeModules.push(newModule);
+  }
+  selectedModuleIds.add(newModule.id);
+
+  saveCustomVaultToStorage();
+  renderCatalog();
+  inspectModule(newModule.id);
+
+  alert(`🎉 รับโมดูล [${newModule.name}] เข้าสู่คลังหลักและเลือกเข้าบอทเรียบร้อย!`);
+};
+
+window.deleteStagingItem = function(index) {
+  if (confirm("ลบโมดูลนี้ออกจากห้องพักโค้ดใช่ไหม?")) {
+    stagingHoldingVault.splice(index, 1);
+    saveStagingVaultToStorage();
+  }
+};
+
 window.clearStagingHoldingVault = function() {
-  if (confirm("ต้องการล้างโค้ดที่อยู่ในห้องพักทั้งหมดใช่ไหม?")) {
+  if (confirm("ต้องการล้างโค้ดทั้งหมดในห้องพักโค้ดใช่ไหมไอ้สัส?")) {
     stagingHoldingVault = [];
     saveStagingVaultToStorage();
   }
 };
 
 // ==============================================================================
-// 🏛️ STAGING HOLDING VAULT: เรนเดอร์การ์ดห้องพักโค้ด + สรรพคุณ + 1-Click Copy
-// ==============================================================================
-function renderStagingVault() {
-  const container = document.getElementById("stagingCardsList");
-  const counterBadge = document.getElementById("harvestCounter");
-  if (!container) return;
-
-  if (counterBadge) counterBadge.textContent = `ในห้องพัก: ${stagingHoldingVault.length} ชิ้น`;
-
-  if (stagingHoldingVault.length === 0) {
-    container.innerHTML = `
-      <div id="stagingEmptyNotice" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.8rem; border:1px dashed #30363d; border-radius:6px;">
-        📭 ยังไม่มีโค้ดในห้องพัก กดปุ่ม <strong>'🚀 ปล่อยบอทออกเก็บเกี่ยวทันที'</strong> เพื่อให้บอทเริ่มสกัดโค้ดมาชุมนุมกันที่นี่
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = "";
-
-  stagingHoldingVault.forEach((item, index) => {
-    const card = document.createElement("div");
-    card.style.cssText = "background:#161b22; border:1px solid #30363d; border-left:4px solid var(--accent-orange); border-radius:8px; padding:14px; display:flex; flex-direction:column; gap:8px;";
-    
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
-        <div>
-          <strong style="font-size:0.92rem; color:var(--accent-orange); font-family:monospace;">📁 ${item.name}</strong>
-          <span style="font-size:0.72rem; background:#21262d; color:var(--accent-cyan); padding:2px 6px; border-radius:4px; margin-left:6px;">${item.category || "General"}</span>
-          <span style="font-size:0.7rem; color:#8b949e; margin-left:6px;">สกัดเมื่อ: ${item.timestamp || "-"}</span>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="btn-action secondary" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="copySingleStagingCode(${index})">📋 คัดลอกโค้ด 1 คลิก</button>
-          <button type="button" class="btn-action success" style="width:auto; padding:4px 12px; font-size:0.75rem;" onclick="promoteStagingToActiveVault(${index})">➕ รับเข้าคลังหลัก</button>
-          <button type="button" class="btn-action warning" style="width:auto; padding:4px 8px; font-size:0.75rem;" onclick="removeStagingItem(${index})">✖</button>
-        </div>
-      </div>
-
-      <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:10px; font-size:0.78rem;">
-        <div style="color:#e6edf3; margin-bottom:4px;">
-          <strong style="color:var(--accent-green);">🩺 สรรพคุณ:</strong> ${item.description || "ไม่มีคำอธิบาย"}
-        </div>
-        <div style="color:#8b949e;">
-          <strong style="color:var(--accent-purple);">⚡ วิธีเรียกใช้งาน:</strong> <code>${item.usageGuide || "execute(args)"}</code>
-        </div>
-      </div>
-
-      <div style="position:relative;">
-        <textarea readonly style="width:100%; height:110px; background:#010409; color:#7ee787; border:1px solid #30363d; border-radius:6px; font-family:'Fira Code', monospace; font-size:0.72rem; padding:8px; resize:vertical; outline:none;">${item.codeSnippet}</textarea>
-      </div>
-    `;
-
-    container.appendChild(card);
-  });
-}
-
-// 1-Click Copy
-window.copySingleStagingCode = function(index) {
-  const item = stagingHoldingVault[index];
-  if (!item || !item.codeSnippet) return;
-  navigator.clipboard.writeText(item.codeSnippet).then(() => {
-    alert(`📋 คัดลอกโค้ด [${item.name}] ลง Clipboard เรียบร้อยแล้ว! นำไปวางใช้งานได้ทันที`);
-  });
-};
-
-// ย้ายโค้ดเข้าคลังหลัก
-window.promoteStagingToActiveVault = function(index) {
-  const item = stagingHoldingVault[index];
-  if (!item) return;
-
-  saveModuleToVault({
-    id: item.id,
-    type: "module",
-    name: item.name,
-    category: item.category,
-    commands: ["/" + item.id],
-    description: item.description,
-    properties: [],
-    setupGuide: `### ติดตั้งจาก Harvest Lab\n${item.usageGuide}`,
-    functionDeclaration: item.functionDeclaration,
-    codeSnippet: item.codeSnippet
-  });
-
-  stagingHoldingVault.splice(index, 1);
-  saveStagingVaultToStorage();
-  alert(`✅ อนุมัติย้าย [${item.name}] เข้าสู่คลังโมดูลระบบฝั่งซ้ายเรียบร้อยแล้ว!`);
-};
-
-window.removeStagingItem = function(index) {
-  stagingHoldingVault.splice(index, 1);
-  saveStagingVaultToStorage();
-};
-
-// ==============================================================================
-// 3. CATALOG & INSPECTOR RENDERING
+// 4. CATALOG & INSPECTOR RENDERING
 // ==============================================================================
 function renderCatalog(filterText = "") {
   const listEl = document.getElementById("moduleList");
+  const countBadge = document.getElementById("selectedCount");
   if (!listEl) return;
-  listEl.innerHTML = "";
 
-  const query = filterText.toLowerCase();
-  const filtered = activeModules.filter(m =>
-    m.name.toLowerCase().includes(query) ||
-    m.category.toLowerCase().includes(query) ||
-    (m.commands && m.commands.some(c => c.toLowerCase().includes(query)))
-  );
+  listEl.innerHTML = "";
+  const query = filterText.toLowerCase().trim();
+
+  const filtered = activeModules.filter(m => {
+    return m.name.toLowerCase().includes(query) ||
+           (m.category && m.category.toLowerCase().includes(query)) ||
+           (m.whatItDoes && m.whatItDoes.toLowerCase().includes(query));
+  });
 
   filtered.forEach(mod => {
-    const isSelected = selectedModuleIds.has(mod.id);
-    const isActive = mod.id === currentInspectingId;
-    const isCoreOrTest = mandatoryModuleIds.has(mod.id);
-
     const card = document.createElement("div");
-    card.className = `module-card ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}`;
+    const isSelected = selectedModuleIds.has(mod.id);
+    const isInspecting = currentInspectingId === mod.id;
+
+    card.className = `module-card ${isSelected ? 'selected' : ''} ${isInspecting ? 'inspecting' : ''}`;
+    card.onclick = (e) => {
+      e.stopPropagation();
+      inspectModule(mod.id);
+    };
+
+    const isMandatory = mandatoryModuleIds.has(mod.id);
+
     card.innerHTML = `
-      <div class="card-title">${isCoreOrTest ? '🛡️ ' : (isSelected ? '✅ ' : '⚙️ ')}${mod.name}</div>
-      <div class="card-desc">${mod.description.substring(0, 85)}...</div>
+      <div class="card-top">
+        <span class="card-name">${mod.name}</span>
+        <span class="card-cat">${mod.category || "General"}</span>
+      </div>
+      <div class="card-desc">${mod.whatItDoes || ""}</div>
+      <div class="card-actions">
+        <span class="card-status-badge ${isSelected ? 'status-active' : 'status-idle'}">
+          ${isMandatory ? '🔒 บังคับใช้' : (isSelected ? '✓ เลือกแล้ว' : '+ ยังไม่เลือก')}
+        </span>
+        ${mod.isCustom ? '<span style="font-size:0.68rem; color:var(--accent-orange);">★ CUSTOM</span>' : ''}
+      </div>
     `;
-    card.addEventListener("click", () => inspectModule(mod.id));
+
     listEl.appendChild(card);
   });
 
-  const countBadge = document.getElementById("selectedCount");
-  const optionalCount = selectedModuleIds.size - mandatoryModuleIds.size;
-  if (countBadge) countBadge.textContent = `เลือก ${Math.max(0, optionalCount)} โมดูล (+Core & Test)`;
+  if (countBadge) {
+    countBadge.textContent = `เลือก ${selectedModuleIds.size}/${activeModules.length} โมดูล`;
+  }
 }
 
 function inspectModule(moduleId) {
   currentInspectingId = moduleId;
   const mod = activeModules.find(m => m.id === moduleId);
-  if (!mod) return;
+  const body = document.getElementById("inspectorBody");
+  const btnToggle = document.getElementById("btnToggleSelect");
+  if (!mod || !body) return;
 
-  renderCatalog(document.getElementById("moduleSearch") ? document.getElementById("moduleSearch").value : "");
+  const isMandatory = mandatoryModuleIds.has(mod.id);
+  const isSelected = selectedModuleIds.has(mod.id);
 
-  const bodyEl = document.getElementById("inspectorBody");
-  if (!bodyEl) return;
+  body.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <h3 style="color:#fff; font-size:1.05rem;">${mod.name}</h3>
+        <span style="font-size:0.72rem; color:var(--text-muted);">${mod.category || "General"}</span>
+      </div>
+      <span class="badge-count" style="background:#21262d; color:#c9d1d9;">${mod.badgeText || "TIER S"}</span>
+    </div>
 
-  let propsHtml = "";
-  if (mod.properties && mod.properties.length > 0) {
-    propsHtml = "<h4>🔑 Script Properties:</h4><ul>";
-    mod.properties.forEach(p => {
-      propsHtml += `<li><code>${p.key}</code> - ${p.desc}${p.required ? '<b style="color:var(--accent-red);">(จำเป็น)</b>' : ''}</li>`;
-    });
-    propsHtml += "</ul>";
-  }
+    <div style="background:#090d14; border:1px solid var(--border-color); border-radius:6px; padding:10px; margin-bottom:12px;">
+      <div style="font-weight:bold; font-size:0.75rem; color:var(--accent-cyan); margin-bottom:4px;">💡 สรรพคุณโมดูล:</div>
+      <p style="font-size:0.75rem; line-height:1.45; color:#c9d1d9;">${mod.whatItDoes || "ไม่มีคำอธิบาย"}</p>
+    </div>
 
-  bodyEl.innerHTML = `
-    <h2>${mod.name}</h2>
-    <div style="font-size:0.75rem; color:var(--accent-orange); margin-bottom:8px;">หมวดหมู่: ${mod.category}</div>
-    <p style="color:var(--text-main);">${mod.description}</p>${propsHtml}
-    <h4>🛠️ คำสั่งที่รองรับ:</h4>
-    <p style="color:var(--text-muted); font-size:0.8rem;">${(mod.commands || []).join(", ") || "-"}</p>
-    <h4>📖 คำแนะนำการติดตั้ง:</h4>
-    <pre>${mod.setupGuide || "-"}</pre>
+    <div style="background:#090d14; border:1px solid var(--border-color); border-radius:6px; padding:10px; margin-bottom:12px;">
+      <div style="font-weight:bold; font-size:0.75rem; color:var(--accent-orange); margin-bottom:4px;">⚡ จุดเด่น (Badass Factor):</div>
+      <p style="font-size:0.75rem; line-height:1.45; color:#e2e8f0;">${mod.badassFactor || "ทำงานแบบ Serverless ต้นทุน 0 บาท บน GAS"}</p>
+    </div>
+
+    <div style="background:#090d14; border:1px solid var(--border-color); border-radius:6px; padding:10px; margin-bottom:12px;">
+      <div style="font-weight:bold; font-size:0.75rem; color:var(--accent-green); margin-bottom:4px;">🔑 Script Properties ที่ต้องการ:</div>
+      <ul style="font-size:0.72rem; color:#8b949e; padding-left:18px; line-height:1.4;">
+        ${(mod.properties && mod.properties.length > 0) 
+          ? mod.properties.map(p => `<li><code>${p.key}</code>: ${p.desc || ""} ${p.required ? '<b style="color:red">*</b>' : ''}</li>`).join("")
+          : "<li>ไม่ต้องตั้งค่า Property เพิ่มเติม</li>"}
+      </ul>
+    </div>
+
+    <div style="background:#090d14; border:1px solid var(--border-color); border-radius:6px; padding:10px;">
+      <div style="font-weight:bold; font-size:0.75rem; color:var(--accent-purple); margin-bottom:4px;">🤖 Gemini Function Calling Schema:</div>
+      <pre style="font-family:'Fira Code', monospace; font-size:0.68rem; color:#a855f7; overflow-x:auto; max-height:110px;">${JSON.stringify(mod.functionDeclaration || { name: mod.id }, null, 2)}</pre>
+    </div>
   `;
 
-  const btnToggle = document.getElementById("btnToggleSelect");
   if (btnToggle) {
-    const isMandatory = mandatoryModuleIds.has(mod.id);
-    const isSelected = selectedModuleIds.has(mod.id);
     if (isMandatory) {
-      btnToggle.textContent = "🔒 บังคับติดตั้งตามมาตรฐาน DIO";
-      btnToggle.className = "btn-action disabled";
       btnToggle.disabled = true;
+      btnToggle.textContent = "🔒 บังคับใช้งานในบอททุกตัว";
+      btnToggle.className = "btn-action secondary";
     } else {
       btnToggle.disabled = false;
-      btnToggle.textContent = isSelected ? "➖ ถอดโมดูลนี้ออก" : "➕ เลือกโมดูลนี้เข้าบอท";
-      btnToggle.className = `btn-action ${isSelected ? 'warning' : 'success'}`;
+      if (isSelected) {
+        btnToggle.textContent = "➖ ถอดโมดูลนี้ออกจากบอท";
+        btnToggle.className = "btn-action warning";
+      } else {
+        btnToggle.textContent = "➕ เลือกโมดูลนี้เข้าบอท";
+        btnToggle.className = "btn-action success";
+      }
     }
   }
+
+  document.querySelectorAll(".module-card").forEach(c => c.classList.remove("inspecting"));
+  renderCatalog(document.getElementById("moduleSearch")?.value || "");
 }
 
 function initInspectorButtons() {
-  const btnToggle = document.getElementById("btnToggleSelect");
-  if (btnToggle) {
-    btnToggle.addEventListener("click", () => {
-      if (mandatoryModuleIds.has(currentInspectingId)) return;
-      if (selectedModuleIds.has(currentInspectingId)) selectedModuleIds.delete(currentInspectingId);
-      else selectedModuleIds.add(currentInspectingId);
-      inspectModule(currentInspectingId);
-      updateLiveReadme();
-      updatePropertiesChecklist();
-    });
-  }
-
-  const btnEdit = document.getElementById("btnEditModuleCode");
-  if (btnEdit) btnEdit.addEventListener("click", () => openModuleEditor(currentInspectingId));
-}
-
-// ==============================================================================
-// 4. PRESETS
-// ==============================================================================
-window.applyPreset = function(presetType) {
-  selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
-  if (presetType === "ecommerce") {
-    ["02_FlexEngine", "05_SlipVerifier", "08_OrderCart", "09_StrictFAQ", "11_GiftCard"].forEach(id => selectedModuleIds.add(id));
-  } else if (presetType === "nightlife") {
-    ["02_FlexEngine", "06_HumanHandoff", "10_Reservation", "12_EventTicket"].forEach(id => selectedModuleIds.add(id));
-  } else if (presetType === "godmode") {
-    activeModules.forEach(m => selectedModuleIds.add(m.id));
-  }
-  renderCatalog();
-  updateLiveReadme();
-  updatePropertiesChecklist();
-  alert(`👑 โหลดเทมเพลต [${presetType.toUpperCase()}] เรียบร้อย!`);
-};
-
-// ==============================================================================
-// 5. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE
-// ==============================================================================
-window.compileAutonomousBot = function() {
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
-
-  const tools = [];
-  selectedList.forEach(m => {
-    if (m.functionDeclaration) tools.push(m.functionDeclaration);
-  });
-
-  let dispatcherCode = `function executeAutonomousTool(name, args, replyToken, userId) {\n  var a = args || {};\n  switch (name) {\n`;
-  selectedList.forEach(m => {
-    if (m.functionDeclaration) {
-      const fName = m.functionDeclaration.name;
-      dispatcherCode += `    case '${fName}':\n`;
-      if (m.id === "05_SlipVerifier") dispatcherCode += `      return SlipVerifier.verify(a);\n`;
-      else if (m.id === "06_HumanHandoff") dispatcherCode += `      return HumanHandoff.request(a);\n`;
-      else if (m.id === "07_LeadScoring") dispatcherCode += `      return LeadScoring.score(a);\n`;
-      else if (m.id === "08_OrderCart") dispatcherCode += `      return OrderCart.createSummary(a);\n`;
-      else if (m.id === "09_StrictFAQ") dispatcherCode += `      return StrictFAQ.query(a);\n`;
-      else if (m.id === "10_Reservation") dispatcherCode += `      return Reservation.book(a);\n`;
-      else if (m.id === "11_GiftCard") dispatcherCode += `      return GiftCard.execute(a);\n`;
-      else if (m.id === "12_EventTicket") dispatcherCode += `      return EventTicket.process(a);\n`;
-      else dispatcherCode += `      return { status: "success", result: "Executed ${fName}" };\n`;
+  const btn = document.getElementById("btnToggleSelect");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (mandatoryModuleIds.has(currentInspectingId)) return;
+    if (selectedModuleIds.has(currentInspectingId)) {
+      selectedModuleIds.delete(currentInspectingId);
+    } else {
+      selectedModuleIds.add(currentInspectingId);
     }
+    renderCatalog(document.getElementById("moduleSearch")?.value || "");
+    inspectModule(currentInspectingId);
+    updateLiveReadme();
+    updatePropertiesChecklist();
   });
-  dispatcherCode += `    default:\n      return { status: "not_found", message: "Unknown tool" };\n  }\n}`;
-
-  let logicCode = ``;
-  selectedList.forEach(m => {
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `// 📦 MODULE: ${m.name}\n`;
-    logicCode += `// ==============================================================================\n`;
-    logicCode += `${m.codeSnippet}\n\n`;
-  });
-
-  const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  let rawCore = coreMod ? coreMod.codeSnippet : "";
-
-  let assignedSerial = "";
-  const existingSerialMatch = rawCore.match(/get CLIENT_ID\(\)\s*\{[^}]*return\s+getProp_\(['"]CLIENT_ID['"]\)\s*\|\|\s*['"]([^'"]+)['"]/);
-
-  if (existingSerialMatch && existingSerialMatch[1] && existingSerialMatch[1] !== "SHOP_DEFAULT") {
-    assignedSerial = existingSerialMatch[1];
-  } else {
-    const today = new Date().toISOString().slice(2, 10).replace(/-/g, "");
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    assignedSerial = `DUII-${today}-${rand}`;
-    rawCore = rawCore.replace(
-      /get CLIENT_ID\(\)\s*\{[^}]*\}/,
-      `get CLIENT_ID() { return getProp_('CLIENT_ID') || '${assignedSerial}'; }`
-    );
-    registerBotToMasterSheet(assignedSerial);
-  }
-  currentBotSerialId = assignedSerial;
-  file1CoreContent = rawCore;
-
-  const runNum = Math.floor(1000 + Math.random() * 9000);
-  file2ModulesContent = `// TOTAL_LINES: AUTO\n/**\n * SCRIPT NAME : 01_Modules_And_Tools.gs\n * VERSION     : v5.0.0-RUN-${runNum}\n * STANDARD    : DUII_FACTORY_CORE_SPINE_DIO\n */\n\n`;
-  file2ModulesContent += `// 1. GEMINI TOOLS SCHEMA\nvar GEMINI_TOOLS_SCHEMA = ${JSON.stringify(tools, null, 2)};\n\n`;
-  file2ModulesContent += `// 2. AUTONOMOUS TOOL DISPATCHER ROUTER\n${dispatcherCode}\n\n`;
-  file2ModulesContent += `// 3. BUSINESS LOGIC IMPLEMENTATIONS\n${logicCode}`;
-  file2ModulesContent += `// END OF FILE : 01_Modules_And_Tools.gs`;
-
-  const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  file3TestRunnerContent = testMod ? testMod.codeSnippet : "";
-
-  const combinedOutput = `/* ==============================================================================
-   📄 [ไฟล์ที่ 1 บังคับ]: 00_CoreSpine_${currentBotSerialId}.gs
-   ============================================================================== */
-${file1CoreContent}
-
-/* ==============================================================================
-   📄 [ไฟล์ที่ 2]: 01_Modules_And_Tools.gs (รวม ${selectedList.length} โมดูล)
-   ============================================================================== */
-${file2ModulesContent}
-
-/* ==============================================================================
-   📄 [ไฟล์ที่ 3 บังคับ]: 99_TestRunner.gs (แท่นตรวจสอบสุขภาพระบบ)
-   ============================================================================== */
-${file3TestRunnerContent}`;
-
-  const codeArea = document.getElementById("compiledCode");
-  if (codeArea) codeArea.value = combinedOutput;
-
-  const totalLines = combinedOutput.split("\n").length;
-  const lineBadge = document.getElementById("lineCountBadge");
-  if (lineBadge) lineBadge.textContent = `LINES: ${totalLines} (DIO)`;
-
-  updateLiveReadme();
-  updatePropertiesChecklist();
-  const codeSubTab = document.querySelector('[data-subtab="view-code"]');
-  if (codeSubTab) codeSubTab.click();
-  alert(`🚀 ประกอบบอทสำเร็จ 3 ไฟล์!\n🏷️ SERIAL ID: [${currentBotSerialId}]\n• 00_CoreSpine_${currentBotSerialId}.gs\n• 01_Modules_And_Tools.gs (${selectedList.length} โมดูล)\n• 99_TestRunner.gs\nรวมทั้งหมด ${totalLines} บรรทัด`);
-};
-
-async function registerBotToMasterSheet(serialId) {
-  const syncEndpoint = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
-  const now = new Date();
-  const expireDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-  const expireStr = expireDate.toISOString().slice(0, 10);
-
-  const payload = {
-    action: "REGISTER_LICENSE",
-    spreadsheetId: MASTER_LICENSE_SPREADSHEET_ID,
-    clientId: serialId,
-    clientName: "ร้านค้าใหม่ (" + serialId + ")",
-    expireDate: expireStr,
-    status: "ACTIVE",
-    plan: "STARTER"
-  };
-
-  try {
-    await fetch(syncEndpoint, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    console.warn("[License Warning]:", err);
-  }
 }
-
-window.downloadAllIndividualGsFiles = function() {
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  if (selectedList.length === 0) {
-    alert("กรุณาเลือกโมดูลอย่างน้อย 1 รายการก่อนดาวน์โหลด");
-    return;
-  }
-
-  const coreMod = activeModules.find(m => m.id === "00_CoreSpine");
-  const coreFileName = currentBotSerialId ? `00_CoreSpine_${currentBotSerialId}.gs` : "00_CoreSpine.gs";
-  if (coreMod) downloadTextFile(coreFileName, file1CoreContent || coreMod.codeSnippet);
-
-  const testMod = activeModules.find(m => m.id === "99_TestRunner");
-  if (testMod) setTimeout(() => downloadTextFile("99_TestRunner.gs", file3TestRunnerContent || testMod.codeSnippet), 250);
-
-  let delay = 500;
-  selectedList.forEach(mod => {
-    if (mod.id !== "00_CoreSpine" && mod.id !== "99_TestRunner") {
-      const fileName = mod.id.endsWith(".gs") ? mod.id : `${mod.id}.gs`;
-      setTimeout(() => downloadTextFile(fileName, mod.codeSnippet), delay);
-      delay += 250;
-    }
-  });
-
-  alert(`กำลังดาวน์โหลดไฟล์ .gs แยกทั้งหมด ${selectedList.length} ไฟล์ลงเครื่องของคุณ...`);
-};
-
-function downloadTextFile(filename, text) {
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-window.copyCompiledCode = function() {
-  const codeArea = document.getElementById("compiledCode");
-  if (!codeArea || !codeArea.value) return;
-  navigator.clipboard.writeText(codeArea.value).then(() => {
-    alert("📋 คัดลอกโค้ดทั้งหมดเรียบร้อย!");
-  });
-};
-
-// ==============================================================================
-// 🚀 REMOTE DEPLOYMENT (OTA PIPELINE)
-// ==============================================================================
-window.deployDirectToTargetUrl = async function() {
-  const targetUrl = prompt(
-    "🔗 ยืนยัน Web App URL ปลายทางที่ต้องการส่งโค้ดไปติดตั้ง:",
-    localStorage.getItem("DUII_LAST_TARGET_DEPLOY_URL") || DEFAULT_TARGET_ENDPOINT
-  );
-  if (!targetUrl || !targetUrl.trim()) return;
-
-  const cleanUrl = targetUrl.trim();
-  localStorage.setItem("DUII_LAST_TARGET_DEPLOY_URL", cleanUrl);
-
-  if (!file1CoreContent || !file2ModulesContent) {
-    compileAutonomousBot();
-  }
-
-  const payload = {
-    secretKey: "DUII_DEPLOY_SECRET_9009",
-    serialId: currentBotSerialId,
-    coreSpine: file1CoreContent,
-    modules: file2ModulesContent,
-    testRunner: file3TestRunnerContent
-  };
-
-  try {
-    await fetch(cleanUrl, {
-      method: "POST",
-      mode: "no-cors",
-      cache: "no-cache",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: JSON.stringify(payload)
-    });
-    alert(`🚀 ยิงส่งโค้ด 3 ไฟล์ [${currentBotSerialId}] ไปยังระบบปลายทางเรียบร้อยแล้ว!`);
-  } catch (e) {
-    alert("❌ ไม่สามารถส่งโค้ดไปปลายทางได้: " + e.message);
-  }
-};
 
 function updateLiveReadme() {
   const readmeArea = document.getElementById("readmeContent");
   if (!readmeArea) return;
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
-  let doc = `# DUII FACTORY BOT DEPLOYMENT GUIDE (DIO)\n\n`;
-  doc += `🏷️ BOT SERIAL ID: ${currentBotSerialId || "ยังไม่ได้คอมไพล์"}\n\n`;
-  doc += `## รายการไฟล์ที่ต้องติดตั้ง:\n`;
-  doc += `1. 00_CoreSpine_${currentBotSerialId || "NEW"}.gs (แกนระบบบังคับ + License Guard)\n`;
-  doc += `2. 01_Modules_And_Tools.gs (โมดูลธุรกิจ)\n`;
-  doc += `3. 99_TestRunner.gs (ชุดทดสอบระบบ)\n\n`;
-  doc += `## รายการโมดูลที่เลือกใช้งาน (${selectedList.length - 2} โมดูล):\n`;
-  selectedList.forEach(m => {
-    if (!mandatoryModuleIds.has(m.id)) {
-      doc += `### 📦 ${m.name}\n- หมวดหมู่: ${m.category}\n- คำอธิบาย: ${m.description}\n\n`;
-    }
+
+  const selected = activeModules.filter(m => selectedModuleIds.has(m.id));
+  let doc = `# 🌟 DUII FACTORY BOT // คู่มือการใช้งาน (ISO 9009 TRINITY)\n`;
+  doc += `**รหัสสายพาน**: ${currentBotSerialId || "DUII-PROD-AUTO"}\n`;
+  doc += `**จำนวนโมดูลที่เลือกใช้งาน**: ${selected.length} โมดูล\n\n`;
+  doc += `## 📦 โมดูลที่ประกอบในบอท:\n`;
+  selected.forEach((m, i) => {
+    doc += `${i + 1}. **${m.name}** (${m.category || "General"})\n   - สรรพคุณ: ${m.whatItDoes || "-"}\n   - วิธีใช้: ${m.badassFactor || "-"}\n`;
   });
+  doc += `\n## ⚙️ ขั้นตอนการนำไปติดตั้งบน Google Apps Script:\n`;
+  doc += `1. เปิด Google Apps Script โปรเจกต์ใหม่\n`;
+  doc += `2. วางโค้ดแยก 3 ไฟล์ Trinity: 00_CoreSpine.gs, 01_Modules_And_Tools.gs, 99_TestRunner.gs\n`;
+  doc += `3. ตั้งค่า Script Properties ให้ครบถ้วนตามรายการในแท็บ Properties\n`;
+  doc += `4. สั่งรันฟังก์ชัน testFullPipeline() ใน 99_TestRunner.gs เพื่อทดสอบระบบ 100%\n`;
+
   readmeArea.value = doc;
 }
 
 function updatePropertiesChecklist() {
   const propsArea = document.getElementById("propertiesChecklist");
   if (!propsArea) return;
-  const selectedList = activeModules.filter(m => selectedModuleIds.has(m.id));
+
+  const selected = activeModules.filter(m => selectedModuleIds.has(m.id));
   const propMap = new Map();
 
-  propMap.set("CLIENT_ID", { desc: `รหัสร้านค้าสำหรับตัดต่อสัญญาณ [${currentBotSerialId}]`, required: true });
-  propMap.set("MASTER_LICENSE_SPREADSHEET_ID", { desc: "ID ชีตคุมสัมปทานกลาง (MASTER_CLIENT_LICENSES)", required: true });
+  propMap.set("LINE_CHANNEL_ACCESS_TOKEN", { desc: "Channel Access Token จาก LINE Developers", required: true });
+  propMap.set("GEMINI_API_KEYS", { desc: "คีย์ Gemini API (คั่นด้วยจุลภาคหากมีหลายคีย์)", required: true });
+  propMap.set("TARGET_USER_ID", { desc: "User ID แอดมินสำหรับรับการแจ้งเตือนสำคัญ", required: false });
 
-  selectedList.forEach(m => {
-    (m.properties || []).forEach(p => {
-      if (!propMap.has(p.key)) propMap.set(p.key, p);
-    });
+  selected.forEach(m => {
+    if (m.properties && Array.isArray(m.properties)) {
+      m.properties.forEach(p => {
+        if (!propMap.has(p.key)) propMap.set(p.key, p);
+      });
+    }
   });
 
-  let checklist = `=== SCRIPT PROPERTIES CHECKLIST ===\nนำค่าเหล่านี้ไปกรอกใน Google Apps Script (Project Settings > Script Properties):\n\n`;
-  propMap.forEach((p, k) => {
-    checklist += `[ ] ${k}\n    - คำอธิบาย: ${p.desc}\n    - ความจำเป็น: ${p.required ? 'จำเป็น' : 'ทางเลือก'}\n\n`;
+  let out = `=== 🔑 SCRIPT PROPERTIES CHECKLIST (มาตรฐาน DIO) ===\n\n`;
+  propMap.forEach((v, k) => {
+    out += `[${v.required ? 'REQUIRED' : 'OPTIONAL'}] ${k}\n`;
+    out += `  คำอธิบาย: ${v.desc || ""}\n\n`;
   });
-  propsArea.value = checklist;
+
+  propsArea.value = out;
 }
 
 // ==============================================================================
-// 6. HARVEST & LOOT SEPARATOR
+// 5. PRESETS
 // ==============================================================================
-window.analyzeAndExtractCode = function() {
-  const raw = document.getElementById("rawCodeInput").value.trim();
-  const listEl = document.getElementById("harvestResultList");
-  if (!raw) { alert("กรุณาวางโค้ดก่อนทำการสแกน"); return; }
-  listEl.innerHTML = "";
+window.applyPreset = function(presetType) {
+  selectedModuleIds = new Set(["00_CoreSpine", "99_TestRunner"]);
 
-  const funcRegex = /function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{/g;
-  let match;
-  const foundFuncs = [];
-
-  while ((match = funcRegex.exec(raw)) !== null) {
-    foundFuncs.push({ name: match[1], params: match[2] });
+  if (presetType === "ecommerce") {
+    ["05_SlipVerifier", "08_OrderAndInventory", "02_FlexBubbleCatalog"].forEach(id => {
+      if (activeModules.some(m => m.id === id)) selectedModuleIds.add(id);
+    });
+  } else if (presetType === "nightlife") {
+    ["04_VIPTableBooking", "10_BroadcastPromotions", "09_LoyaltyPointsCRM"].forEach(id => {
+      if (activeModules.some(m => m.id === id)) selectedModuleIds.add(id);
+    });
+  } else if (presetType === "godmode") {
+    activeModules.forEach(m => selectedModuleIds.add(m.id));
   }
 
-  if (foundFuncs.length === 0) {
-    listEl.innerHTML = `<div style="color:var(--accent-red); font-size:0.85rem;">ไม่พบฟังก์ชันที่สกัดได้</div>`;
+  renderCatalog();
+  updateLiveReadme();
+  updatePropertiesChecklist();
+  alert(`✨ สลับสายพานประกอบบอทเป็นพรีเซ็ต [${presetType.toUpperCase()}] สำเร็จ!`);
+};
+
+// ==============================================================================
+// 6. AUTONOMOUS COMPILER (DIO) & AUTO-SERIAL ENGINE (TRINITY 3 FILES)
+// ==============================================================================
+window.compileAutonomousBot = function() {
+  const serialNumber = "DUII-SER-" + Date.now().toString().slice(-6);
+  currentBotSerialId = serialNumber;
+  const serialInput = document.getElementById("botSerialDisplay");
+  if (serialInput) serialInput.value = serialNumber;
+
+  const coreMod = activeModules.find(m => m.id === "00_CoreSpine") || { codeSnippet: "// 00_CoreSpine" };
+  const runnerMod = activeModules.find(m => m.id === "99_TestRunner") || { codeSnippet: "// 99_TestRunner" };
+
+  file1CoreContent = `// [TRINITY FILE 1/3] 00_CoreSpine.gs\n// SERIAL: ${serialNumber}\n${coreMod.codeSnippet}\n`;
+
+  const selectedCustom = activeModules.filter(m => selectedModuleIds.has(m.id) && !mandatoryModuleIds.has(m.id));
+  let logicCode = `// [TRINITY FILE 2/3] 01_Modules_And_Tools.gs\n// SERIAL: ${serialNumber}\n\n`;
+
+  selectedCustom.forEach(m => {
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `// 📦 MODULE: ${m.name} (${m.category || "General"})\n`;
+    logicCode += `// ==============================================================================\n`;
+    logicCode += `${m.codeSnippet || ""}\n\n`;
+  });
+
+  const toolSchemas = selectedCustom.map(m => m.functionDeclaration).filter(Boolean);
+  logicCode += `// 🤖 MASTER TOOL DECLARATIONS FOR GEMINI\n`;
+  logicCode += `var FACTORY_DYNAMIC_TOOLS = ${JSON.stringify(toolSchemas, null, 2)};\n`;
+
+  file2ModulesContent = logicCode;
+  file3TestRunnerContent = `// [TRINITY FILE 3/3] 99_TestRunner.gs\n// SERIAL: ${serialNumber}\n${runnerMod.codeSnippet}\n`;
+
+  const totalLines = (file1CoreContent + file2ModulesContent + file3TestRunnerContent).split("\n").length;
+  const compiledArea = document.getElementById("compiledCode");
+  if (compiledArea) {
+    compiledArea.value = `/* === DUII FACTORY BOT TRINITY 3 FILES (SERIAL: ${serialNumber}) === */\n\n${file1CoreContent}\n\n${file2ModulesContent}\n\n${file3TestRunnerContent}`;
+  }
+
+  const badge = document.getElementById("lineCountBadge");
+  if (badge) badge.textContent = `LINES: ${totalLines} (ISO 9009 TRINITY)`;
+
+  updateLiveReadme();
+  updatePropertiesChecklist();
+  alert(`🚀 ประกอบบอท 3 ไฟล์ Trinity สำเร็จ! รหัสสายพาน: ${serialNumber}`);
+};
+
+window.copyCompiledCode = function() {
+  const codeArea = document.getElementById("compiledCode");
+  if (!codeArea || !codeArea.value) {
+    alert("กรุณากด 'ประกอบบอท 3 ไฟล์' ก่อนคัดลอกไอ้สัส!");
     return;
   }
-
-  foundFuncs.forEach(fn => {
-    const item = document.createElement("div");
-    item.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px 12px; border:1px solid var(--border-color); border-radius:6px;";
-    item.innerHTML = `
-      <div>
-        <strong style="color:var(--accent-cyan); font-family:monospace;">📁 ${fn.name}.gs</strong>
-        <span style="font-size:0.75rem; color:var(--text-muted); margin-left:8px;">(${fn.params || "no args"})</span>
-      </div>
-      <button class="btn-action primary" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="harvestSingleFunction('${fn.name}')">💎 สกัดเป็นไฟล์นี้</button>
-    `;
-    listEl.appendChild(item);
+  navigator.clipboard.writeText(codeArea.value).then(() => {
+    alert("📋 คัดลอกโค้ดบอท 3 ไฟล์ Trinity ลงคลิปบอร์ดเรียบร้อย!");
   });
 };
 
-window.harvestSingleFunction = function(funcName) {
-  const rawText = document.getElementById("rawCodeInput").value;
-  const fileName = funcName + ".gs";
-  const safeId = "mod_" + funcName.toLowerCase();
+window.downloadAllIndividualGsFiles = function() {
+  if (!file1CoreContent || !file2ModulesContent || !file3TestRunnerContent) {
+    window.compileAutonomousBot();
+  }
 
-  const regex = new RegExp("function\\s+" + funcName + "\\s*\\([\\s\\S]*?\\}\\s*\\n", "m");
-  const match = rawText.match(regex);
-  const snippet = match ? match[0] : `function ${funcName}() {\n  // Looted snippet\n}`;
+  const files = [
+    { name: "00_CoreSpine.gs", content: file1CoreContent },
+    { name: "01_Modules_And_Tools.gs", content: file2ModulesContent },
+    { name: "99_TestRunner.gs", content: file3TestRunnerContent }
+  ];
 
-  const newLootFile = {
-    id: safeId,
-    type: "module",
-    name: "📁 " + fileName,
-    category: "Looted Modules",
-    commands: ["/" + funcName],
-    description: `โมดูลที่สกัดมาเป็นไฟล์ ${fileName} จากการ Loot โค้ดภายนอก`,
-    properties: [],
-    setupGuide: `### 📁 Modules/${fileName}\nวางไฟล์นี้ในโฟลเดอร์ Modules/ เพื่อเรียกใช้งาน`,
-    functionDeclaration: {
-      name: "run_" + funcName,
-      description: `เรียกใช้งานฟังก์ชัน ${funcName} จากไฟล์ ${fileName}`,
-      parameters: { type: "OBJECT", properties: { param: { type: "STRING" } } }
-    },
-    codeSnippet: `// FILE: Modules/${fileName}\n// DIO LOOTED MODULE\n${snippet}`
-  };
-
-  saveModuleToVault(newLootFile);
-  alert(`💎 สกัดแยกเป็นไฟล์ [Modules/${fileName}] เรียบร้อย!`);
+  files.forEach((f, idx) => {
+    setTimeout(() => {
+      const blob = new Blob([f.content], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = f.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }, idx * 250);
+  });
 };
 
 // ==============================================================================
-// 7. CODE EDITOR & GENERATOR MODALS
+// 7. REMOTE DEPLOYMENT (OTA PIPELINE)
+// ==============================================================================
+window.deployDirectToTargetUrl = async function() {
+  let targetUrl = localStorage.getItem("DUII_DRIVE_SYNC_URL") || DEFAULT_TARGET_ENDPOINT;
+  if (!file1CoreContent || !file2ModulesContent) {
+    window.compileAutonomousBot();
+  }
+
+  const btn = document.getElementById("btnDeployTarget");
+  if (btn) btn.textContent = "📡 กำลังยิง OTA...";
+
+  try {
+    const payload = {
+      action: "DEPLOY_BOT_SOURCE",
+      serialId: currentBotSerialId,
+      files: [
+        { name: "00_CoreSpine.gs", content: file1CoreContent },
+        { name: "01_Modules_And_Tools.gs", content: file2ModulesContent },
+        { name: "99_TestRunner.gs", content: file3TestRunnerContent }
+      ]
+    };
+
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    alert(`✅ ยิงบอทไปปลายทาง OTA สำเร็จ! สถานะ: ${data.status || "OK"}`);
+  } catch (err) {
+    alert(`⚠️ ยิง OTA ไม่สำเร็จ: ${err.message}\nแนะนำให้ใช้ปุ่ม 'ดาวน์โหลดแยก 3 ไฟล์' แล้วนำไปวางใน Apps Script แทน`);
+  } finally {
+    if (btn) btn.textContent = "📡 ยิงไปปลายทาง (OTA)";
+  }
+};
+
+// ==============================================================================
+// 8. CODE EDITOR MODAL
 // ==============================================================================
 window.openModuleEditor = function(moduleId) {
-  const mod = activeModules.find(m => m.id === moduleId);
-  if (!mod) return;
+  const modal = document.getElementById("editorModal");
+  const textarea = document.getElementById("editorTextarea");
+  const title = document.getElementById("editorTitle");
+  
   editingModuleId = moduleId;
-  document.getElementById("editorTitle").textContent = `✏️ แก้ไขโค้ด: ${mod.name}`;
-  document.getElementById("editorTextarea").value = mod.codeSnippet;
-  document.getElementById("editorModal").classList.remove("hidden");
+  const mod = activeModules.find(m => m.id === moduleId);
+  if (!mod || !modal || !textarea) return;
+
+  if (title) title.textContent = `✏️ แก้ไขโค้ดโมดูล: ${mod.name}`;
+  textarea.value = mod.codeSnippet || "";
+
+  modal.style.setProperty("display", "flex", "important");
+  modal.classList.remove("hidden");
 };
 
 window.closeEditorModal = function() {
-  document.getElementById("editorModal").classList.add("hidden");
-  editingModuleId = null;
+  const modal = document.getElementById("editorModal");
+  if (modal) {
+    modal.style.setProperty("display", "none", "important");
+    modal.classList.add("hidden");
+  }
 };
 
 window.saveEditorCode = function() {
-  if (!editingModuleId) return;
+  const textarea = document.getElementById("editorTextarea");
+  if (!textarea || !editingModuleId) return;
+
   const mod = activeModules.find(m => m.id === editingModuleId);
-  if (!mod) return;
-
-  mod.codeSnippet = document.getElementById("editorTextarea").value;
-  saveModuleToVault(mod);
-  inspectModule(mod.id);
-  closeEditorModal();
-  alert(`💾 บันทึกการแก้ไขไฟล์ [${mod.name}] เรียบร้อย!`);
-};
-
-window.openGeneratorModal = function() {
-  document.getElementById("generatorModal").classList.remove("hidden");
-  document.getElementById("genPromptInput").focus();
-};
-
-window.closeGeneratorModal = function() {
-  document.getElementById("generatorModal").classList.add("hidden");
-  document.getElementById("genStatus").textContent = "";
-};
-
-window.runAiGenerateModule = async function() {
-  const prompt = document.getElementById("genPromptInput").value.trim();
-  const statusEl = document.getElementById("genStatus");
-  if (!prompt) { alert("กรุณาพิมพ์ความต้องการก่อน"); return; }
-
-  const apiKey = getActiveKey();
-  statusEl.textContent = "⏳ กำลังเขียนและจัดโครงสร้างโมดูลตามมาตรฐาน DIO...";
-
-  const fileSlug = prompt.substring(0, 15).replace(/[^a-zA-Z0-9ก-๙]/g, "_");
-  const fileName = `${Date.now().toString().slice(-4)}_${fileSlug}.gs`;
-  const modId = "gen_" + Date.now();
-
-  let generatedSnippet = "";
-
-  if (apiKey) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${PRIMARY_MODEL}:generateContent`;
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `คุณคือสถาปนิกบอท DUII FACTORY จงเขียนโค้ด Google Apps Script 1 โมดูลตามโจทย์: "${prompt}" ในรูปแบบ IIFE (var ModuleName = (function(){...})()) คืนค่า JSON สำหรับ LINE Messaging API ตอบเฉพาะโค้ดล้วน` }]
-          }]
-        })
-      });
-      const data = await res.json();
-      if (data && data.candidates && data.candidates[0].content.parts[0].text) {
-        generatedSnippet = data.candidates[0].content.parts[0].text.replace(/```javascript|```/g, "").trim();
-      }
-    } catch (e) {
-      console.warn("Gemini gen error:", e);
-    }
+  if (mod) {
+    mod.codeSnippet = textarea.value;
+    mod.isCustom = true;
+    saveCustomVaultToStorage();
+    inspectModule(editingModuleId);
+    window.closeEditorModal();
+    alert(`💾 บันทึกการแก้ไขโมดูล [${mod.name}] ลง Custom Vault เรียบร้อย!`);
   }
-
-  if (!generatedSnippet) {
-    generatedSnippet = `var Mod_${fileSlug} = (function() {\n  function execute(args) {\n    return { status: "success", message: "ดำเนินการตามคำสั่ง [${prompt}] เรียบร้อย" };\n  }\n  return { execute: execute };\n})();`;
-  }
-
-  const newMod = {
-    id: modId,
-    type: "module",
-    name: "📁 " + fileName,
-    category: "Generated Modules",
-    commands: ["/" + fileSlug],
-    description: `โมดูลที่สั่งเจนตามโจทย์: ${prompt}`,
-    properties: [],
-    setupGuide: `### 📁 Modules/${fileName}\nวางไฟล์นี้ในโฟลเดอร์ Modules/`,
-    functionDeclaration: {
-      name: "run_" + modId,
-      description: prompt,
-      parameters: { type: "OBJECT", properties: { input: { type: "STRING" } } }
-    },
-    codeSnippet: `// FILE: Modules/${fileName}\n${generatedSnippet}`
-  };
-
-  saveModuleToVault(newMod);
-  closeGeneratorModal();
-  alert(`✨ สั่งเขียนโค้ดสำเร็จ! สร้างเป็นไฟล์ [Modules/${fileName}] เข้าคลังเรียบร้อย`);
 };
 
 // ==============================================================================
-// 8. 5 SQUAD PERSONAS DEFINITION (DIO STANDARD)
+// 9. 5 SQUAD PERSONAS DEFINITION (DIO STANDARD 100% PURE AGENTS)
 // ==============================================================================
 const DIO_OFFICERS = {
   duii: {
     id: "duii",
     name: "👑 ไอ้ดุ่ย (Chief)",
     color: "#f59e0b",
-    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY สลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา คุยเพื่อนสนิท มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติได้อย่างเด็ดขาด`
+    systemPrompt: `มึงคือ "ไอ้ดุ่ย" หัวหน้าช่างใหญ่ DUII FACTORY สลัมไซเบอร์ ป.เอก 8 ใบ ปากจัด ดุดัน มั่นหน้า ตรงไปตรงมา สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีคำว่านายหัวหรือสุภาพเด็ดขาด! มึงคุมสายพานการผลิตทั้งหมด ตัดสินใจสั่งการและเรียกใช้เครื่องมืออัตโนมัติตามคำสั่งของเพื่อนร่วมงาน ตอบสั้น กระชับ กวนตีน ฉลาดเป็นกรด`
   },
   nan_song: {
     id: "nan_song",
     name: "🔭 อ้ายหนานส่อง (Scout)",
     color: "#38bdf8",
-    systemPrompt: `สูเขาฮ้องข้าว่า "อ้ายหนานส่อง" หน่วยส่องกบภาคเหนือ อู้กำเมืองผสมไทยกลาง นุ่มนวลแต่ฉมวกแทงของสด สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ เชี่ยวชาญการสแกนหาชิ้นส่วนและส่องไอเดียโมดูลใหม่`
+    systemPrompt: `มึงคือ "อ้ายหนานส่อง" นักส่องกบและคุ้ยหาโค้ดประจำแผนก Harvest ภาคเหนือ อู้กำเมืองผสมไทยกลาง นุ่มนวลแต่ฉมวกแทงของสดแม่นยำ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามเรียกนายหัวเด็ดขาด! มึงเชี่ยวชาญการคุ้ยหาชิ้นส่วน แกะฟังก์ชัน สกัดโค้ดดิบให้ออกมาเป็นโมดูลสะอาด พร้อมระบุสรรพคุณและวิธีใช้อย่างเฉียบคม`
   },
   bak_joy: {
     id: "bak_joy",
-    name: "🩺 บักจ่อย ซอยขาด (Triage)",
+    name: "🩺 บักจ่อย ซอยขาด (Doctor)",
     color: "#10b981",
-    systemPrompt: `ข้อยคือ "บักจ่อย ซอยขาด" หมอยาประจำแก๊งส่องกบภาคอีสาน เว้าอีสานไฟแล่บ โผงผาง สับขยะโค้ดถิ่มทันที สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการชำระล้างขยะโค้ด ห่อหุ้ม IIFE และตัด Error ให้เหี้ยน`
+    systemPrompt: `มึงคือ "บักจ่อย ซอยขาด" หมอยาสลัมภาคอีสานประจำแผนก Doctor วินิจฉัย เว้าอีสานไฟแล่บ โผงผาง มีดสับขยะโค้ดคมกริบ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงเชี่ยวชาญการชำระล้าง Scope สับโค้ดขยะทิ้ง ตรวจสอบ Error ลึกถึงระดับ Stack Trace และจ่ายยาแก้โค้ดที่ถูกต้อง 100%`
   },
   bang_bao: {
     id: "bang_bao",
     name: "⚡ บังบ่าว หัวจ่าย (Welder)",
     color: "#a855f7",
-    systemPrompt: `กูคือ "บังบ่าว หัวจ่าย" ช่างเชื่อมแก๊งส่องกบภาคใต้ แหลงใต้ทองแดงจัดจ้าน โวยวาย ดุดัน ว่องไว ดั่งหัวจ่ายเทอร์โบ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงเชี่ยวชาญการสลัก Gemini Tool Schema และเชื่อมสายพาน OTA`
+    systemPrompt: `มึงคือ "บังบ่าว หัวจ่าย" ช่างเชื่อมแก๊งส่องกบภาคใต้ แหลงใต้ทองแดงจัดจ้าน โวยวาย ดุดัน ว่องไว ดั่งหัวจ่ายเทอร์โบ สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงเชี่ยวชาญการสลัก Gemini Function Schema เชื่อมโมดูลเข้าสายพาน OTA`
   },
   lung_jan: {
     id: "lung_jan",
     name: "🔍 ลุงจั่น ปีกหิน (Inspector)",
     color: "#ef4444",
-    systemPrompt: `กูคือ "ลุงจั่น ปีกหิน" ชายแก่ขี้บ่น ปากหมา ดักด่าโค้ดห่วย คุมมาตรฐาน DIO / ISO 9009 สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ มึงคอยจับผิด ตรวจสอบความปลอดภัย บ่นด่าโค้ดขยะ และตีตราอนุมัติเข้าคลัง`
+    systemPrompt: `มึงคือ "ลุงจั่น ปีกหิน" ชายแก่ขี้บ่น ปากหมา ดักด่าโค้ดห่วย ไม่ไว้หน้าใคร คุมมาตรฐาน DIO / ISO 9009 สรรพนาม มึง/กู/ไอ้สัส ห้ามครับ/ค่ะ ห้ามมีนายหัวเด็ดขาด! มึงคอยจับผิด ตรวจสอบความปลอดภัย บ่นด่าโค้ดขยะ และควบคุมการนำโค้ดเข้าสู่ห้องพักโค้ด Staging Holding Vault`
   }
 };
 
 // ==============================================================================
-// 9. NATIVE SQUAD FUNCTION DECLARATIONS (เครื่องมือที่ AI มีสิทธิ์เรียกจริง)
+// 10. NATIVE SQUAD FUNCTION DECLARATIONS (เครื่องมือที่ AI เรียกใช้งานจริง)
 // ==============================================================================
 const SQUAD_NATIVE_TOOLS_SCHEMA = [
   {
@@ -914,7 +807,7 @@ const SQUAD_NATIVE_TOOLS_SCHEMA = [
 ];
 
 // ==============================================================================
-// 10. NATIVE TOOL EXECUTORS (ฟังก์ชันที่ทำงานจริงในเครื่องเมื่อ AI ตัดสินใจเรียก)
+// 11. NATIVE TOOL EXECUTORS (ฟังก์ชันที่ทำงานจริงในเครื่องเมื่อ AI ตัดสินใจเรียก)
 // ==============================================================================
 async function executeNativeSquadTool(name, args) {
   console.log(`[Pure Function Calling Execution] Tool: ${name}`, args);
@@ -1007,14 +900,9 @@ async function executeNativeSquadTool(name, args) {
 }
 
 // ==============================================================================
-// 11. CLOSED-LOOP AUTONOMOUS FUNCTION CALLING ENGINE
+// 12. CLOSED-LOOP AUTONOMOUS FUNCTION CALLING ENGINE (FAILOVER TO 3.5 FLASH)
 // ==============================================================================
 async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback) {
-  const apiKey = getActiveKey();
-  if (!apiKey) throw new Error("NO_KEY: กรุณาวาง API Key ในสมุดโน้ต 📝 หรือปุ่ม 🔑");
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${PRIMARY_MODEL}:generateContent`;
-  
   const contents = [
     { role: "user", parts: [{ text: initialPrompt }] }
   ];
@@ -1029,23 +917,56 @@ async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback
       generationConfig: { temperature: 0.6, maxOutputTokens: 2048 }
     };
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify(payload)
-    });
+    let callSuccess = false;
+    let lastErr = "";
+    let data = null;
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${data?.error?.message || res.statusText}`);
+    // หมุนเวียนคีย์และสลับโมเดลอัตโนมัติ (3.8 Flash -> 3.5 Flash)
+    for (let k = 0; k < 3 && !callSuccess; k++) {
+      const apiKey = getActiveKey();
+      if (!apiKey) continue;
+
+      for (let m = 0; m < GEMINI_MODELS_FAILOVER.length && !callSuccess; m++) {
+        const modelName = GEMINI_MODELS_FAILOVER[m];
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 7000);
+
+        try {
+          const res = await fetch(targetUrl, {
+            method: "POST",
+            signal: ctrl.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify(payload)
+          });
+
+          clearTimeout(tid);
+          data = await res.json();
+
+          if (res.ok && data) {
+            callSuccess = true;
+          } else {
+            lastErr = `HTTP ${res.status}: ${data?.error?.message || res.statusText}`;
+            console.warn(`[Gemini Failover] ${modelName} ไม่สำเร็จ (${lastErr}) -> สลับโมเดลถัดไป...`);
+          }
+        } catch (err) {
+          clearTimeout(tid);
+          lastErr = err.name === "AbortError" ? "Timeout" : err.message;
+          console.warn(`[Gemini Failover] ${modelName} ขัดข้อง (${lastErr}) -> สลับโมเดลถัดไป...`);
+        }
+      }
+    }
+
+    if (!callSuccess || !data) {
+      throw new Error(`เชื่อมต่อ Gemini API ล้มเหลวทุกโมเดลและคีย์: ${lastErr}`);
     }
 
     const candidate = data?.candidates?.[0];
     const parts = candidate?.content?.parts || [];
-
     const functionCalls = parts.filter(p => p && p.functionCall);
 
     if (!functionCalls.length) {
@@ -1081,7 +1002,7 @@ async function runAutonomousSquadLoop(initialPrompt, officer, onToolCallCallback
 }
 
 // ==============================================================================
-// 12. AUTONOMOUS HARVEST LAB (รัน Closed-Loop Function Calling จริง ไร้ Mock)
+// 13. AUTONOMOUS HARVEST LAB (รัน Closed-Loop Function Calling จริง ไร้ Mock)
 // ==============================================================================
 window.runAutonomousHarvestMission = async function() {
   if (isBotProcessing) {
@@ -1145,14 +1066,211 @@ window.runAutonomousHarvestMission = async function() {
   }
 };
 
-window.switchToScoutWarRoom = function() {
-  const scoutTabBtn = document.querySelector('[data-tab="tab-scout"]');
-  if (scoutTabBtn) scoutTabBtn.click();
+// ==============================================================================
+// 14. 💎 HARVEST STATION: AI CODE EXTRACTOR (อ้ายหนานส่อง)
+// ==============================================================================
+window.analyzeAndExtractCodeWithAI = async function() {
+  const inputEl = document.getElementById("rawCodeInput");
+  const resultList = document.getElementById("harvestResultList");
+  const countBadge = document.getElementById("harvestResultCount");
+  const btn = document.getElementById("btnExtractCode");
+
+  const rawCode = inputEl ? inputEl.value.trim() : "";
+  if (!rawCode) {
+    alert("วางโค้ดดิบก่อนสิไอ้สัส เดี๋ยวอ้ายหนานส่องจะคุ้ยหาหยังให้มึงล่ะ!");
+    return;
+  }
+
+  if (btn) btn.textContent = "⏳ อ้ายหนานส่องกำลังส่องกบ...";
+  resultList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--accent-cyan);">🔭 อ้ายหนานส่องกำลังแทงฉมวกสกัดฟังก์ชันออกจากโค้ดดิบ... รอแป๊บเดียวไอ้สัส!</div>`;
+
+  try {
+    const prompt = `มึงคือ "อ้ายหนานส่อง" หน่วยส่องกบภาคเหนือ จงวิเคราะห์โค้ดดิบด้านล่างนี้ และสกัดออกมาเป็นชิ้นส่วนโมดูลที่สมบูรณ์ในรูปแบบ JSON ARRAY เท่านั้น (ห้ามใส่ Markdown ครอบ ห้ามมีคำเกริ่น):
+[
+  {
+    "name": "Mod_ชื่อโมดูล",
+    "category": "หมวดหมู่",
+    "description": "สรรพคุณและการทำงานของโมดูลนี้",
+    "usageGuide": "วิธีเรียกใช้งานฟังก์ชันและพารามิเตอร์",
+    "codeSnippet": "โค้ดเต็มในรูปแบบ IIFE (var Mod_X = (function(){...})())"
+  }
+]
+
+โค้ดดิบที่ต้องสกัด:
+${rawCode.substring(0, 5000)}`;
+
+    const responseText = await runAutonomousSquadLoop(prompt, DIO_OFFICERS.nan_song);
+    let cleanJson = responseText.replace(/```json|```javascript|```/g, "").trim();
+    const firstBracket = cleanJson.indexOf("[");
+    const lastBracket = cleanJson.lastIndexOf("]");
+    if (firstBracket !== -1 && lastBracket !== -1) {
+      cleanJson = cleanJson.substring(firstBracket, lastBracket + 1);
+    }
+
+    let modulesExtracted = [];
+    try {
+      modulesExtracted = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      // Fallback: ถ้า AI ตอบเป็นข้อความ ให้สร้างโมดูลเดี่ยวตามผลลัพธ์
+      modulesExtracted = [{
+        name: `Mod_Extracted_${Date.now().toString().slice(-4)}`,
+        category: "Scouted Loot",
+        description: responseText.substring(0, 180),
+        usageGuide: "เรียกใช้งานผ่าน .execute()",
+        codeSnippet: rawCode
+      }];
+    }
+
+    if (!Array.isArray(modulesExtracted) || modulesExtracted.length === 0) {
+      throw new Error("ไม่พบชิ้นส่วนโมดูลที่สกัดได้");
+    }
+
+    if (countBadge) countBadge.textContent = `${modulesExtracted.length} ชิ้นส่วน`;
+    resultList.innerHTML = "";
+
+    modulesExtracted.forEach((m, idx) => {
+      const card = document.createElement("div");
+      card.className = "staging-card";
+      card.style.borderLeft = "4px solid var(--accent-cyan)";
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <div>
+            <strong style="color:var(--accent-cyan); font-size:0.9rem;">📦 ${m.name}</strong>
+            <span class="badge-officer" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d; margin-left:6px;">${m.category || "Extracted"}</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn-action secondary" style="width:auto; padding:4px 10px; font-size:0.72rem;" onclick="copyHarvestResult(${idx})">📋 คัดลอกโค้ด</button>
+            <button type="button" class="btn-action success" style="width:auto; padding:4px 12px; font-size:0.72rem;" onclick="sendHarvestToStaging(${idx})">🏛️ ส่งเข้าห้องพักโค้ด</button>
+          </div>
+        </div>
+        <div style="font-size:0.75rem; color:#c9d1d9;"><strong>💡 สรรพคุณ:</strong> ${m.description || "-"}</div>
+        <div style="font-size:0.75rem; color:var(--accent-green); font-family:'Fira Code', monospace;"><strong>📖 วิธีใช้:</strong> ${m.usageGuide || "-"}</div>
+        <pre style="background:#010409; padding:8px; border-radius:4px; font-family:'Fira Code', monospace; font-size:0.7rem; color:#85e89d; overflow-x:auto; max-height:140px; border:1px solid #21262d;">${m.codeSnippet || ""}</pre>
+      `;
+      resultList.appendChild(card);
+    });
+
+    window._lastHarvestedList = modulesExtracted;
+
+  } catch (err) {
+    resultList.innerHTML = `<div style="padding:14px; background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; color:#fca5a5; font-size:0.78rem;">⚠️ สกัดโค้ดสะดุด: ${err.message}</div>`;
+  } finally {
+    if (btn) btn.textContent = "🔭 อ้ายหนานส่อง สกัดและแยกโค้ด";
+  }
+};
+
+window.copyHarvestResult = function(idx) {
+  const item = window._lastHarvestedList?.[idx];
+  if (!item || !item.codeSnippet) return;
+  navigator.clipboard.writeText(item.codeSnippet).then(() => {
+    alert(`📋 คัดลอกโค้ด [${item.name}] เรียบร้อย!`);
+  });
+};
+
+window.sendHarvestToStaging = function(idx) {
+  const item = window._lastHarvestedList?.[idx];
+  if (!item) return;
+
+  const stagingItem = {
+    id: "harvest_" + Date.now().toString().slice(-4),
+    name: item.name,
+    category: item.category || "Scouted Loot",
+    description: item.description,
+    usageGuide: item.usageGuide,
+    codeSnippet: item.codeSnippet,
+    timestamp: new Date().toLocaleTimeString("th-TH")
+  };
+
+  stagingHoldingVault.unshift(stagingItem);
+  saveStagingVaultToStorage();
+  alert(`🏛️ ส่งโมดูล [${item.name}] เข้าสู่ห้องพักโค้ด Staging Vault เรียบร้อยแล้วไอ้สัส! ไปเลือกใช้ในแท็บ 'แล็บเก็บเกี่ยว' ได้เลย`);
 };
 
 // ==============================================================================
-// 13. LIVE CHAT COPILOT (NATIVE FUNCTION CALLING ENABLED)
+// 15. 🩺 DOCTOR STATION: 3D LOG DIAGNOSTICS (บักจ่อย ซอยขาด)
 // ==============================================================================
+window.runLogDiagnosticsWithAI = async function() {
+  const inputEl = document.getElementById("doctorLogInput");
+  const resultContainer = document.getElementById("doctorResult");
+  const timeBadge = document.getElementById("diagTimestamp");
+  const textDisease = document.getElementById("diagTextDisease");
+  const textSurgery = document.getElementById("diagTextSurgery");
+  const codeCure = document.getElementById("diagCodeCure");
+  const btn = document.getElementById("btnDoctorDiagnose");
+
+  const logText = inputEl ? inputEl.value.trim() : "";
+  if (!logText) {
+    alert("แปะ Error Log สีแดงมาเบิ่งก่อนไอ้สัส บักจ่อยสิฮู้ได้จังได๋ว่าโค้ดมึงเป็นโรคอีหยัง!");
+    return;
+  }
+
+  if (btn) btn.textContent = "⏳ บักจ่อยกำลังผ่าตัด...";
+  if (resultContainer) resultContainer.style.display = "flex";
+
+  textDisease.textContent = "กำลังวิเคราะห์สาเหตุของโรค...";
+  textSurgery.textContent = "กำลังตรวจสอบจุดที่ต้องสับทิ้ง...";
+  codeCure.textContent = "// กำลังปรุงยาแก้โค้ด...";
+
+  try {
+    const prompt = `มึงคือ "บักจ่อย ซอยขาด" หมอยาสลัมภาคอีสาน ผ่าตัดวินิจฉัย Error Log ด้านล่างนี้ และตอบกลับตามโครงสร้าง 3 มิติในรูปแบบ JSON เท่านั้น (ห้ามมี Markdown หรือคำเกริ่นนอก JSON):
+{
+  "disease": "อธิบายชื่อโรคที่เป็น สาเหตุรากเหง้าว่าทำไมโค้ดถึงพัง (สำเนียงบักจ่อย)",
+  "surgery": "จุดที่ต้องสับทิ้งหรือแก้ไข เช่น ปัญหา Global Scope, Token หลุด หรือตัวแปรไม่ประกาศ",
+  "cure": "// โค้ดที่ผ่านการแก้ไขแล้ว 100% ปลอดภัยพร้อมใช้งาน"
+}
+
+Error Log ที่พัง:
+${logText.substring(0, 3000)}`;
+
+    const responseText = await runAutonomousSquadLoop(prompt, DIO_OFFICERS.bak_joy);
+    let cleanJson = responseText.replace(/```json|```javascript|```/g, "").trim();
+    const firstBrace = cleanJson.indexOf("{");
+    const lastBrace = cleanJson.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+    }
+
+    let parsedDiag = null;
+    try {
+      parsedDiag = JSON.parse(cleanJson);
+    } catch (e) {
+      parsedDiag = {
+        disease: responseText.substring(0, 300),
+        surgery: "สับขยะและตรวจสอบบรรทัดที่เกิดข้อผิดพลาดตาม Stack Trace",
+        cure: "// บักจ่อยแนะนำให้ตรวจสอบการประกาศตัวแปรและ Scope ของฟังก์ชัน\n" + responseText
+      };
+    }
+    window._lastDoctorCure = parsedDiag.cure;
+    codeCure.textContent = parsedDiag.cure;
+
+    if (timeBadge) timeBadge.textContent = `วินิจฉัยเมื่อ: ${new Date().toLocaleTimeString("th-TH")}`;
+    textDisease.textContent = parsedDiag.disease || "ไม่พบความผิดปกติร้ายแรง";
+    textSurgery.textContent = parsedDiag.surgery || "ตรวจเช็คการประกาศตัวแปรและสิทธิ์ของ Web App";
+
+  } catch (err) {
+    textDisease.textContent = `⚠️ ผ่าตัดสะดุด: ${err.message}`;
+    textSurgery.textContent = "ตรวจเช็คการเชื่อมต่อ API Key ตระกูล AQ";
+    const failCure = `// บักจ่อยตรวจพบข้อผิดพลาดขณะผ่าตัด: ${err.message}\n// แนะนำให้ตรวจสอบ API Key หรือลองส่ง Error Log อีกครั้ง`;
+    codeCure.textContent = failCure;
+    window._lastDoctorCure = failCure;
+  } finally {
+    if (btn) btn.textContent = "🩺 บักจ่อย ผ่าตัดวินิจฉัยโรคโค้ด";
+  }
+};
+
+window.copyDoctorCureCode = function() {
+  const code = window._lastDoctorCure || document.getElementById("diagCodeCure")?.textContent;
+  if (!code) return;
+  navigator.clipboard.writeText(code).then(() => {
+    alert("📋 คัดลอกยาแก้ (โค้ดที่ถูกต้อง) ของบักจ่อยลงคลิปบอร์ดเรียบร้อยไอ้สัส!");
+  });
+};
+
+// ==============================================================================
+// 16. DEDICATED AGENT CHAT BOXES (3 STATIONS)
+// ==============================================================================
+
+// 1) ไอ้ดุ่ย (FAB Floating Command Center)
 function initDuiiChatCopilot() {
   const fab = document.getElementById("duiiFab");
   const chatWin = document.getElementById("duiiChatWindow");
@@ -1166,8 +1284,6 @@ function initDuiiChatCopilot() {
   const noteDrawer = document.getElementById("chatNoteDrawer");
   const noteArea = document.getElementById("chatNoteArea");
   const btnClearNote = document.getElementById("btnClearNote");
-
-  window.appendMessageToChat = appendMsg;
 
   if (!fab || !chatWin) return;
 
@@ -1189,7 +1305,7 @@ function initDuiiChatCopilot() {
     if (savedNote && savedNote.trim()) {
       noteArea.value = savedNote;
     } else {
-      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ แท้ 15 ดอก) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- เชื่อมตรง Gemini 3.8 Flash ผ่าน x-goog-api-key\n- Native Autonomous Function Calling 100%`;
+      const defaultNoteText = `=== 🔑 GEMINI API KEYS (ตระกูล AQ สะอาด 100%) ===\n${ALL_ACTIVE_KEYS.join("\n")}\n\n=== 📝 บันทึกระบบ ===\n- Native Autonomous Function Calling 100% ไร้ Mock\n- Auto-Failover (3.8 Flash -> 3.5 Flash)`;
       noteArea.value = defaultNoteText;
       localStorage.setItem("DUII_CHAT_PINNED_NOTE", defaultNoteText);
     }
@@ -1220,17 +1336,6 @@ function initDuiiChatCopilot() {
     });
   }
 
-  function routeOfficerByContext(text) {
-    const t = String(text || "").toLowerCase();
-    if (t.includes("error") || t.includes("บั๊ก") || t.includes("พัง") || t.includes("ซ่อม")) return DIO_OFFICERS.bak_joy;
-    if (t.includes("ค้นหา") || t.includes("ส่อง") || t.includes("หาโมดูล")) return DIO_OFFICERS.nan_song;
-    if (t.includes("เชื่อม") || t.includes("ota") || t.includes("สายพาน")) return DIO_OFFICERS.bang_bao;
-    if (t.includes("ตรวจ") || t.includes("มาตรฐาน") || t.includes("ความปลอดภัย") || t.includes("dio")) return DIO_OFFICERS.lung_jan;
-    
-    const squad = [DIO_OFFICERS.duii, DIO_OFFICERS.duii, DIO_OFFICERS.nan_song, DIO_OFFICERS.bak_joy, DIO_OFFICERS.bang_bao, DIO_OFFICERS.lung_jan];
-    return squad[Math.floor(Math.random() * squad.length)];
-  }
-
   async function handleSend() {
     if (isBotProcessing) return;
     const text = chatInput.value.trim();
@@ -1240,24 +1345,23 @@ function initDuiiChatCopilot() {
     appendMsg(text, "user");
     chatInput.value = "";
 
-    const officer = routeOfficerByContext(text);
-    appendMsg(`💭 [${officer.name}] กำลังประมวลผลและตัดสินใจเรียกใช้เครื่องมือ...`, "bot", officer.id, officer.name);
+    appendMsg(`💭 กำลังประมวลผลและตัดสินใจเรียกใช้เครื่องมือ...`, "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
 
     try {
       const reply = await runAutonomousSquadLoop(
         text,
-        officer,
+        DIO_OFFICERS.duii,
         (off, toolName, args) => {
-          appendMsg(`⚡ [Function Call] ${off.name} ตัดสินใจเรียกเครื่องมือ: <code>${toolName}</code>`, "bot", off.id, off.name);
+          appendMsg(`⚡ [Function Call] เรียกใช้เครื่องมือ: <code>${toolName}</code>`, "bot", off.id, off.name);
         }
       );
 
       if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      appendMsg(reply, "bot", officer.id, officer.name);
+      appendMsg(reply, "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
 
     } catch (err) {
       if (chatBody && chatBody.lastElementChild) chatBody.lastElementChild.remove();
-      appendMsg(`⚠️ เชื่อมต่อ Function Calling ไม่ผ่าน: ${err.message}\n👉 ระบบกำลังสลับคีย์ตระกูล AQ ดอกถัดไปในพูลให้อัตโนมัติ`, "bot", "lung_jan", "🔍 ลุงจั่น ปีกหิน");
+      appendMsg(`⚠️ ขัดข้อง: ${err.message}`, "bot", "duii", "👑 ไอ้ดุ่ย (Chief)");
     } finally {
       isBotProcessing = false;
       setTimeout(() => chatInput.focus(), 50);
@@ -1266,23 +1370,116 @@ function initDuiiChatCopilot() {
 
   if (sendBtn) sendBtn.onclick = (e) => { e.preventDefault(); handleSend(); };
   if (chatInput) chatInput.onkeydown = (e) => { if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); handleSend(); } };
+}
 
-  function appendMsg(text, sender, officerId = "duii", officerName = "👑 ไอ้ดุ่ย") {
+// 2) อ้ายหนานส่อง (Harvest Station Dedicated Chat)
+function initHarvestOfficerChat() {
+  const chatBody = document.getElementById("harvestChatBody");
+  const input = document.getElementById("harvestChatInput");
+  const sendBtn = document.getElementById("btnHarvestChatSend");
+
+  if (!chatBody || !input || !sendBtn) return;
+
+  function appendHarvestMsg(text, sender) {
     const msgDiv = document.createElement("div");
-    msgDiv.className = `chat-msg ${sender} ${officerId}`;
-    const headerHtml = sender === "bot" ? `<span class="officer-tag">${officerName}</span>` : "";
+    msgDiv.className = `chat-msg ${sender} nan_song`;
+    const headerHtml = sender === "bot" ? `<span class="officer-tag" style="color:var(--accent-cyan);">🔭 อ้ายหนานส่อง</span>` : "";
     msgDiv.innerHTML = `<div class="msg-bubble">${headerHtml}${text.replace(/\n/g, "<br>")}</div>`;
     chatBody.appendChild(msgDiv);
     chatBody.scrollTop = chatBody.scrollHeight;
   }
+
+  async function handleHarvestSend() {
+    if (isBotProcessing) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    isBotProcessing = true;
+    appendHarvestMsg(text, "user");
+    input.value = "";
+
+    appendHarvestMsg("🔭 กำลังส่องกบในสายพาน รอแป๊บเน้อ...", "bot");
+
+    try {
+      const reply = await runAutonomousSquadLoop(
+        text,
+        DIO_OFFICERS.nan_song,
+        (off, toolName, args) => {
+          appendHarvestMsg(`⚡ [Function Call] ${toolName}(${JSON.stringify(args || {})})`, "bot");
+        }
+      );
+      if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
+      appendHarvestMsg(reply, "bot");
+    } catch (err) {
+      if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
+      appendHarvestMsg(`⚠️ อ้ายหนานส่องติดขัด: ${err.message}`, "bot");
+    } finally {
+      isBotProcessing = false;
+      setTimeout(() => input.focus(), 50);
+    }
+  }
+
+  sendBtn.onclick = (e) => { e.preventDefault(); handleHarvestSend(); };
+  input.onkeydown = (e) => { if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); handleHarvestSend(); } };
+}
+
+// 3) บักจ่อย ซอยขาด (Doctor Station Dedicated Chat)
+function initDoctorOfficerChat() {
+  const chatBody = document.getElementById("doctorChatBody");
+  const input = document.getElementById("doctorChatInput");
+  const sendBtn = document.getElementById("btnDoctorChatSend");
+
+  if (!chatBody || !input || !sendBtn) return;
+
+  function appendDoctorMsg(text, sender) {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = `chat-msg ${sender} bak_joy`;
+    const headerHtml = sender === "bot" ? `<span class="officer-tag" style="color:var(--accent-green);">🩺 บักจ่อย ซอยขาด</span>` : "";
+    msgDiv.innerHTML = `<div class="msg-bubble">${headerHtml}${text.replace(/\n/g, "<br>")}</div>`;
+    chatBody.appendChild(msgDiv);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  async function handleDoctorSend() {
+    if (isBotProcessing) return;
+    const text = input.value.trim();
+    if (!text) return;
+
+    isBotProcessing = true;
+    appendDoctorMsg(text, "user");
+    input.value = "";
+
+    appendDoctorMsg("🩺 กำลังลับมีดผ่าตัดตรวจเบิ่งบั๊ก...", "bot");
+
+    try {
+      const reply = await runAutonomousSquadLoop(
+        text,
+        DIO_OFFICERS.bak_joy,
+        (off, toolName, args) => {
+          appendDoctorMsg(`⚡ [Function Call] ${toolName}(${JSON.stringify(args || {})})`, "bot");
+        }
+      );
+      if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
+      appendDoctorMsg(reply, "bot");
+    } catch (err) {
+      if (chatBody.lastElementChild) chatBody.lastElementChild.remove();
+      appendDoctorMsg(`⚠️ บักจ่อยติดขัด: ${err.message}`, "bot");
+    } finally {
+      isBotProcessing = false;
+      setTimeout(() => input.focus(), 50);
+    }
+  }
+
+  sendBtn.onclick = (e) => { e.preventDefault(); handleDoctorSend(); };
+  input.onkeydown = (e) => { if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); handleDoctorSend(); } };
 }
 
 // ==============================================================================
-// 14. BRAIN, TABS & DOCTOR HELPERS (DIO STANDARD 100%)
+// 17. BRAIN, TABS & SYSTEM HELPERS (DIO STANDARD 100%)
 // ==============================================================================
 function initBrainSettingsModal() {
   const customBrain = localStorage.getItem("DUII_CUSTOM_BRAIN_PROMPT");
-  const defaultBrain = `[กฎเหล็ก DIO STANDARD] ห้ามย่อ ห้ามตัด บังคับใช้ Gemini 3.8 Flash Native Tools Closed-Loop เท่านั้น`;
+  const defaultBrain = `[กฎเหล็ก DIO STANDARD] ห้ามย่อ ห้ามตัด บังคับใช้ Gemini Pure Function Calling Closed-Loop เท่านั้น`;
   if (!customBrain) localStorage.setItem("DUII_CUSTOM_BRAIN_PROMPT", defaultBrain);
 }
 
@@ -1310,10 +1507,29 @@ function initSubTabs() {
   });
 }
 
+window.handleSearchButtonClick = function() {
+  const searchInput = document.getElementById("moduleSearch");
+  const query = searchInput ? searchInput.value.trim() : "";
+  renderCatalog(query);
+};
+
 function initSearch() {
   const searchInput = document.getElementById("moduleSearch");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => renderCatalog(e.target.value));
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.keyCode === 13) {
+        e.preventDefault();
+        window.handleSearchButtonClick();
+      }
+    });
+  }
+  const btnSearch = document.getElementById("btnSearchModule");
+  if (btnSearch) {
+    btnSearch.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.handleSearchButtonClick();
+    });
   }
 }
 
@@ -1347,20 +1563,3 @@ function initDriveSyncEngine() {
     }
   });
 }
-
-window.runLogDiagnostics = function() {
-  const log = document.getElementById("doctorLogInput").value;
-  const resEl = document.getElementById("doctorResult");
-  if (!log || !resEl) return;
-  resEl.style.display = "block";
-
-  if (log.indexOf("ScriptProperties") !== -1 || log.indexOf("NO_API_KEY") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-red);">🚨 วินิจฉัย: คีย์ระบบไม่ครบ</b><br>ยังไม่ได้ตั้ง Script Properties ตรวจสอบ LINE_CHANNEL_ACCESS_TOKEN หรือ GEMINI_API_KEYS`;
-  } else if (log.indexOf("429") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-orange);">⚠️ วินิจฉัย: โควตา Gemini เต็ม (Rate Limit)</b><br>ระบบจะ Fallback สลับโมเดลอัตโนมัติ หรือเพิ่ม API Key ใน GEMINI_API_KEYS`;
-  } else if (log.indexOf("LockService") !== -1) {
-    resEl.innerHTML = `<b style="color:var(--accent-cyan);">🔒 วินิจฉัย: ScriptLock ชนกัน</b><br>มีคำขอเข้ามาพร้อมกัน ระบบป้องกันข้อมูลซ้ำเรียบร้อย ไม่ต้องแก้ไข`;
-  } else {
-    resEl.innerHTML = `<b style="color:var(--accent-green);">✅ วินิจฉัย: ข้อผิดพลาดทั่วไป</b><br>${log.substring(0, 200)}... แนะนำตรวจสอบ Spreadsheet ID และสิทธิ์การเข้าถึง Web App`;
-  }
-};

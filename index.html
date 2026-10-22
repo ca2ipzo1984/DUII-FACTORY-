@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🌟 DUII FACTORY PWA - Autonomous Bot Assembler & Harvest Lab</title>
+  <title>🌟 DUII FACTORY PWA - 100% Pure Multi-Agent Architecture (ISO 9009)</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <meta name="theme-color" content="#0d1117">
@@ -21,6 +21,143 @@
       object-fit: cover;
       display: block;
     }
+
+    /* สไตล์กล่องแชตประจำหน้า (Dedicated Agent Chat Box) */
+    .station-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+    }
+    @media (max-width: 900px) {
+      .station-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    .station-work-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .dedicated-chat-col {
+      display: flex;
+      flex-direction: column;
+      background: #0d1117;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      height: 100%;
+      min-height: 480px;
+    }
+
+    .dedicated-chat-header {
+      padding: 10px 14px;
+      background: #010409;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .dedicated-chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #090d14;
+    }
+
+    .dedicated-chat-footer {
+      padding: 8px 10px;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      display: flex;
+      gap: 6px;
+    }
+
+    .dedicated-chat-input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+    }
+    .dedicated-chat-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .dedicated-chat-send {
+      padding: 8px 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+
+    /* การ์ด Staging Vault */
+    .staging-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .staging-card:hover {
+      border-color: var(--accent-orange);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    .badge-officer {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 3D Diagnostic Cards */
+    .diag-3d-box {
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 8px;
+    }
+    .diag-disease {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-left: 4px solid #ef4444;
+      color: #fca5a5;
+    }
+    .diag-surgery {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-left: 4px solid #f59e0b;
+      color: #fcd34d;
+    }
+    .diag-cure {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-left: 4px solid #10b981;
+      color: #6ee7b7;
+    }
   </style>
 </head>
 <body>
@@ -32,7 +169,7 @@
       <span class="tag-iso">ISO 9009</span>
     </div>
 
-    <!-- TOP NAVIGATION -->
+    <!-- TOP NAVIGATION: 4 แผนกหลัก -->
     <nav class="nav-tabs">
       <button type="button" class="nav-btn active" data-tab="tab-factory">📦 คลังโมดูล & ประกอบบอท</button>
       <button type="button" class="nav-btn" data-tab="tab-scout">🧪 แล็บเก็บเกี่ยว & ห้องพักโค้ด</button>
@@ -47,7 +184,9 @@
     </div>
   </header>
 
-  <!-- 2. MAIN COCKPIT WORKSPACE -->
+  <!-- ============================================================================== -->
+  <!-- 2. TAB 1: 📦 คลังโมดูล & ประกอบบอท (ไอ้ดุ่ย Chief Officer Station) -->
+  <!-- ============================================================================== -->
   <main class="tab-content active" id="tab-factory">
     <div class="main-cockpit">
 
@@ -59,8 +198,9 @@
           <button type="button" class="btn-preset btn-godmode" onclick="applyPreset('godmode')">👑 God Mode</button>
         </div>
 
-        <div class="search-box">
-          <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล...">
+        <div class="search-box" style="display:flex; gap:6px; padding:8px 12px; background:#11151c; border-bottom:1px solid var(--border-color);">
+          <input type="text" id="moduleSearch" placeholder="🔍 ค้นหาโมดูล..." style="flex:1;">
+          <button type="button" class="btn-preset btn-ecommerce" id="btnSearchModule" onclick="handleSearchButtonClick()" style="padding:6px 14px; font-size:0.75rem; flex:none;">ค้นหา</button>
         </div>
 
         <div class="panel-header">
@@ -133,7 +273,9 @@
     </div>
   </main>
 
-  <!-- TAB: AUTONOMOUS HARVEST LAB & STAGING VAULT (ห้องปฏิบัติการเก็บเกี่ยว & ห้องพักโค้ด) -->
+  <!-- ============================================================================== -->
+  <!-- 3. TAB 2: 🧪 แล็บเก็บเกี่ยว & ห้องพักโค้ด (Staging Holding Vault & 4 Stations) -->
+  <!-- ============================================================================== -->
   <main class="tab-content" id="tab-scout">
     <div style="padding:16px; width:100%; height:100%; overflow-y:auto; display:flex; flex-direction:column; gap:14px;">
       
@@ -202,7 +344,7 @@
         </div>
       </div>
 
-      <!-- 🏛️ STAGING HOLDING VAULT: ห้องพักโค้ดก่อนนำเข้าบอทจริง (ที่มึงสั่งเพิ่ม) -->
+      <!-- 🏛️ STAGING HOLDING VAULT: ห้องพักโค้ดก่อนนำเข้าบอทจริง -->
       <div style="background:#0d1117; border:1px solid var(--accent-orange); border-radius:8px; padding:14px; display:flex; flex-direction:column; gap:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #30363d; padding-bottom:8px;">
           <div>
@@ -223,27 +365,171 @@
     </div>
   </main>
 
-  <!-- TAB: HARVEST -->
+  <!-- ============================================================================== -->
+  <!-- 4. TAB 3: 💎 Harvest / แยกโค้ด (อ้ายหนานส่อง Scout Officer Station) -->
+  <!-- ============================================================================== -->
   <main class="tab-content" id="tab-harvest">
-    <div style="padding:20px; width:100%; height:100%; overflow-y:auto;">
-      <h3>💎 Loot & Harvest Code Separator</h3>
-      <textarea id="rawCodeInput" class="code-editor-area" style="height:250px; margin:10px 0; border:1px solid var(--border-color); border-radius:6px;" placeholder="วางโค้ด JavaScript / GAS ก้อนใหญ่ลงที่นี่..."></textarea>
-      <button type="button" class="btn-action success" style="width:200px;" onclick="analyzeAndExtractCode()">🔍 สแกนและสกัดฟังก์ชัน</button>
-      <div id="harvestResultList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
+    <div style="padding:16px; width:100%; height:100%; overflow:hidden;">
+      <div class="station-grid">
+        
+        <!-- ซีกซ้าย: แท่นวางโค้ดดิบ + รายการชิ้นส่วนที่สกัดได้ -->
+        <div class="station-work-col">
+          <div style="background:#0d1117; border:1px solid #30363d; border-left:4px solid var(--accent-cyan); padding:12px 16px; border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h3 style="color:#fff; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                  🔭 อ้ายหนานส่อง (Scout Officer) - แท่นสกัดและแยกโค้ดดิบ
+                </h3>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                  อู้กำเมืองผสมไทยกลาง แทงฉมวกสกัดฟังก์ชันออกจากโค้ดดิบ พร้อมจำแนกสรรพคุณและวิธีเรียกใช้งาน
+                </p>
+              </div>
+              <button type="button" class="btn-preset btn-ecommerce" id="btnExtractCode" onclick="analyzeAndExtractCodeWithAI()" style="padding:8px 16px; font-weight:bold; font-size:0.8rem;">
+                🔭 อ้ายหนานส่อง สกัดและแยกโค้ด
+              </button>
+            </div>
+          </div>
+
+          <textarea id="rawCodeInput" class="code-editor-area" style="height:180px; min-height:140px; border:1px solid var(--border-color); border-radius:6px;" placeholder="วางโค้ดดิบ JavaScript, Google Apps Script หรือชิ้นส่วนโค้ดที่ต้องการให้อ้ายหนานส่องคุ้ยหาโมดูลที่นี่..."></textarea>
+
+          <!-- รายการผลลัพธ์ที่สกัดได้ -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:0.85rem; font-weight:bold; color:var(--accent-cyan);">📦 ชิ้นส่วนโมดูลที่สกัดได้</span>
+              <span id="harvestResultCount" style="font-size:0.75rem; color:var(--text-muted);">0 ชิ้นส่วน</span>
+            </div>
+            <div id="harvestResultList" style="display:flex; flex-direction:column; gap:10px;">
+              <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.78rem; border:1px dashed #30363d; border-radius:6px;">
+                💡 วางโค้ดดิบข้างบนแล้วกดปุ่ม <strong>'🔭 อ้ายหนานส่อง สกัดและแยกโค้ด'</strong> หรือสั่งงานผ่านกล่องแชตด้านขวา
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ซีกขวา: Dedicated Agent Chat Box คุยกับอ้ายหนานส่องโดยตรง -->
+        <div class="dedicated-chat-col" style="border-top:3px solid var(--accent-cyan);">
+          <div class="dedicated-chat-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:18px;">🔭</span>
+              <div>
+                <div style="font-size:0.82rem; font-weight:bold; color:#fff;">อ้ายหนานส่อง (Scout)</div>
+                <div style="font-size:0.68rem; color:var(--accent-cyan);">● อู้กำเมือง ส่องกบแท้ 24 ชม.</div>
+              </div>
+            </div>
+            <span class="badge-officer" style="background:rgba(56,189,248,0.15); color:var(--accent-cyan); border:1px solid rgba(56,189,248,0.4);">SCOUT</span>
+          </div>
+
+          <div class="dedicated-chat-body" id="harvestChatBody">
+            <div class="chat-msg bot nan_song">
+              <div class="msg-bubble">
+                <span class="officer-tag" style="color:var(--accent-cyan);">🔭 อ้ายหนานส่อง</span>
+                สูเขาอยากหื้อข้าคุ้ยหาโมดูลอะหยัง วางโค้ดดิบมาแล้วสั่งมาเลยไอ้สัส เดี๋ยวข้าแทงฉมวกสกัดออกมาหื้อเนียนๆ!
+              </div>
+            </div>
+          </div>
+
+          <div class="dedicated-chat-footer">
+            <input type="text" id="harvestChatInput" class="dedicated-chat-input" placeholder="สั่งอ้ายหนานส่องคุ้ยโค้ด..." autocomplete="off">
+            <button type="button" id="btnHarvestChatSend" class="dedicated-chat-send" style="background:var(--accent-cyan); color:#000;">ส่ง</button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </main>
 
-  <!-- TAB: DOCTOR -->
+  <!-- ============================================================================== -->
+  <!-- 5. TAB 4: 🩺 Doctor / วินิจฉัย (บักจ่อย ซอยขาด Triage & Doctor Station) -->
+  <!-- ============================================================================== -->
   <main class="tab-content" id="tab-doctor">
-    <div style="padding:20px; width:100%; height:100%; overflow-y:auto;">
-      <h3>🩺 ระบบตรวจวินิจฉัย Error Log อัตโนมัติ</h3>
-      <textarea id="doctorLogInput" class="code-editor-area" style="height:200px; margin:10px 0; border:1px solid var(--border-color); border-radius:6px;" placeholder="วาง Error Log สีแดงลงที่นี่..."></textarea>
-      <button type="button" class="btn-action warning" style="width:200px;" onclick="runLogDiagnostics()">🧪 วินิจฉัยทันที</button>
-      <div id="doctorResult" style="display:none; margin-top:14px; padding:12px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px;"></div>
+    <div style="padding:16px; width:100%; height:100%; overflow:hidden;">
+      <div class="station-grid">
+
+        <!-- ซีกซ้าย: ช่องวาง Error Log + การ์ดผลวินิจฉัย 3 มิติ -->
+        <div class="station-work-col">
+          <div style="background:#0d1117; border:1px solid #30363d; border-left:4px solid var(--accent-green); padding:12px 16px; border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h3 style="color:#fff; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                  🩺 บักจ่อย ซอยขาด (Diagnostic Doctor) - แท่นผ่าตัดวินิจฉัยโรคโค้ด
+                </h3>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                  เว้าอีสานไฟแล่บ สับขยะโค้ดถิ่ม ชำระล้าง Scope ให้คลีน และตรวจจับ Error ละเอียดยิบถึงระดับ Stack Trace
+                </p>
+              </div>
+              <button type="button" class="btn-preset btn-nightlife" id="btnDoctorDiagnose" onclick="runLogDiagnosticsWithAI()" style="padding:8px 16px; font-weight:bold; font-size:0.8rem; background:var(--accent-green); border-color:#059669; color:#000;">
+                🩺 บักจ่อย ผ่าตัดวินิจฉัยโรคโค้ด
+              </button>
+            </div>
+          </div>
+
+          <textarea id="doctorLogInput" class="code-editor-area" style="height:150px; min-height:120px; border:1px solid #ef4444; border-radius:6px; color:#fca5a5;" placeholder="วาง Error Log สีแดง, Exception Message หรือ Stack Trace ที่พังลงที่นี่..."></textarea>
+
+          <!-- พื้นที่แสดงผลการวินิจฉัย 3 มิติ -->
+          <div id="doctorResult" style="display:none; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:0.85rem; font-weight:bold; color:var(--accent-green);">🩺 ผลการผ่าตัดวินิจฉัย 3 มิติ (บักจ่อย ซอยขาด)</span>
+              <span id="diagTimestamp" style="font-size:0.7rem; color:var(--text-muted);"></span>
+            </div>
+
+            <!-- (1) โรคที่เป็น -->
+            <div class="diag-3d-box diag-disease" id="diagBoxDisease">
+              <div style="font-weight:bold; font-size:0.82rem; margin-bottom:4px;">🔴 1. โรคที่เป็น (Diagnosis & Root Cause):</div>
+              <div id="diagTextDisease" style="font-size:0.78rem; line-height:1.45;">-</div>
+            </div>
+
+            <!-- (2) จุดที่ต้องสับทิ้ง/แก้ไข -->
+            <div class="diag-3d-box diag-surgery" id="diagBoxSurgery">
+              <div style="font-weight:bold; font-size:0.82rem; margin-bottom:4px;">🟡 2. จุดที่ต้องสับทิ้ง/แก้ไข (Scope & Logic Refactoring):</div>
+              <div id="diagTextSurgery" style="font-size:0.78rem; line-height:1.45;">-</div>
+            </div>
+
+            <!-- (3) ยาแก้ (โค้ดที่ถูกต้อง) -->
+            <div class="diag-3d-box diag-cure" id="diagBoxCure">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-weight:bold; font-size:0.82rem;">🟢 3. ยาแก้ (โค้ดที่ถูกต้อง 100%):</span>
+                <button type="button" class="btn-action secondary" id="btnCopyDoctorCure" style="width:auto; padding:3px 10px; font-size:0.7rem;" onclick="copyDoctorCureCode()">📋 คัดลอกยาแก้</button>
+              </div>
+              <pre id="diagCodeCure" style="font-family:'Fira Code', monospace; font-size:0.75rem; background:#010409; padding:8px 10px; border-radius:4px; overflow-x:auto; max-height:220px; color:#a7f3d0; border:1px solid #059669;"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ซีกขวา: Dedicated Agent Chat Box คุยกับบักจ่อยโดยตรง -->
+        <div class="dedicated-chat-col" style="border-top:3px solid var(--accent-green);">
+          <div class="dedicated-chat-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:18px;">🩺</span>
+              <div>
+                <div style="font-size:0.82rem; font-weight:bold; color:#fff;">บักจ่อย ซอยขาด (Doctor)</div>
+                <div style="font-size:0.68rem; color:var(--accent-green);">● เว้าอีสาน มีดผ่าตัดคมกริบ</div>
+              </div>
+            </div>
+            <span class="badge-officer" style="background:rgba(16,185,129,0.15); color:var(--accent-green); border:1px solid rgba(16,185,129,0.4);">TRIAGE</span>
+          </div>
+
+          <div class="dedicated-chat-body" id="doctorChatBody">
+            <div class="chat-msg bot bak_joy">
+              <div class="msg-bubble">
+                <span class="officer-tag" style="color:var(--accent-green);">🩺 บักจ่อย ซอยขาด</span>
+                โค้ดมึงเป็นโรคอิหยัง แปะ Error Log แดงๆ มาเบิ่งแหน่ เดี๋ยวข้อยสับขยะถิ่มแล้วจ่ายยาแก้ให้เดี๋ยวนี้ไอ้สัส!
+              </div>
+            </div>
+          </div>
+
+          <div class="dedicated-chat-footer">
+            <input type="text" id="doctorChatInput" class="dedicated-chat-input" placeholder="ปรึกษาบั๊กกับบักจ่อย..." autocomplete="off">
+            <button type="button" id="btnDoctorChatSend" class="dedicated-chat-send" style="background:var(--accent-green); color:#000;">ส่ง</button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </main>
 
-  <!-- MODAL: CODE EDITOR (ซ่อนตั้งต้นเด็ดขาด ไม่เกะกะบังหน้าจอ) -->
+  <!-- ============================================================================== -->
+  <!-- 6. MODAL: CODE EDITOR (ซ่อนตั้งต้นเด็ดขาด) -->
+  <!-- ============================================================================== -->
   <div id="editorModal" class="hidden" style="display: none !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:650px; max-width:90vw; height:500px; background:#11161f; border:2px solid var(--accent-orange); border-radius:12px; z-index:9999999; flex-direction:column; box-shadow:0 16px 40px rgba(0,0,0,0.95); overflow:hidden;">
     <div class="chat-header">
       <span id="editorTitle" style="color:#fff; font-weight:bold; font-size:0.85rem;">✏️ แก้ไขโค้ดโมดูล</span>
@@ -258,35 +544,37 @@
     </div>
   </div>
 
-  <!-- FLOATING CHAT BUTTON (FAB) พร้อมดึงรูป avatar.png แท้ -->
-  <div class="duii-fab" id="duiiFab" title="เปิดหน้าต่างแชทดุ่ย">
+  <!-- ============================================================================== -->
+  <!-- 7. FLOATING CHAT BUTTON (FAB) คุยกับไอ้ดุ่ย (Chief Officer) -->
+  <!-- ============================================================================== -->
+  <div class="duii-fab" id="duiiFab" title="เปิดห้องบัญชาการไอ้ดุ่ย">
     <img src="avatar.png" class="fab-avatar-img" alt="Duii" onerror="this.style.display='none'; document.getElementById('fabFallbackIcon').style.display='block';">
-    <span id="fabFallbackIcon" style="display:none; font-size:24px;">🤖</span>
+    <span id="fabFallbackIcon" style="display:none; font-size:24px;">👑</span>
     <span class="fab-badge">LIVE</span>
   </div>
 
-  <!-- DUII LIVE CHAT WINDOW (Command Center รวมศูนย์) -->
+  <!-- DUII LIVE CHAT WINDOW (Chief Command Center) -->
   <div class="duii-chat-window hidden" id="duiiChatWindow">
     <div class="chat-header">
       <div class="chat-header-info" style="display:flex; align-items:center; gap:8px;">
         <img src="avatar.png" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" onerror="this.style.display='none'">
         <div>
-          <div style="color:#fff; font-size:0.85rem; font-weight:bold;">ไอ้ดุ่ย Spark Command</div>
-          <div class="chat-status" style="font-size:0.68rem; color:#10b981;">● Gemini 3.x Flash Engine</div>
+          <div style="color:#fff; font-size:0.85rem; font-weight:bold;">👑 ไอ้ดุ่ย (Chief Command)</div>
+          <div class="chat-status" style="font-size:0.68rem; color:#10b981;">● Gemini Pure Function Calling</div>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <!-- ปุ่มเปิด/ปิดกระดาษโน้ต 📝 -->
         <button type="button" class="btn-key" id="btnToggleNote" title="สมุดโน้ตลับ" onclick="toggleNoteDrawer(event)" style="background:#21262d; color:#fff; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer;">📝</button>
         <button type="button" class="btn-key" id="btnSetApiKey" title="ตั้งค่า API Key">🔑</button>
-        <!-- ปุ่มปิด ✖ พร้อม Direct Event Handler ปิดหน้าต่างทันที -->
+        <!-- ปุ่มปิด ✖ -->
         <button type="button" class="chat-close-btn" id="btnChatClose" onclick="closeDuiiChat(event)" style="background:transparent; border:none; color:#f85149; font-weight:bold; cursor:pointer; font-size:22px; padding:0 8px; line-height:1;">✖</button>
       </div>
     </div>
 
     <!-- PINNED NOTE DRAWER (สมุดโน้ต) -->
     <div class="chat-note-drawer" id="chatNoteDrawer" style="display: none; padding:8px; background:#0d1117; border-bottom:1px solid var(--border-color);">
-      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid #30363d; border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API (AIza...)..."></textarea>
+      <textarea id="chatNoteArea" spellcheck="false" style="width:100%; height:90px; background:#161b22; color:#fff; border:1px solid #30363d; border-radius:4px; font-size:0.75rem; padding:6px; box-sizing:border-box;" placeholder="สมุดจดโน้ตลับ/คีย์ API..."></textarea>
       <button type="button" class="btn-action warning" id="btnClearNote" style="padding:2px 8px; font-size:0.7rem; width:100%; margin-top:4px;">ล้างโน้ต</button>
     </div>
 
@@ -294,7 +582,7 @@
       <div class="chat-msg bot duii">
         <div class="msg-bubble">
           <span class="officer-tag" style="color:var(--accent-orange);">👑 ไอ้ดุ่ย (Chief)</span>
-          กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY ISO 9009 มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน สั่งปล่อยแล็บเก็บเกี่ยวโมดูล หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลย!
+          กูคือไอ้ดุ่ย หัวหน้าช่างใหญ่ DUII FACTORY ISO 9009 มึงอยากให้กูสแกนคลัง ประกอบพรีเซ็ตไหน สั่งปล่อยแล็บเก็บเกี่ยวโมดูล หรือสั่งวิเคราะห์โค้ด สั่งมาได้เลยไอ้สัส!
         </div>
       </div>
     </div>
